@@ -125,15 +125,13 @@
     .sidebar {
         width: 285px;
         min-width: 285px;
-        height: 100vh;
+        min-height: 100vh;
         background: #ead8c4;
         border-right: 2px solid #8b5e3c;
         padding: 20px 20px;
         display: flex;
         flex-direction: column;
         color: #6b4328;
-
-        overflow: hidden;
     }
 
 
@@ -164,10 +162,8 @@
 
     .sidebar-subtitle {
         margin-top: 8px;
-
         font-size: 14px;
         font-weight: bold;
-
         color: #76543c;
     }
 
@@ -177,9 +173,7 @@
     .sidebar-user {
         border-top: 1px dashed #9b7658;
         border-bottom: 1px dashed #9b7658;
-
         padding: 20px 5px;
-
         text-align: center;
     }
 
@@ -190,7 +184,6 @@
 
     .sidebar-username {
         margin-top: 5px;
-
         font-size: 17px;
         font-weight: bold;
     }
@@ -201,37 +194,24 @@
     .sidebar-links {
         display: flex;
         flex-direction: column;
-
         gap: 12px;
-
         margin-top: 25px;
     }
 
     .sidebar-link {
         width: 100%;
-
         display: flex;
         align-items: center;
-
         gap: 12px;
-
         padding: 13px 18px;
-
         border-radius: 8px;
-
         border: 1px solid #9b7658;
-
         background: transparent;
-
         color: #6b4328;
-
         text-decoration: none;
-
         font-size: 15px;
         font-weight: bold;
-
         cursor: pointer;
-
         transition: 0.2s;
     }
 
@@ -242,7 +222,6 @@
     .sidebar-link.active {
         background: #8b5e3c;
         color: white;
-
         border-color: #8b5e3c;
     }
 
@@ -259,10 +238,8 @@
     /* Logout */
 
     .sidebar-logout {
-        margin-top: auto;
-
+        margin-top: 24px;
         padding-top: 20px;
-
         border-top: 1px dashed #9b7658;
     }
 
