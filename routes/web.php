@@ -7,6 +7,7 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\POSController;
 use App\Http\Controllers\InventoryItemController;
 use App\Http\Controllers\RecipeItemsController;
+use App\Http\Controllers\FinanceReportController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -54,6 +55,10 @@ Route::post(
 )
     ->middleware('auth')
     ->name('inventory.toggle-active');
+
+Route::get('/finance-report', [FinanceReportController::class, 'index'])
+    ->middleware('auth')
+    ->name('finance-report.index');
 
 Route::get('/recipe-management', [RecipeItemsController::class, 'index'])
     ->name('recipe-management.index');
