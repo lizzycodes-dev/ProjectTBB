@@ -16,6 +16,7 @@ class UnitSeeder extends Seeder
             ['name' => 'Milliliter', 'abbreviation' => 'ml'],
             ['name' => 'Piece', 'abbreviation' => 'pc'],
             ['name' => 'Bottle', 'abbreviation' => 'btl'],
+            ['name' => 'Sack', 'abbreviation' => 'sack'],
         ];
 
         foreach ($units as $unit) {

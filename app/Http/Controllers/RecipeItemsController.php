@@ -22,7 +22,7 @@ class RecipeItemsController extends Controller
             'optionGroups.optionValues',
         ])
             ->orderBy('name')
-            ->get();
+            ->paginate(9);
 
         $inventoryItems = Inventory_Item::with('unit')
             ->where('is_active', true)

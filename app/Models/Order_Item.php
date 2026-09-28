@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\Order;
-use App\Models\Menu_Items;
+use App\Models\Item;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\Order_Item_Options;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -31,7 +31,7 @@ class Order_Item extends Model
     public function menuItem(): BelongsTo
     {
         return $this->belongsTo(
-            Menu_Items::class,
+            Item::class,
             'menu_item_id'
         );
     }

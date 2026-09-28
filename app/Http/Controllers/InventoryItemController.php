@@ -4,8 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Inventory_Item;
-use App\Models\Menu_Items;
-use App\Models\Recipe_Items;
 use Illuminate\Support\Facades\DB;
 use App\Models\Unit;
 use App\Models\Inventory_Stock;
@@ -59,19 +57,6 @@ class InventoryItemController extends Controller
         DB::transaction(function () use ($inventoryItem) {
             $inventoryItem->is_active = !$inventoryItem->is_active;
             $inventoryItem->save();
-
-            // When deactivating stock, make menu items using it unavailable.
-            if (!$inventoryItem->is_active) {
-                $menuItemIds = Recipe_Items::where(
-                    'inventory_item_id',
-                    $inventoryItem->id
-                )
-                    ->distinct()
-                    ->pluck('menu_item_id');
-
-                Menu_Items::whereIn('id', $menuItemIds)
-                    ->update(['is_active' => false]);
-            }
         });
 
         return redirect()
@@ -80,7 +65,7 @@ class InventoryItemController extends Controller
                 'success',
                 $inventoryItem->is_active
                     ? 'Inventory item activated.'
-                    : 'Inventory item deactivated. Related menu items were marked inactive.'
+                    : 'Inventory item deactivated.'
             );
     }
     public function updateUnit(Request $request, Inventory_Item $inventoryItem)
@@ -103,7 +88,7 @@ class InventoryItemController extends Controller
             ->orderBy('name')
             ->get();
 
-        $locations = Inventory_Location::where('is_active', true)
+        $locations = Inventory_Locations::where('is_active', true)
             ->orderBy('name')
             ->get();
 
@@ -144,7 +129,7 @@ class InventoryItemController extends Controller
                 ->withInput();
         }
 
-        $location = Inventory_Location::where('id', $validated['location_id'])
+        $location = Inventory_Locations::where('id', $validated['location_id'])
             ->where('is_active', true)
             ->first();
 

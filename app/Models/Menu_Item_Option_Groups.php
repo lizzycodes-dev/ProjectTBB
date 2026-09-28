@@ -18,7 +18,7 @@ class Menu_Item_Option_Groups extends Model
     public function menuItem(): BelongsTo
     {
         return $this->belongsTo(
-            Menu_Items::class,
+            Item::class,
             'menu_item_id'
         );
     }

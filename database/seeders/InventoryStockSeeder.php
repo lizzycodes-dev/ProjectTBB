@@ -94,16 +94,28 @@ class InventoryStockSeeder extends Seeder
                     );
                 }
 
-                Inventory_Stock::firstOrCreate(
-                    [
-                        'inventory_item_id' => $item->id,
-                        'location_id' => $location->id,
-                    ],
-                    [
-                        'current_quantity' => 0,
-                        'reorder_level' => 0,
-                    ]
-                );
+                $stockData = [
+                    'current_quantity' => $locationName === 'Kitchen Area' ? 100 : 0,
+                    'reorder_level' => 0,
+                ];
+
+                if ($locationName === 'Kitchen Area') {
+                    Inventory_Stock::updateOrCreate(
+                        [
+                            'inventory_item_id' => $item->id,
+                            'location_id' => $location->id,
+                        ],
+                        $stockData
+                    );
+                } else {
+                    Inventory_Stock::firstOrCreate(
+                        [
+                            'inventory_item_id' => $item->id,
+                            'location_id' => $location->id,
+                        ],
+                        $stockData
+                    );
+                }
             }
         }
     }
