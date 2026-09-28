@@ -25,16 +25,16 @@ class DatabaseSeeder extends Seeder
             InventoryItemSeeder::class,
             InventoryStockSeeder::class,
             MenuItemsSeeder::class,
-            RecipeItemsSeeder::class,
+            //RecipeItemsSeeder::class,
             MenuItemOptionGroupsSeeder::class,
-            MenuOptionRecipeAdjustmentsSeeder::class,
+            //MenuOptionRecipeAdjustmentsSeeder::class,
             UserSeeder::class,
             OrderSeeder::class,
             OrderItemSeeder::class,
             KitchenOrderItemSeeder::class,
             PaymentSeeder::class,
             InventoryTransactionsSeeder::class,
-            OrderItemOptionsSeeder::class,
+            //OrderItemOptionsSeeder::class,
         ]);
     }
 }

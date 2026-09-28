@@ -22,7 +22,11 @@ class Option_Values extends Model
 
     public function optionGroup(): BelongsTo
     {
-        return $this->belongsTo(Option_Groups::class);
+        return $this->belongsTo(
+            Option_Groups::class,
+            'option_group_id',
+            'id'
+        );
     }
 
     public function optionRecipeAdjustments(): HasMany
@@ -31,6 +35,10 @@ class Option_Values extends Model
     }
     public function orderItemOptions(): HasMany
     {
-        return $this->hasMany(Order_Item_Options::class);
+        return $this->hasMany(
+            Order_Item_Options::class,
+            'option_value_id',
+            'id'
+        );
     }
 }

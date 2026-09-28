@@ -3,14 +3,16 @@
 namespace Database\Seeders;
 
 use App\Models\Inventory_Item;
+use App\Models\Unit;
 use Illuminate\Database\Seeder;
 
 class InventoryItemSeeder extends Seeder
 {
     public function run(): void
     {
-        // Kitchen Area - Prepped Food
+        $bottle = Unit::where('abbreviation', 'btl')->first();
 
+        // Kitchen Area - Prepped Food
         $kitchenItems = [
             'Pork Sisig',
             'Chicken Sisig',
@@ -45,17 +47,18 @@ class InventoryItemSeeder extends Seeder
             'Coke/Royal/Sprite',
         ];
 
-        foreach ($kitchenItems as $item) {
-            Inventory_Item::create([
-                'unit_id' => null,
-                'name' => $item,
-                'inventory_type' => 'Prepped Food',
-                'is_active' => true,
-            ]);
+        foreach ($kitchenItems as $name) {
+            Inventory_Item::firstOrCreate(
+                ['name' => $name],
+                [
+                    'unit_id' => null,
+                    'inventory_type' => 'Prepped Food',
+                    'is_active' => true,
+                ]
+            );
         }
 
-        // Bar Area - Ingredients
-
+        // Bar Area - Ingredients and beverage supplies
         $barItems = [
             'Vanilla',
             'Caramel',
@@ -77,13 +80,26 @@ class InventoryItemSeeder extends Seeder
             'Puree - Mango',
         ];
 
-        foreach ($barItems as $item) {
-            Inventory_Item::create([
-                'unit_id' => null,
-                'name' => $item,
-                'inventory_type' => 'Ingredient',
-                'is_active' => true,
-            ]);
+        $bottledItems = [
+            'Sauce - Caramel',
+            'Sauce - Chocolate',
+            'Sauce - Condensed Milk',
+            'Puree - Strawberry',
+            'Puree - Blueberry',
+            'Puree - Mango',
+        ];
+
+        foreach ($barItems as $name) {
+            Inventory_Item::firstOrCreate(
+                ['name' => $name],
+                [
+                    'unit_id' => in_array($name, $bottledItems, true)
+                        ? $bottle?->id
+                        : null,
+                    'inventory_type' => 'Ingredient',
+                    'is_active' => true,
+                ]
+            );
         }
     }
 }

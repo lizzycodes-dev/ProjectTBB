@@ -29,7 +29,9 @@ class Option_Groups extends Model
     {
         return $this->belongsToMany(
             Menu_Items::class,
-            'menu_item_option_groups'
+            'menu_item_option_groups',
+            'option_group_id',
+            'menu_item_id'
         )->withPivot('is_required');
     }
 }

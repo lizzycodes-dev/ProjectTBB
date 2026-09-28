@@ -75,7 +75,7 @@
             href="/recipe-management"
             class="sidebar-link {{ request()->is('recipe*') ? 'active' : '' }}">
             <span>→</span>
-            <span>Manage Recipe</span>
+            <span>Manage Menu</span>
         </a>
 
     </div>

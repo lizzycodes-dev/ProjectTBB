@@ -18,13 +18,19 @@ class Order_Item_Options extends Model
     ];
     public function orderItem(): BelongsTo
     {
-        return $this->belongsTo(Order_Item::class);
+        return $this->belongsTo(
+            Order_Item::class,
+            'order_item_id',
+            'id'
+        );
     }
+
     public function optionValue(): BelongsTo
     {
         return $this->belongsTo(
             Option_Values::class,
-            'option_value_id'
+            'option_value_id',
+            'id'
         );
     }
 }

@@ -20,15 +20,16 @@ class Menu_Option_Recipe_Adjustments extends Model
     ];
     public function menuItem(): BelongsTo
     {
-        return $this->belongsTo(Menu_Items::class);
+        return $this->belongsTo(Menu_Items::class, 'menu_item_id');
     }
 
     public function optionValue(): BelongsTo
     {
-        return $this->belongsTo(Option_Values::class);
+        return $this->belongsTo(Option_Values::class, 'option_value_id');
     }
+
     public function inventoryItem(): BelongsTo
     {
-        return $this->belongsTo(Inventory_Item::class);
+        return $this->belongsTo(Inventory_Item::class, 'inventory_item_id');
     }
 }

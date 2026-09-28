@@ -55,12 +55,32 @@ Route::post(
     ->middleware('auth')
     ->name('inventory.toggle-active');
 
+Route::patch('/inventory/{inventoryItem}/unit', [InventoryItemController::class, 'updateUnit'])
+    ->name('inventory.update-unit');
+
+Route::get('/inventory/stock-in', [InventoryItemController::class, 'createStockIn'])
+    ->middleware('auth')
+    ->name('inventory.stock-in');
+
+Route::post('/inventory/stock-in', [InventoryItemController::class, 'storeStockIn'])
+    ->middleware('auth')
+    ->name('inventory.stock-in.store');
+
+Route::patch('/inventory/stocks/{stock}/quantity', [InventoryItemController::class, 'updateStockQuantity'])
+    ->middleware('auth')
+    ->name('inventory.update-stock-quantity');
+
 Route::get('/recipe-management', [RecipeItemsController::class, 'index'])
     ->name('recipe-management.index');
 
 Route::post('/recipe-management', [RecipeItemsController::class, 'store'])
     ->name('recipe-management.store');
 
-
+Route::post(
+    '/recipe-management/adjustments',
+    [RecipeItemsController::class, 'storeAdjustments']
+)
+    ->middleware('auth')
+    ->name('recipe-management.adjustments');
 
 require __DIR__ . '/auth.php';

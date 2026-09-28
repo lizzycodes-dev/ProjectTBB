@@ -9,34 +9,20 @@ class UnitSeeder extends Seeder
 {
     public function run(): void
     {
-        Unit::create([
-            'name' => 'Kilogram',
-            'abbreviation' => 'kg',
-        ]);
+        $units = [
+            ['name' => 'Kilogram', 'abbreviation' => 'kg'],
+            ['name' => 'Gram', 'abbreviation' => 'g'],
+            ['name' => 'Liter', 'abbreviation' => 'L'],
+            ['name' => 'Milliliter', 'abbreviation' => 'ml'],
+            ['name' => 'Piece', 'abbreviation' => 'pc'],
+            ['name' => 'Bottle', 'abbreviation' => 'btl'],
+        ];
 
-        Unit::create([
-            'name' => 'Gram',
-            'abbreviation' => 'g',
-        ]);
-
-        Unit::create([
-            'name' => 'Liter',
-            'abbreviation' => 'L',
-        ]);
-
-        Unit::create([
-            'name' => 'Milliliter',
-            'abbreviation' => 'ml',
-        ]);
-
-        Unit::create([
-            'name' => 'Piece',
-            'abbreviation' => 'pc',
-        ]);
-
-        Unit::create([
-            'name' => 'Bottle',
-            'abbreviation' => 'btl',
-        ]);
+        foreach ($units as $unit) {
+            Unit::updateOrCreate(
+                ['name' => $unit['name']],
+                ['abbreviation' => $unit['abbreviation']]
+            );
+        }
     }
 }

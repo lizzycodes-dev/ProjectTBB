@@ -9,28 +9,33 @@ class CategorySeeder extends Seeder
 {
     public function run(): void
     {
-        Category::create([
-            'name' => 'Coffee',
-            'description' => 'Coffee-based beverages.',
-            'is_active' => true,
-        ]);
+        $categories = [
+            [
+                'name' => 'Coffee',
+                'description' => 'Coffee-based beverages.',
+            ],
+            [
+                'name' => 'Non-Coffee',
+                'description' => 'Non-coffee beverages.',
+            ],
+            [
+                'name' => 'Pastries',
+                'description' => 'Pastries and baked products.',
+            ],
+            [
+                'name' => 'Food',
+                'description' => 'Food and meal items.',
+            ],
+        ];
 
-        Category::create([
-            'name' => 'Non-Coffee',
-            'description' => 'Non-coffee beverages.',
-            'is_active' => true,
-        ]);
-
-        Category::create([
-            'name' => 'Pastries',
-            'description' => 'Pastries and baked products.',
-            'is_active' => true,
-        ]);
-
-        Category::create([
-            'name' => 'Food',
-            'description' => 'Food and meal items.',
-            'is_active' => true,
-        ]);
+        foreach ($categories as $category) {
+            Category::updateOrCreate(
+                ['name' => $category['name']],
+                [
+                    'description' => $category['description'],
+                    'is_active' => true,
+                ]
+            );
+        }
     }
 }

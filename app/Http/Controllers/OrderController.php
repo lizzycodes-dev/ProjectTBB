@@ -14,6 +14,7 @@ use App\Services\InventoryService;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
 {
@@ -54,16 +55,66 @@ class OrderController extends Controller
                 'items.*.notes' => 'nullable|string',
 
                 'items.*.options' => 'nullable|array',
-                'items.*.options.*' => 'exists:option_values,id',
+                'items.*.options.*' => [
+                    'integer',
+                    'distinct',
+                    'exists:option_values,id',
+                ],
 
                 'discount_type' => 'required|in:None,Senior/PWD',
 
                 'payment_method' => 'required|in:Cash,GCash',
                 'amount_received' => 'required_if:payment_method,Cash|numeric|min:0',
-                'reference_number' => 'nullable|string|max:100',
+                'reference_number' => [
+                    'required_if:payment_method,GCash',
+                    'nullable',
+                    'digits:4',
+                ],
                 'proof_path' => 'nullable|string|max:255',
             ]);
             $subtotal = 0;
+            // Confirm each selected option belongs to the menu item's option groups.
+            foreach ($validated['items'] as $itemIndex => $item) {
+                $menuItem = Menu_Items::with('optionGroups.optionValues')
+                    ->findOrFail($item['menu_item_id']);
+
+                $allowedOptions = $menuItem->optionGroups
+                    ->flatMap(function ($group) {
+                        return $group->optionValues
+                            ->where('is_active', true)
+                            ->pluck('id');
+                    });
+
+                $selectedOptions = $item['options'] ?? [];
+
+                foreach ($selectedOptions as $optionId) {
+                    if (!$allowedOptions->contains(
+                        fn($allowedId) => (int) $allowedId === (int) $optionId
+                    )) {
+                        throw ValidationException::withMessages([
+                            "items.$itemIndex.options" =>
+                            "One of the selected options is invalid for {$menuItem->name}.",
+                        ]);
+                    }
+                }
+
+                // Prevent selecting more than one value from the same option group.
+                $selectedGroups = [];
+
+                foreach ($selectedOptions as $optionId) {
+                    $option = Option_Values::findOrFail($optionId);
+                    $groupId = $option->option_group_id;
+
+                    if (in_array($groupId, $selectedGroups, true)) {
+                        throw ValidationException::withMessages([
+                            "items.$itemIndex.options" =>
+                            "Choose only one value for each option group on {$menuItem->name}.",
+                        ]);
+                    }
+
+                    $selectedGroups[] = $groupId;
+                }
+            }
 
             foreach ($validated['items'] as $item) {
 
