@@ -626,52 +626,10 @@
             display: block;
         }
 
-        .pos-pagination {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 6px;
-            margin-top: 24px;
-            margin-bottom: 10px;
-        }
 
-        .pos-pagination a,
-        .pos-pagination span {
-            min-width: 40px;
-            height: 40px;
-            padding: 0 12px;
 
-            display: flex;
-            align-items: center;
-            justify-content: center;
 
-            border: 1px solid #c9aa8c;
-            border-radius: 7px;
 
-            background: #fffaf4;
-            color: #6b4328;
-
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        .pos-pagination a:hover {
-            background: #ead8c4;
-            border-color: #8b5e3c;
-        }
-
-        .pos-pagination .pagination-active {
-            background: #8b5e3c;
-            border-color: #8b5e3c;
-            color: white;
-        }
-
-        .pos-pagination .pagination-disabled {
-            background: #f3e4d2;
-            color: #b9a18c;
-            cursor: default;
-        }
 
         .menu-stock-status {
             display: inline-block;
@@ -701,6 +659,32 @@
             background: #eee9e4;
             color: #75645a;
         }
+
+        .payment-fields { margin-top: 8px; }
+        .payment-fields label { display: block; margin-bottom: 4px; font-size: 12px; font-weight: bold; color: #6b4328; }
+        .payment-fields input { width: 100%; padding: 8px 10px; box-sizing: border-box; border: 1px solid #a97856; border-radius: 6px; background: #fff8f0; color: #4a2f1c; font-size: 14px; }
+        .payment-fields .summary-row { margin-top: 6px; }
+        .place-order { padding: 11px; font-size: 14px; background: #8b5e3c; color: #fff; }
+        .place-order:hover { background: #6b4328; }
+        .receipt-head { text-align: center; margin-bottom: 10px; }
+        .receipt-head h2 { margin: 0; }
+        .receipt-head p { margin: 2px 0 8px; font-size: 12px; color: #8b6a50; }
+        .receipt-meta { margin-bottom: 8px; text-align: center; font-size: 12px; color: #8b6a50; }
+        .receipt-line { display: flex; justify-content: space-between; gap: 12px; margin: 4px 0; font-size: 13px; }
+        .receipt-totals { margin-top: 8px; padding-top: 8px; border-top: 1px solid #a97856; }
+        .receipt-total { font-size: 16px; }
+        .receipt-thanks { margin: 12px 0 0; text-align: center; font-size: 12px; color: #8b6a50; }
+
+        .menu-card.out-of-stock {
+            opacity: 0.55;
+            filter: grayscale(1);
+            cursor: not-allowed;
+        }
+        .menu-card.out-of-stock:hover {
+            transform: none;
+            border-color: #b99173;
+            box-shadow: 0 2px 4px rgba(107, 67, 40, 0.18);
+        }
     </style>
 
     <div class="pos-container">
@@ -713,37 +697,20 @@
                 <button
                     type="button"
                     class="category-tab active"
-                    onclick="filterCategory('All', this)">
+                    data-category="All"
+                    onclick="filterCategory(this.dataset.category, this)">
                     ALL
                 </button>
 
+                @foreach ($categories as $category)
                 <button
                     type="button"
                     class="category-tab"
-                    onclick="filterCategory('Coffee', this)">
-                    COFFEE
+                    data-category="{{ $category->name }}"
+                    onclick="filterCategory(this.dataset.category, this)">
+                    {{ strtoupper($category->name) }}
                 </button>
-
-                <button
-                    type="button"
-                    class="category-tab"
-                    onclick="filterCategory('Non-Coffee', this)">
-                    NON-COFFEE
-                </button>
-
-                <button
-                    type="button"
-                    class="category-tab"
-                    onclick="filterCategory('Pastries', this)">
-                    PASTRIES
-                </button>
-
-                <button
-                    type="button"
-                    class="category-tab"
-                    onclick="filterCategory('Food', this)">
-                    FOOD
-                </button>
+                @endforeach
 
             </div>
 
@@ -777,9 +744,13 @@
                     @endphp
 
                     <div
-                    class="menu-card"
+                    class="menu-card {{ $stockStatus === 'Out of Stock' ? 'out-of-stock' : '' }}"
                     data-category="{{ $menuItem->category->name }}"
-                    onclick="this.querySelector('.add-to-cart').click()">
+                    @if ($stockStatus !== 'Out of Stock')
+                    onclick="this.querySelector('.add-to-cart').click()"
+                    @else
+                    title="Out of stock"
+                    @endif>
 
                     <div class="menu-card-photo">
                         <img
@@ -811,7 +782,8 @@
                         data-id="{{ $menuItem->id }}"
                         data-name="{{ $menuItem->name }}"
                         data-price="{{ $menuItem->base_price }}"
-                        data-options='@json($menuItem->optionGroups)'>
+                        data-options='@json($menuItem->optionGroups)'
+                        {{ $stockStatus === 'Out of Stock' ? 'disabled' : '' }}>
                         Add to Order
                     </button>
 
@@ -820,44 +792,17 @@
             @endforeach
 
     </div>
-    @if ($menuItems->hasPages())
-    <div class="pos-pagination">
-
-        @if ($menuItems->onFirstPage())
-        <span class="pagination-disabled">←</span>
-        @else
-        <a href="{{ $menuItems->previousPageUrl() }}">←</a>
-        @endif
-
-        @foreach ($menuItems->getUrlRange(1, $menuItems->lastPage()) as $page => $url)
-
-        @if ($page == $menuItems->currentPage())
-        <span class="pagination-active">
-            {{ $page }}
-        </span>
-        @else
-        <a href="{{ $url }}">
-            {{ $page }}
-        </a>
-        @endif
-
-        @endforeach
-
-        @if ($menuItems->hasMorePages())
-        <a href="{{ $menuItems->nextPageUrl() }}">→</a>
-        @else
-        <span class="pagination-disabled">→</span>
-        @endif
-
-    </div>
-    @endif
-
     </section>
 
     <!-- CART -->
     <section class="cart-section">
 
         <h2>Current Order</h2>
+
+        <div class="discount-buttons">
+            <button type="button" id="dineInButton" class="discount-button active" onclick="selectOrderType('Dine-in')">Dine-in</button>
+            <button type="button" id="takeoutButton" class="discount-button" onclick="selectOrderType('Takeout')">Takeout</button>
+        </div>
 
         <div
             class="cart-items"
@@ -903,11 +848,27 @@
                 <span>Total</span>
                 <span id="total">₱0.00</span>
             </div>
-            <button
-                type="button"
-                class="checkout-button"
-                onclick="openCheckoutModal()">
-                Checkout
+            <div class="discount-buttons">
+                <button type="button" id="cashButton" class="discount-button active" onclick="selectPayment('Cash')">Cash</button>
+                <button type="button" id="gcashButton" class="discount-button" onclick="selectPayment('GCash')">GCash</button>
+            </div>
+
+            <div id="cashPaymentFields" class="payment-fields">
+                <label for="amountReceived">Amount Received</label>
+                <input type="number" id="amountReceived" min="0" step="0.01" placeholder="₱0.00">
+                <div class="summary-row">
+                    <span>Change</span>
+                    <span id="changeAmount">₱0.00</span>
+                </div>
+            </div>
+
+            <div id="gcashPaymentFields" class="payment-fields" style="display: none;">
+                <label for="gcashReference">GCash Reference Number</label>
+                <input type="text" id="gcashReference" maxlength="4" inputmode="numeric" placeholder="4-digit reference number">
+            </div>
+
+            <button type="button" class="checkout-button place-order" onclick="placeOrder()">
+                Place Order
             </button>
 
         </div>
@@ -942,181 +903,21 @@
         </div>
 
     </div>
-    <div id="checkoutModal" class="option-modal">
-
+    <div id="receiptModal" class="option-modal">
         <div class="option-modal-content">
-
-            <h2>Checkout</h2>
-
-            <div style="margin-bottom: 20px;">
-
-                <div style="
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 8px;
-            ">
-                    <span>Subtotal</span>
-                    <strong id="checkoutSubtotal">
-                        ₱0.00
-                    </strong>
-                </div>
-
-                <div style="
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 8px;
-            ">
-                    <span>Discount</span>
-                    <strong id="checkoutDiscount">
-                        ₱0.00
-                    </strong>
-                </div>
-
-                <div style="
-                display: flex;
-                justify-content: space-between;
-                font-size: 20px;
-                border-top: 1px solid #ddd;
-                padding-top: 10px;
-            ">
-                    <strong>Total</strong>
-                    <strong id="checkoutTotal">
-                        ₱0.00
-                    </strong>
-                </div>
-
-            </div>
-
-
-            <div class="option-group">
-
-                <h3>Order Type</h3>
-
-                <label class="option-choice">
-                    <input
-                        type="radio"
-                        name="order_type"
-                        value="Dine-in"
-                        checked>
-                    Dine-in
-                </label>
-
-                <label class="option-choice">
-                    <input
-                        type="radio"
-                        name="order_type"
-                        value="Takeout">
-                    Takeout
-                </label>
-
-            </div>
-
-
-            <div class="option-group">
-
-                <h3>Payment Method</h3>
-
-                <label class="option-choice">
-                    <input
-                        type="radio"
-                        name="payment_method"
-                        value="Cash"
-                        checked>
-                    Cash
-                </label>
-
-                <label class="option-choice">
-                    <input
-                        type="radio"
-                        name="payment_method"
-                        value="GCash">
-                    GCash
-                </label>
-
-            </div>
-
-
-            <div id="cashPaymentFields">
-
-                <label>
-                    Amount Received
-                </label>
-
-                <input
-                    type="number"
-                    id="amountReceived"
-                    min="0"
-                    step="0.01"
-                    placeholder="₱0.00"
-                    style="
-                    width: 100%;
-                    padding: 10px;
-                    margin-top: 5px;
-                    margin-bottom: 10px;
-                    box-sizing: border-box;
-                ">
-
-                <div style="
-                display: flex;
-                justify-content: space-between;
-            ">
-                    <span>Change</span>
-
-                    <strong id="changeAmount">
-                        ₱0.00
-                    </strong>
-                </div>
-
-            </div>
-
-
-            <div
-                id="gcashPaymentFields"
-                style="display: none;">
-
-                <label>
-                    GCash Reference Number
-                </label>
-
-                <input
-                    type="text"
-                    id="gcashReference"
-                    maxlength="4"
-                    placeholder="4-digit reference number"
-                    style="
-                    width: 100%;
-                    padding: 10px;
-                    margin-top: 5px;
-                    box-sizing: border-box;
-                ">
-
-            </div>
-
-
+            <div id="receiptBody"></div>
             <div class="option-modal-actions">
-
-                <button
-                    type="button"
-                    onclick="closeCheckoutModal()">
-                    Cancel
-                </button>
-
-                <button
-                    type="button"
-                    onclick="placeOrder()">
-                    Place Order
-                </button>
-
+                <button type="button" onclick="closeReceipt()">Done</button>
             </div>
-
         </div>
-
     </div>
     <script>
         let cart = [];
         let selectedMenuItem = null;
 
         let discountType = 'None';
+        let orderType = 'Dine-in';
+        let paymentMethod = 'Cash';
         const DISCOUNT_RATE = 0.20;
 
         document.querySelectorAll('.add-to-cart').forEach(button => {
@@ -1204,6 +1005,8 @@
 
                 document.getElementById('total').textContent =
                     '₱0.00';
+
+                updateChange();
 
                 return;
             }
@@ -1309,6 +1112,8 @@
 
             document.getElementById('total').textContent =
                 `₱${total.toFixed(2)}`;
+
+            updateChange();
         }
 
         function increaseQuantity(index) {
@@ -1481,158 +1286,84 @@
             renderCart();
         }
 
-        function openCheckoutModal() {
-
-            if (cart.length === 0) {
-
-                alert('Please add an item to the order.');
-
-                return;
-            }
-
-            const subtotal = cart.reduce(
-                (total, item) =>
-                total + (item.price * item.quantity),
-                0
-            );
-
-            let discountAmount = 0;
-
-            if (discountType === 'Senior/PWD') {
-
-                discountAmount =
-                    subtotal * DISCOUNT_RATE;
-
-            }
-
-            const total =
-                subtotal - discountAmount;
-
-            document.getElementById(
-                    'checkoutSubtotal'
-                ).textContent =
-                `₱${subtotal.toFixed(2)}`;
-
-            document.getElementById(
-                    'checkoutDiscount'
-                ).textContent =
-                `₱${discountAmount.toFixed(2)}`;
-
-            document.getElementById(
-                    'checkoutTotal'
-                ).textContent =
-                `₱${total.toFixed(2)}`;
-
-
-            // Reset payment fields
-
-            document.getElementById(
-                'amountReceived'
-            ).value = '';
-
-            document.getElementById(
-                'changeAmount'
-            ).textContent = '₱0.00';
-
-            document.getElementById(
-                'gcashReference'
-            ).value = '';
-
-
-            // Default to Cash
-
-            document.querySelector(
-                'input[name="payment_method"][value="Cash"]'
-            ).checked = true;
-
-            document.getElementById(
-                'cashPaymentFields'
-            ).style.display = 'block';
-
-            document.getElementById(
-                'gcashPaymentFields'
-            ).style.display = 'none';
-
-
-            document.getElementById(
-                'checkoutModal'
-            ).style.display = 'flex';
+        function selectOrderType(type) {
+            orderType = type;
+            document.getElementById('dineInButton').classList.toggle('active', type === 'Dine-in');
+            document.getElementById('takeoutButton').classList.toggle('active', type === 'Takeout');
         }
 
-        document
-            .querySelectorAll('input[name="payment_method"]')
-            .forEach(radio => {
+        function selectPayment(method) {
+            paymentMethod = method;
+            document.getElementById('cashButton').classList.toggle('active', method === 'Cash');
+            document.getElementById('gcashButton').classList.toggle('active', method === 'GCash');
+            document.getElementById('cashPaymentFields').style.display = method === 'Cash' ? 'block' : 'none';
+            document.getElementById('gcashPaymentFields').style.display = method === 'GCash' ? 'block' : 'none';
+        }
 
-                radio.addEventListener('change', function() {
+        function getTotals() {
+            const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+            const discountAmount = discountType === 'Senior/PWD' ?
+                Math.round(subtotal * DISCOUNT_RATE * 100) / 100 : 0;
+            return {
+                subtotal: subtotal,
+                discountAmount: discountAmount,
+                total: Math.round((subtotal - discountAmount) * 100) / 100
+            };
+        }
 
-                    const cashFields =
-                        document.getElementById(
-                            'cashPaymentFields'
-                        );
+        function updateChange() {
+            const received = parseFloat(document.getElementById('amountReceived').value) || 0;
+            const change = Math.max(received - getTotals().total, 0);
+            document.getElementById('changeAmount').textContent = '₱' + change.toFixed(2);
+        }
 
-                    const gcashFields =
-                        document.getElementById(
-                            'gcashPaymentFields'
-                        );
+        document.getElementById('amountReceived').addEventListener('input', updateChange);
 
-                    if (this.value === 'Cash') {
+        function esc(value) {
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
+            return String(value).replace(/[&<>"]/g, ch => map[ch]);
+        }
 
-                        cashFields.style.display = 'block';
-                        gcashFields.style.display = 'none';
+        function showReceipt(r) {
+            const money = n => '₱' + n.toFixed(2);
 
-                    } else {
+            const lines = r.items.map(item => `
+                <div class="receipt-line">
+                    <span>${item.quantity}× ${esc(item.name)}${item.options ? ' (' + esc(item.options) + ')' : ''}</span>
+                    <span>${money(item.price * item.quantity)}</span>
+                </div>
+            `).join('');
 
-                        cashFields.style.display = 'none';
-                        gcashFields.style.display = 'block';
+            const discountLine = r.discount > 0 ?
+                `<div class="receipt-line"><span>Discount (Senior/PWD)</span><span>−${money(r.discount)}</span></div>` : '';
 
-                    }
+            const cashLines = r.payment === 'Cash' ?
+                `<div class="receipt-line"><span>Cash</span><span>${money(r.received)}</span></div>
+                 <div class="receipt-line"><span>Change</span><span>${money(r.received - r.total)}</span></div>` : '';
 
-                });
+            document.getElementById('receiptBody').innerHTML = `
+                <div class="receipt-head">
+                    <h2>The Brewing Bar</h2>
+                    <p>Gravahan, New Matina, Davao City</p>
+                    <div class="receipt-line"><strong>Queue #${esc(r.queue)}</strong><strong>${esc(r.orderType)}</strong></div>
+                </div>
+                <div class="receipt-meta">${esc(r.orderNumber)} · ${new Date().toLocaleString('en-PH')}</div>
+                ${lines}
+                <div class="receipt-totals">
+                    <div class="receipt-line"><span>Subtotal</span><span>${money(r.subtotal)}</span></div>
+                    ${discountLine}
+                    <div class="receipt-line receipt-total"><strong>TOTAL</strong><strong>${money(r.total)}</strong></div>
+                    <div class="receipt-line"><span>Payment</span><span>${esc(r.payment)}</span></div>
+                    ${cashLines}
+                </div>
+                <p class="receipt-thanks">Thank you for visiting!</p>
+            `;
 
-            });
+            document.getElementById('receiptModal').style.display = 'flex';
+        }
 
-
-        document
-            .getElementById('amountReceived')
-            .addEventListener('input', function() {
-
-                const subtotal =
-                    cart.reduce(
-                        (total, item) =>
-                        total + (item.price * item.quantity),
-                        0
-                    );
-
-                let discountAmount = 0;
-
-                if (discountType === 'Senior/PWD') {
-
-                    discountAmount =
-                        subtotal * DISCOUNT_RATE;
-
-                }
-
-                const total =
-                    subtotal - discountAmount;
-
-                const received =
-                    parseFloat(this.value) || 0;
-
-                const change =
-                    received - total;
-
-                document.getElementById(
-                        'changeAmount'
-                    ).textContent =
-                    `₱${Math.max(change, 0).toFixed(2)}`;
-
-            });
-
-        function closeCheckoutModal() {
-
-            document.getElementById(
-                'checkoutModal'
-            ).style.display = 'none';
+        function closeReceipt() {
+            document.getElementById('receiptModal').style.display = 'none';
         }
 
         async function placeOrder() {
@@ -1642,163 +1373,90 @@
                 return;
             }
 
-            const orderType =
-                document.querySelector(
-                    'input[name="order_type"]:checked'
-                ).value;
-
-            const paymentMethod =
-                document.querySelector(
-                    'input[name="payment_method"]:checked'
-                ).value;
-
+            const totals = getTotals();
+            const gcashReference = document.getElementById('gcashReference').value.trim();
             let amountReceived = 0;
 
             if (paymentMethod === 'Cash') {
-                amountReceived =
-                    parseFloat(
-                        document.getElementById(
-                            'amountReceived'
-                        ).value
-                    ) || 0;
-            }
 
-            const gcashReference =
-                document.getElementById(
-                    'gcashReference'
-                ).value.trim();
+                amountReceived = parseFloat(document.getElementById('amountReceived').value) || 0;
 
-            const subtotal = cart.reduce(
-                (total, item) =>
-                total + (item.price * item.quantity),
-                0
-            );
-
-            let discountAmount = 0;
-
-            if (discountType === 'Senior/PWD') {
-                discountAmount = subtotal * DISCOUNT_RATE;
-            }
-
-            const totalAmount = subtotal - discountAmount;
-
-            // Cash validation
-            if (paymentMethod === 'Cash') {
-
-                if (amountReceived < total) {
-
-                    alert(
-                        'Amount received is not enough.'
-                    );
-
+                if (amountReceived < totals.total) {
+                    alert('Amount received is not enough.');
                     return;
                 }
 
+            } else if (!/^\d{4}$/.test(gcashReference)) {
+
+                alert('GCash reference number must be exactly 4 digits.');
+                return;
             }
 
-
-            // GCash validation
-            if (paymentMethod === 'GCash') {
-
-                if (!/^\d{4}$/.test(gcashReference)) {
-
-                    alert(
-                        'GCash reference number must be exactly 4 digits.'
-                    );
-
-                    return;
-                }
-
-            }
-
-
-            const items = cart.map(item => ({
-                menu_item_id: item.id,
+            const receiptItems = cart.map(item => ({
+                name: item.name,
                 quantity: item.quantity,
-                notes: null,
-                options: item.options ?
-                    item.options.map(option => option.id) : []
+                price: item.price,
+                options: item.options ? item.options.map(option => option.name).join(' • ') : ''
             }));
 
-
             const data = {
-
                 order_type: orderType,
-
-                items: items,
-
+                items: cart.map(item => ({
+                    menu_item_id: item.id,
+                    quantity: item.quantity,
+                    notes: null,
+                    options: item.options ? item.options.map(option => option.id) : []
+                })),
                 discount_type: discountType,
-
-                discount_amount: discountAmount,
-
+                discount_amount: totals.discountAmount,
                 payment_method: paymentMethod,
-
                 amount_received: amountReceived,
-
-                reference_number: paymentMethod === 'GCash' ?
-                    gcashReference : null,
-
+                reference_number: paymentMethod === 'GCash' ? gcashReference : null,
                 proof_path: null
-
             };
-
 
             try {
 
-                const response = await fetch(
-                    '/orders', {
-                        method: 'POST',
+                const response = await fetch('/orders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify(data)
+                });
 
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json',
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                        },
-
-                        body: JSON.stringify(data)
-                    }
-                );
-
-
-                const result =
-                    await response.json();
-
+                const result = await response.json();
 
                 if (!response.ok) {
-
                     console.error(result);
-
-                    alert(
-                        result.message ||
-                        'Failed to create order.'
-                    );
-
+                    alert(result.message || 'Failed to create order.');
                     return;
                 }
 
-
-                alert(
-                    `Order ${result.order.order_number} created successfully.`
-                );
-
+                showReceipt({
+                    queue: result.queue_number ?? '-',
+                    orderNumber: result.order.order_number,
+                    orderType: orderType,
+                    items: receiptItems,
+                    subtotal: totals.subtotal,
+                    discount: totals.discountAmount,
+                    total: totals.total,
+                    payment: paymentMethod,
+                    received: amountReceived
+                });
 
                 cart = [];
-
+                document.getElementById('amountReceived').value = '';
+                document.getElementById('gcashReference').value = '';
                 renderCart();
-
-                closeCheckoutModal();
-
 
             } catch (error) {
 
                 console.error(error);
-
-                alert(
-                    'Something went wrong while creating the order.'
-                );
-
+                alert('Something went wrong while creating the order.');
             }
-
         }
 
         function selectDiscount(type) {
