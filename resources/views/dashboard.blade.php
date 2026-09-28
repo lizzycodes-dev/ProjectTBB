@@ -9,29 +9,17 @@
                 <h1>Manager Overview</h1>
 
                 <p>
-                    Month, Date, Year &nbsp;|&nbsp; Daily Summary
+                    {{ now()->format('F j, Y') }} &nbsp;|&nbsp; Daily Summary
                 </p>
-            </div>
-
-            <div class="dashboard-actions">
-
-                <button type="button">
-                    Transaction Logs
-                </button>
-
-                <button type="button">
-                    Daily Summary
-                </button>
-
             </div>
 
         </div>
 
 
-        {{-- Summary Cards --}}
-        <div class="summary-grid">
+        {{-- Overview Grid: summary cards, low-stock, best-selling, inventory --}}
+        <div class="overview-grid">
 
-            <div class="summary-card">
+            <div class="summary-card g-c1-r1">
 
                 <div class="card-title">
                     Daily Revenue
@@ -44,7 +32,7 @@
             </div>
 
 
-            <div class="summary-card">
+            <div class="summary-card g-c2-r1">
 
                 <div class="card-title">
                     Cash Sales
@@ -57,7 +45,7 @@
             </div>
 
 
-            <div class="summary-card">
+            <div class="summary-card g-c3-r1">
 
                 <div class="card-title">
                     GCash Sales
@@ -70,7 +58,7 @@
             </div>
 
 
-            <div class="summary-card">
+            <div class="summary-card g-c1-r2">
 
                 <div class="card-title">
                     Discounts Given
@@ -83,7 +71,7 @@
             </div>
 
 
-            <div class="summary-card">
+            <div class="summary-card g-c2-r2">
 
                 <div class="card-title">
                     Avg. Order Value
@@ -134,14 +122,9 @@
 
             </div>
 
-        </div>
-
-
-        {{-- Middle Section --}}
-        <div class="middle-grid">
 
             {{-- Best Selling --}}
-            <div class="dashboard-panel">
+            <div class="dashboard-panel g-c1-r3">
 
                 <div class="panel-title">
                     Best-Selling Items
@@ -174,38 +157,38 @@
 
             @endfor
 
-        </div>
-
-
-        {{-- Current Inventory --}}
-        <div class="dashboard-panel">
-
-            <div class="panel-title">
-                Current Inventory
             </div>
 
 
-            @for ($i = 1; $i <= 5; $i++)
+            {{-- Current Inventory --}}
+            <div class="dashboard-panel g-c2-r3">
 
-                <div class="inventory-row">
-
-                <div>
-                    <strong>
-                        Product Name
-                    </strong>
+                <div class="panel-title">
+                    Current Inventory
                 </div>
 
-                <span>
-                    0 g
-                </span>
+
+                @for ($i = 1; $i <= 5; $i++)
+
+                    <div class="inventory-row">
+
+                    <div>
+                        <strong>
+                            Product Name
+                        </strong>
+                    </div>
+
+                    <span>
+                        0 g
+                    </span>
+
+                </div>
+
+                @endfor
+
+            </div>
 
         </div>
-
-        @endfor
-
-    </div>
-
-    </div>
 
 
     {{-- Daily Sales --}}
@@ -324,52 +307,31 @@
         }
 
 
-        .dashboard-actions {
-            display: flex;
-            gap: 12px;
-        }
-
-
-        .dashboard-actions button {
-            min-width: 175px;
-
-            padding: 7px 18px;
-
-            border: 1px solid #9b7658;
-            border-radius: 7px;
-
-            background: transparent;
-
-            color: #6b4328;
-
-            font-family: Georgia, serif;
-            font-size: 12px;
-            font-weight: bold;
-            font-style: italic;
-
-            cursor: pointer;
-        }
-
-
-        .dashboard-actions button:hover {
-            background: #ead8c4;
-        }
-
-
         /* =========================
            SUMMARY
         ========================= */
 
-        .summary-grid {
+        .overview-grid {
             display: grid;
 
             grid-template-columns:
                 repeat(3, minmax(0, 1fr));
 
+            grid-template-rows: auto auto 1fr;
+
             gap: 14px;
 
             margin-bottom: 14px;
         }
+
+
+        .g-c1-r1 { grid-column: 1; grid-row: 1; }
+        .g-c2-r1 { grid-column: 2; grid-row: 1; }
+        .g-c3-r1 { grid-column: 3; grid-row: 1; }
+        .g-c1-r2 { grid-column: 1; grid-row: 2; }
+        .g-c2-r2 { grid-column: 2; grid-row: 2; }
+        .g-c1-r3 { grid-column: 1; grid-row: 3; }
+        .g-c2-r3 { grid-column: 2; grid-row: 3; }
 
 
         .summary-card {
@@ -504,22 +466,8 @@
 
 
         /* =========================
-           MIDDLE
+           TABLE / INVENTORY
         ========================= */
-
-        .middle-grid {
-            display: grid;
-
-            grid-template-columns:
-                minmax(0, 1fr) minmax(0, 1fr);
-
-            gap: 14px;
-
-            margin-bottom: 14px;
-
-            padding-right: calc((100% - 28px) / 3 + 7px);
-        }
-
 
         .table-header,
         .table-row {
@@ -674,18 +622,21 @@
 
         @media (max-width: 1000px) {
 
-            .summary-grid {
+            .overview-grid {
                 grid-template-columns:
                     repeat(2, minmax(0, 1fr));
+            }
+
+            .g-c1-r1, .g-c2-r1, .g-c3-r1,
+            .g-c1-r2, .g-c2-r2,
+            .g-c1-r3, .g-c2-r3 {
+                grid-column: auto;
+                grid-row: auto;
             }
 
             .low-stock-panel {
                 grid-column: auto;
                 grid-row: auto;
-            }
-
-            .middle-grid {
-                padding-right: 0;
             }
 
         }
@@ -702,17 +653,7 @@
                 flex-direction: column;
             }
 
-            .dashboard-actions {
-                width: 100%;
-            }
-
-            .dashboard-actions button {
-                flex: 1;
-                min-width: 0;
-            }
-
-            .summary-grid,
-            .middle-grid {
+            .overview-grid {
                 grid-template-columns: 1fr;
             }
 

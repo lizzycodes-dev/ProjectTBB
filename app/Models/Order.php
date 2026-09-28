@@ -26,6 +26,11 @@ class Order extends Model
         'ordered_at',
         'completed_at',
     ];
+
+    protected $casts = [
+        'ordered_at' => 'datetime',
+        'completed_at' => 'datetime',
+    ];
     public function cashier(): BelongsTo
     {
         return $this->belongsTo(User::class, 'cashier_id');
