@@ -89,7 +89,7 @@ class OrderController extends Controller
 
             if ($validated['discount_type'] === 'Senior/PWD') {
 
-                $discountAmount = $subtotal * 0.20;
+                $discountAmount = round($subtotal * 0.20, 2);
             }
 
             $totalAmount = $subtotal - $discountAmount;
@@ -199,9 +199,15 @@ class OrderController extends Controller
                 $cashier
             );
 
+            // Daily queue number: #101 for the first order of the day, then 102, 103...
+            $queueNumber = 100 + Order::whereDate('ordered_at', now()->toDateString())
+                ->where('id', '<=', $order->id)
+                ->count();
+
             return response()->json([
                 'message' => 'Order created successfully.',
                 'order' => $order,
+                'queue_number' => $queueNumber,
             ], 201);
         });
     }
