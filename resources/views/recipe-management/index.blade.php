@@ -396,10 +396,13 @@
                             </tr>
                             @endforelse
                         </tbody>
+
                     </table>
                 </div>
             </div>
-
+            <div class="mt-4">
+                {{ $menuItems->links() }}
+            </div>
         </div>
     </div>
 

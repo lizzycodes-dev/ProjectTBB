@@ -4,17 +4,19 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use Illuminate\Http\Request;
-use App\Models\Menu_Items;
+use App\Models\Item;
 use App\Models\Option_Values;
 use App\Models\Order_Item;
 use App\Models\Order_Item_Options;
 use App\Models\Kitchen_Order_Item;
 use App\Models\Payment;
-use App\Services\InventoryService;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use App\Models\Inventory_Stock;
+use App\Models\Inventory_Transactions;
+use App\Models\Inventory_Locations;
 
 class OrderController extends Controller
 {
@@ -37,11 +39,11 @@ class OrderController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request, InventoryService $inventoryService)
+    public function store(Request $request)
     {
         $cashier = auth()->user();
 
-        return DB::transaction(function () use ($request, $inventoryService, $cashier) {
+        return DB::transaction(function () use ($request, $cashier) {
             $validated = $request->validate([
                 'cashier_id' => 'nullable|exists:users,id',
                 'order_type' => 'required|string|max:50',
@@ -49,7 +51,9 @@ class OrderController extends Controller
 
                 'items.*.menu_item_id' => [
                     'required',
-                    Rule::exists('menu_items', 'id')->where('is_active', true),
+                    Rule::exists('inventory_items', 'id')
+                        ->where('is_active', true)
+                        ->where('is_sellable', true),
                 ],
                 'items.*.quantity' => 'required|integer|min:1',
                 'items.*.notes' => 'nullable|string',
@@ -75,7 +79,7 @@ class OrderController extends Controller
             $subtotal = 0;
             // Confirm each selected option belongs to the menu item's option groups.
             foreach ($validated['items'] as $itemIndex => $item) {
-                $menuItem = Menu_Items::with('optionGroups.optionValues')
+                $menuItem = Item::with('optionGroups.optionValues')
                     ->findOrFail($item['menu_item_id']);
 
                 $allowedOptions = $menuItem->optionGroups
@@ -118,7 +122,7 @@ class OrderController extends Controller
 
             foreach ($validated['items'] as $item) {
 
-                $menuItem = Menu_Items::findOrFail(
+                $menuItem = Item::findOrFail(
                     $item['menu_item_id']
                 );
 
@@ -186,7 +190,7 @@ class OrderController extends Controller
             ]);
             foreach ($validated['items'] as $item) {
 
-                $menuItem = Menu_Items::findOrFail(
+                $menuItem = Item::findOrFail(
                     $item['menu_item_id']
                 );
 
@@ -209,6 +213,57 @@ class OrderController extends Controller
                     'subtotal' => $itemPrice * $item['quantity'],
                     'notes' => $item['notes'] ?? null,
                 ]);
+
+                // Deduct prepared-food stock for the matching kitchen item.
+                $kitchenItemMap = [
+                    'Bake Mac' => 'Baked Mac',
+                    'Bihon Guisado' => 'Bihon',
+                    'French Fries' => 'Fries',
+                    'Mozzarella Cheese Stick' => 'Mozzarella',
+                ];
+
+                $menuName = $menuItem->menu_name;
+                $stockItemName = $kitchenItemMap[$menuName] ?? $menuName;
+
+                $kitchen = Inventory_Locations::where('name', 'Kitchen Area')->first();
+
+                $stockItem = Item::where('name', $stockItemName)
+                    ->where('inventory_type', 'Prepped Food')
+                    ->first();
+
+                if ($stockItem) {
+                    $stock = Inventory_Stock::where('inventory_item_id', $stockItem->id)
+                        ->where('location_id', $kitchen->id)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (! $stock) {
+                        throw ValidationException::withMessages([
+                            'items' => "No Kitchen Area stock record found for {$stockItemName}.",
+                        ]);
+                    }
+
+                    if ($stock->current_quantity < $item['quantity']) {
+                        throw ValidationException::withMessages([
+                            'items' => "Not enough {$stockItemName} in Kitchen Area.",
+                        ]);
+                    }
+
+                    $stock->decrement('current_quantity', $item['quantity']);
+
+                    Inventory_Transactions::create([
+                        'inventory_stock_id' => $stock->id,
+                        'supplier_id' => null,
+                        'recorded_by' => $cashier->id,
+                        'transaction_type' => 'Sale',
+                        'quantity' => $item['quantity'],
+                        'unit_cost' => null,
+                        'reference_type' => Order::class,
+                        'reference_id' => $order->id,
+                        'reason' => "Sold via POS: {$menuName}",
+                        'transaction_date' => now(),
+                    ]);
+                }
 
                 if (!empty($item['options'])) {
 
@@ -244,11 +299,6 @@ class OrderController extends Controller
                 'proof_path' => $validated['proof_path'] ?? null,
                 'paid_at' => now(),
             ]);
-
-            $inventoryService->deductForOrder(
-                $order->load('orderItems.menuItem.recipeItems', 'orderItems.options'),
-                $cashier
-            );
 
             // Daily queue number: #101 for the first order of the day, then 102, 103...
             $queueNumber = 100 + Order::whereDate('ordered_at', now()->toDateString())

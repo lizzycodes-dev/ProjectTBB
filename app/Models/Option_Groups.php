@@ -4,9 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Models\Option_Values;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use App\Models\Menu_Items;
 
 class Option_Groups extends Model
 {
@@ -25,10 +23,11 @@ class Option_Groups extends Model
             'id'
         );
     }
+
     public function menuItems(): BelongsToMany
     {
         return $this->belongsToMany(
-            Menu_Items::class,
+            Item::class,
             'menu_item_option_groups',
             'option_group_id',
             'menu_item_id'

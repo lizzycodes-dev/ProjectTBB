@@ -6,7 +6,6 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\POSController;
 use App\Http\Controllers\InventoryItemController;
-use App\Http\Controllers\RecipeItemsController;
 use App\Http\Controllers\FinanceReportController;
 
 Route::get('/', function () {
@@ -56,7 +55,6 @@ Route::post(
     ->middleware('auth')
     ->name('inventory.toggle-active');
 
-<<<<<<< HEAD
 Route::patch('/inventory/{inventoryItem}/unit', [InventoryItemController::class, 'updateUnit'])
     ->name('inventory.update-unit');
 
@@ -71,23 +69,10 @@ Route::post('/inventory/stock-in', [InventoryItemController::class, 'storeStockI
 Route::patch('/inventory/stocks/{stock}/quantity', [InventoryItemController::class, 'updateStockQuantity'])
     ->middleware('auth')
     ->name('inventory.update-stock-quantity');
-=======
 Route::get('/finance-report', [FinanceReportController::class, 'index'])
     ->middleware('auth')
     ->name('finance-report.index');
->>>>>>> 79f85b0b6819a25456a32dbfe336cd9b0ca8649b
 
-Route::get('/recipe-management', [RecipeItemsController::class, 'index'])
-    ->name('recipe-management.index');
 
-Route::post('/recipe-management', [RecipeItemsController::class, 'store'])
-    ->name('recipe-management.store');
-
-Route::post(
-    '/recipe-management/adjustments',
-    [RecipeItemsController::class, 'storeAdjustments']
-)
-    ->middleware('auth')
-    ->name('recipe-management.adjustments');
 
 require __DIR__ . '/auth.php';

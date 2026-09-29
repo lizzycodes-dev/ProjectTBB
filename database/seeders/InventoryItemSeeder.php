@@ -11,6 +11,7 @@ class InventoryItemSeeder extends Seeder
     public function run(): void
     {
         $bottle = Unit::where('abbreviation', 'btl')->first();
+        $sack = Unit::where('abbreviation', 'sack')->first();
 
         // Kitchen Area - Prepped Food
         $kitchenItems = [
@@ -48,7 +49,7 @@ class InventoryItemSeeder extends Seeder
         ];
 
         foreach ($kitchenItems as $name) {
-            Inventory_Item::firstOrCreate(
+            Inventory_Item::updateOrCreate(
                 ['name' => $name],
                 [
                     'unit_id' => null,
@@ -90,12 +91,14 @@ class InventoryItemSeeder extends Seeder
         ];
 
         foreach ($barItems as $name) {
-            Inventory_Item::firstOrCreate(
+            $unitId = in_array($name, $bottledItems, true)
+                ? $bottle?->id
+                : $sack?->id;
+
+            Inventory_Item::updateOrCreate(
                 ['name' => $name],
                 [
-                    'unit_id' => in_array($name, $bottledItems, true)
-                        ? $bottle?->id
-                        : null,
+                    'unit_id' => $unitId,
                     'inventory_type' => 'Ingredient',
                     'is_active' => true,
                 ]

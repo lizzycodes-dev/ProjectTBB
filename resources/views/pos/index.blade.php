@@ -309,8 +309,39 @@
         }
 
         /* Hide Add to Order button */
-        .menu-card button {
-            display: none;
+        .menu-card .add-to-cart {
+            display: block;
+            width: 100%;
+            margin-top: 12px;
+            padding: 10px 14px;
+
+            background: #6f4e37;
+            color: #ffffff;
+
+            border: none;
+            border-radius: 8px;
+
+            font-size: 14px;
+            font-weight: 600;
+
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .menu-card .add-to-cart:hover {
+            background: #563b2a;
+            transform: translateY(-1px);
+        }
+
+        .menu-card .add-to-cart:active {
+            transform: translateY(0);
+        }
+
+        .menu-card .add-to-cart:disabled {
+            background: #b9aaa0;
+            color: #f7f3ef;
+            cursor: not-allowed;
+            transform: none;
         }
 
         /* =========================
@@ -660,26 +691,97 @@
             color: #75645a;
         }
 
-        .payment-fields { margin-top: 8px; }
-        .payment-fields label { display: block; margin-bottom: 4px; font-size: 12px; font-weight: bold; color: #6b4328; }
-        .payment-fields input { width: 100%; padding: 8px 10px; box-sizing: border-box; border: 1px solid #a97856; border-radius: 6px; background: #fff8f0; color: #4a2f1c; font-size: 14px; }
-        .payment-fields .summary-row { margin-top: 6px; }
-        .place-order { padding: 11px; font-size: 14px; background: #8b5e3c; color: #fff; }
-        .place-order:hover { background: #6b4328; }
-        .receipt-head { text-align: center; margin-bottom: 10px; }
-        .receipt-head h2 { margin: 0; }
-        .receipt-head p { margin: 2px 0 8px; font-size: 12px; color: #8b6a50; }
-        .receipt-meta { margin-bottom: 8px; text-align: center; font-size: 12px; color: #8b6a50; }
-        .receipt-line { display: flex; justify-content: space-between; gap: 12px; margin: 4px 0; font-size: 13px; }
-        .receipt-totals { margin-top: 8px; padding-top: 8px; border-top: 1px solid #a97856; }
-        .receipt-total { font-size: 16px; }
-        .receipt-thanks { margin: 12px 0 0; text-align: center; font-size: 12px; color: #8b6a50; }
+        .payment-fields {
+            margin-top: 8px;
+        }
+
+        .payment-fields label {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #6b4328;
+        }
+
+        .payment-fields input {
+            width: 100%;
+            padding: 8px 10px;
+            box-sizing: border-box;
+            border: 1px solid #a97856;
+            border-radius: 6px;
+            background: #fff8f0;
+            color: #4a2f1c;
+            font-size: 14px;
+        }
+
+        .payment-fields .summary-row {
+            margin-top: 6px;
+        }
+
+        .place-order {
+            padding: 11px;
+            font-size: 14px;
+            background: #8b5e3c;
+            color: #fff;
+        }
+
+        .place-order:hover {
+            background: #6b4328;
+        }
+
+        .receipt-head {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .receipt-head h2 {
+            margin: 0;
+        }
+
+        .receipt-head p {
+            margin: 2px 0 8px;
+            font-size: 12px;
+            color: #8b6a50;
+        }
+
+        .receipt-meta {
+            margin-bottom: 8px;
+            text-align: center;
+            font-size: 12px;
+            color: #8b6a50;
+        }
+
+        .receipt-line {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            margin: 4px 0;
+            font-size: 13px;
+        }
+
+        .receipt-totals {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #a97856;
+        }
+
+        .receipt-total {
+            font-size: 16px;
+        }
+
+        .receipt-thanks {
+            margin: 12px 0 0;
+            text-align: center;
+            font-size: 12px;
+            color: #8b6a50;
+        }
 
         .menu-card.out-of-stock {
             opacity: 0.55;
             filter: grayscale(1);
             cursor: not-allowed;
         }
+
         .menu-card.out-of-stock:hover {
             transform: none;
             border-color: #b99173;
@@ -718,60 +820,22 @@
 
                 @foreach ($menuItems as $menuItem)
 
-                @php
-                $stockStatus = 'In Stock';
-
-                if ($menuItem->recipeItems->isEmpty()) {
-                $stockStatus = 'Stock Not Set';
-                } else {
-                foreach ($menuItem->recipeItems as $recipeItem) {
-                $stockRows = $recipeItem->inventoryItem?->inventoryStocks ?? collect();
-
-                $availableQuantity = (float) $stockRows->sum('current_quantity');
-                $reorderLevel = (float) $stockRows->sum('reorder_level');
-                $requiredQuantity = (float) $recipeItem->quantity_required;
-
-                if ($stockRows->isEmpty() || $availableQuantity < $requiredQuantity) {
-                    $stockStatus='Out of Stock' ;
-                    break;
-                    }
-
-                    if ($availableQuantity <=$reorderLevel) {
-                    $stockStatus='Low Stock' ;
-                    }
-                    }
-                    }
-                    @endphp
-
-                    <div
-                    class="menu-card {{ $stockStatus === 'Out of Stock' ? 'out-of-stock' : '' }}"
-                    data-category="{{ $menuItem->category->name }}"
-                    @if ($stockStatus !== 'Out of Stock')
-                    onclick="this.querySelector('.add-to-cart').click()"
-                    @else
-                    title="Out of stock"
-                    @endif>
+                <div class="menu-card" data-category="{{ $menuItem->category->name ?? 'Menu Item' }}">
 
                     <div class="menu-card-photo">
                         <img
                             src="{{ asset('images/menu/sample.png') }}"
-                            alt="{{ $menuItem->name }}">
+                            alt="{{ $menuItem->menu_name ?: $menuItem->name }}">
                     </div>
 
                     <h3>
-                        {{ $menuItem->name }}
+                        {{ $menuItem->menu_name ?: $menuItem->name }}
                     </h3>
 
                     <div class="menu-card-category">
                         {{ $menuItem->category->name ?? 'Menu Item' }}
                     </div>
-                    <div class="menu-stock-status
-                            {{ $stockStatus === 'In Stock' ? 'available' : '' }}
-                            {{ $stockStatus === 'Low Stock' ? 'low' : '' }}
-                            {{ $stockStatus === 'Out of Stock' ? 'out' : '' }}
-                            {{ $stockStatus === 'Stock Not Set' ? 'not-set' : '' }}">
-                        {{ $stockStatus }}
-                    </div>
+
                     <div class="price">
                         ₱{{ number_format($menuItem->base_price, 2) }}
                     </div>
@@ -780,100 +844,100 @@
                         type="button"
                         class="add-to-cart"
                         data-id="{{ $menuItem->id }}"
-                        data-name="{{ $menuItem->name }}"
+                        data-name="{{ $menuItem->menu_name ?: $menuItem->name }}"
                         data-price="{{ $menuItem->base_price }}"
                         data-options='@json($menuItem->optionGroups)'
-                        {{ $stockStatus === 'Out of Stock' ? 'disabled' : '' }}>
+                        {{ $menuItem->stock_status === 'Out of Stock' ? 'disabled' : '' }}>
                         Add to Order
                     </button>
 
+                </div>
+
+                @endforeach
+
             </div>
+        </section>
 
-            @endforeach
+        <!-- CART -->
+        <section class="cart-section">
 
-    </div>
-    </section>
-
-    <!-- CART -->
-    <section class="cart-section">
-
-        <h2>Current Order</h2>
-
-        <div class="discount-buttons">
-            <button type="button" id="dineInButton" class="discount-button active" onclick="selectOrderType('Dine-in')">Dine-in</button>
-            <button type="button" id="takeoutButton" class="discount-button" onclick="selectOrderType('Takeout')">Takeout</button>
-        </div>
-
-        <div
-            class="cart-items"
-            id="cartItems">
-            <div class="empty-cart">
-                No items added.
-            </div>
-        </div>
-
-        <div class="cart-summary">
-
-            <div class="summary-row">
-                <span>Subtotal</span>
-                <span id="subtotal">₱0.00</span>
-            </div>
-
-            <div class="summary-row">
-                <span>Discount</span>
-                <span id="discount">₱0.00</span>
-            </div>
+            <h2>Current Order</h2>
 
             <div class="discount-buttons">
-
-                <button
-                    type="button"
-                    id="noDiscountButton"
-                    class="discount-button active"
-                    onclick="selectDiscount('None')">
-                    No Discount
-                </button>
-
-                <button
-                    type="button"
-                    id="seniorPwdButton"
-                    class="discount-button"
-                    onclick="selectDiscount('Senior/PWD')">
-                    Senior/PWD
-                </button>
-
+                <button type="button" id="dineInButton" class="discount-button active" onclick="selectOrderType('Dine-in')">Dine-in</button>
+                <button type="button" id="takeoutButton" class="discount-button" onclick="selectOrderType('Takeout')">Takeout</button>
             </div>
 
-            <div class="summary-row total">
-                <span>Total</span>
-                <span id="total">₱0.00</span>
-            </div>
-            <div class="discount-buttons">
-                <button type="button" id="cashButton" class="discount-button active" onclick="selectPayment('Cash')">Cash</button>
-                <button type="button" id="gcashButton" class="discount-button" onclick="selectPayment('GCash')">GCash</button>
-            </div>
-
-            <div id="cashPaymentFields" class="payment-fields">
-                <label for="amountReceived">Amount Received</label>
-                <input type="number" id="amountReceived" min="0" step="0.01" placeholder="₱0.00">
-                <div class="summary-row">
-                    <span>Change</span>
-                    <span id="changeAmount">₱0.00</span>
+            <div
+                class="cart-items"
+                id="cartItems">
+                <div class="empty-cart">
+                    No items added.
                 </div>
             </div>
 
-            <div id="gcashPaymentFields" class="payment-fields" style="display: none;">
-                <label for="gcashReference">GCash Reference Number</label>
-                <input type="text" id="gcashReference" maxlength="4" inputmode="numeric" placeholder="4-digit reference number">
+            <div class="cart-summary">
+
+                <div class="summary-row">
+                    <span>Subtotal</span>
+                    <span id="subtotal">₱0.00</span>
+                </div>
+
+                <div class="summary-row">
+                    <span>Discount</span>
+                    <span id="discount">₱0.00</span>
+                </div>
+
+                <div class="discount-buttons">
+
+                    <button
+                        type="button"
+                        id="noDiscountButton"
+                        class="discount-button active"
+                        onclick="selectDiscount('None')">
+                        No Discount
+                    </button>
+
+                    <button
+                        type="button"
+                        id="seniorPwdButton"
+                        class="discount-button"
+                        onclick="selectDiscount('Senior/PWD')">
+                        Senior/PWD
+                    </button>
+
+                </div>
+
+                <div class="summary-row total">
+                    <span>Total</span>
+                    <span id="total">₱0.00</span>
+                </div>
+                <div class="discount-buttons">
+                    <button type="button" id="cashButton" class="discount-button active" onclick="selectPayment('Cash')">Cash</button>
+                    <button type="button" id="gcashButton" class="discount-button" onclick="selectPayment('GCash')">GCash</button>
+                </div>
+
+                <div id="cashPaymentFields" class="payment-fields">
+                    <label for="amountReceived">Amount Received</label>
+                    <input type="number" id="amountReceived" min="0" step="0.01" placeholder="₱0.00">
+                    <div class="summary-row">
+                        <span>Change</span>
+                        <span id="changeAmount">₱0.00</span>
+                    </div>
+                </div>
+
+                <div id="gcashPaymentFields" class="payment-fields" style="display: none;">
+                    <label for="gcashReference">GCash Reference Number</label>
+                    <input type="text" id="gcashReference" maxlength="4" inputmode="numeric" placeholder="4-digit reference number">
+                </div>
+
+                <button type="button" class="checkout-button place-order" onclick="placeOrder()">
+                    Place Order
+                </button>
+
             </div>
 
-            <button type="button" class="checkout-button place-order" onclick="placeOrder()">
-                Place Order
-            </button>
-
-        </div>
-
-    </section>
+        </section>
 
     </div>
     <div id="optionModal" class="option-modal">
@@ -1320,7 +1384,12 @@
         document.getElementById('amountReceived').addEventListener('input', updateChange);
 
         function esc(value) {
-            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;'
+            };
             return String(value).replace(/[&<>"]/g, ch => map[ch]);
         }
 

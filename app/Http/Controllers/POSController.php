@@ -3,17 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
-use App\Models\Menu_Items;
+use App\Models\Item;
 
 class POSController extends Controller
 {
     public function index()
     {
-        $menuItems = Menu_Items::with([
+        $menuItems = Item::with([
             'category',
             'optionGroups.optionValues',
-            'recipeItems.inventoryItem.inventoryStocks',
         ])
+            ->where('is_sellable', true)
             ->where('is_active', true)
             ->orderBy('name')
             ->get();

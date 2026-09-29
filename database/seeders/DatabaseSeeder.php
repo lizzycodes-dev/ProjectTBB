@@ -24,7 +24,7 @@ class DatabaseSeeder extends Seeder
             OptionValuesSeeder::class,
             InventoryItemSeeder::class,
             InventoryStockSeeder::class,
-            MenuItemsSeeder::class,
+            //MenuItemsSeeder::class,
             //RecipeItemsSeeder::class,
             MenuItemOptionGroupsSeeder::class,
             //MenuOptionRecipeAdjustmentsSeeder::class,

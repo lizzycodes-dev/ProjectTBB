@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\Menu_Items;
+use App\Models\Inventory_Item;
 use App\Models\Option_Groups;
 use App\Models\Menu_Item_Option_Groups;
 use Illuminate\Database\Seeder;
@@ -20,7 +20,7 @@ class MenuItemOptionGroupsSeeder extends Seeder
             );
         }
 
-        // Only drinks with separate Hot and Iced prices on the menu.
+        // Drinks with separate Hot and Iced prices.
         $temperatureItems = [
             'Americano',
             'Cafe Latte',
@@ -35,11 +35,13 @@ class MenuItemOptionGroupsSeeder extends Seeder
         ];
 
         foreach ($temperatureItems as $itemName) {
-            $menuItem = Menu_Items::where('name', $itemName)->first();
+            $menuItem = Inventory_Item::where('menu_name', $itemName)
+                ->where('inventory_type', 'Menu Item')
+                ->first();
 
             if (! $menuItem) {
                 throw new RuntimeException(
-                    "Menu item '{$itemName}' is missing. Run MenuItemsSeeder first."
+                    "Transferred menu item '{$itemName}' is missing. Check InventoryItemSeeder."
                 );
             }
 
