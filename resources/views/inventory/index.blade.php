@@ -39,8 +39,23 @@
         <section class="inventory-section">
             <div class="section-heading">
                 <h2>Inventory Items</h2>
-                <span>{{ $items->count() }} item(s)</span>
+                <span>{{ $items->total() }} item(s)</span>
             </div>
+
+            <form method="GET" action="{{ route('inventory.index') }}" class="inventory-search">
+                <input
+                    type="search"
+                    name="search"
+                    value="{{ request('search') }}"
+                    placeholder="Search by item name or type..."
+                    aria-label="Search inventory items">
+
+                <button type="submit">Search</button>
+
+                @if (request('search'))
+                <a href="{{ route('inventory.index') }}">Clear</a>
+                @endif
+            </form>
 
             <div class="inventory-table-wrapper">
                 <table class="inventory-table">
@@ -62,12 +77,12 @@
                         @forelse ($item->inventoryStocks as $stock)
                         <tr
                             class="inventory-clickable-row"
-                            data-item-name="{{ $item->name }}"
+                            data-item-name="{{ $item->menu_name ?: $item->name }}"
                             data-unit-id="{{ $item->unit_id }}"
                             data-is-active="{{ $item->is_active ? '1' : '0' }}"
                             data-unit-url="{{ route('inventory.update-unit', $item) }}"
                             data-toggle-url="{{ route('inventory.toggle-active', $item) }}">
-                            <td>{{ $item->name }}</td>
+                            <td>{{ $item->menu_name ?: $item->name }}</td>
                             <td>{{ $item->inventory_type }}</td>
                             <td>{{ $item->unit?->abbreviation ?? '—' }}</td>
                             <td>{{ $stock->location?->name ?? '—' }}</td>
@@ -86,7 +101,7 @@
                                         value="{{ number_format((float) $stock->current_quantity, 3, '.', '') }}"
                                         min="0"
                                         step="0.001"
-                                        aria-label="Current stock for {{ $item->name }} at {{ $stock->location?->name }}"
+                                        aria-label="Current stock for {{ $item->menu_name ?: $item->name }} at {{ $stock->location?->name }}"
                                         onchange="this.form.requestSubmit()">
                                 </form>
                             </td>
@@ -113,12 +128,12 @@
                         @empty
                         <tr
                             class="inventory-clickable-row"
-                            data-item-name="{{ $item->name }}"
+                            data-item-name="{{ $item->menu_name ?: $item->name }}"
                             data-unit-id="{{ $item->unit_id }}"
                             data-is-active="{{ $item->is_active ? '1' : '0' }}"
                             data-unit-url="{{ route('inventory.update-unit', $item) }}"
                             data-toggle-url="{{ route('inventory.toggle-active', $item) }}">
-                            <td>{{ $item->name }}</td>
+                            <td>{{ $item->menu_name ?: $item->name }}</td>
                             <td>{{ $item->inventory_type }}</td>
                             <td>{{ $item->unit?->abbreviation ?? '—' }}</td>
                             <td colspan="4" class="no-stock-cell">No stock record yet</td>
@@ -257,6 +272,135 @@
         </div>
     </div>
     <style>
+        /* Pagination container */
+        .inventory-pagination {
+            display: flex;
+            justify-content: right;
+            margin-top: 22px;
+        }
+
+        /* Laravel pagination navigation */
+        .inventory-pagination nav {
+            display: flex;
+            align-items: right;
+            justify-content: right;
+            gap: 6px;
+        }
+
+        /* Pagination links and current page */
+        .inventory-pagination nav a,
+        .inventory-pagination nav span[aria-current="page"] span {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 36px;
+            height: 36px;
+            padding: 0 10px;
+            border: 1px solid #e8e1dc;
+            border-radius: 8px;
+            background: #fff;
+            color: #5b4032;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background 0.2s ease, border-color 0.2s ease;
+        }
+
+        /* Hover state */
+        .inventory-pagination nav a:hover {
+            background: #f5f0eb;
+            border-color: #cbb9aa;
+        }
+
+        /* Active page */
+        .inventory-pagination nav span[aria-current="page"] span {
+            background: #6f4e37;
+            border-color: #6f4e37;
+            color: #fff;
+        }
+
+        /* Disabled previous/next controls */
+        .inventory-pagination nav span[aria-disabled="true"] span {
+            display: inline-flex;
+            align-items: right;
+            justify-content: right;
+            min-width: 36px;
+            height: 36px;
+            padding: 0 10px;
+            border: 1px solid #eee5df;
+            border-radius: 8px;
+            background: #faf7f4;
+            color: #b8aaa0;
+            font-size: 13px;
+        }
+
+        /* Small screen spacing */
+        @media (max-width: 480px) {
+            .inventory-pagination nav {
+                gap: 3px;
+            }
+
+            .inventory-pagination nav a,
+            .inventory-pagination nav span[aria-current="page"] span,
+            .inventory-pagination nav span[aria-disabled="true"] span {
+                min-width: 32px;
+                height: 32px;
+                padding: 0 7px;
+                font-size: 12px;
+            }
+        }
+
+        .inventory-search button,
+        .inventory-search a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 18px;
+            border: none;
+            border-radius: 8px;
+            background: #6f4e37;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .inventory-search button:hover {
+            background: #5b4032;
+            transform: translateY(-1px);
+        }
+
+        .inventory-search a {
+            background: #eee5df;
+            color: #5b4032;
+        }
+
+        .inventory-search a:hover {
+            background: #e3d5cb;
+        }
+
+        .inventory-search {
+            margin-bottom: 16px;
+        }
+
+        .inventory-search input {
+            width: 100%;
+            max-width: 380px;
+            padding: 10px 12px;
+            border: 1px solid #d9cec6;
+            border-radius: 8px;
+            background: #fff;
+            color: #3f3028;
+            font-size: 13px;
+        }
+
+        .inventory-search input:focus {
+            outline: 2px solid #a98568;
+            outline-offset: 1px;
+        }
+
         .stock-quantity-form {
             margin: 0;
         }
@@ -774,6 +918,29 @@
         }
     </style>
     <script>
+        const inventorySearch = document.getElementById('inventorySearch');
+        const inventoryItemCount = document.getElementById('inventoryItemCount');
+
+        inventorySearch.addEventListener('input', function() {
+            const searchTerm = this.value.trim().toLowerCase();
+            const rows = document.querySelectorAll('.inventory-table tbody tr.inventory-clickable-row');
+            const matchingItems = new Set();
+
+            rows.forEach(function(row) {
+                const itemName = (row.dataset.itemName || '').toLowerCase();
+                const rowText = row.textContent.toLowerCase();
+
+                const matches = itemName.includes(searchTerm) || rowText.includes(searchTerm);
+                row.style.display = matches ? '' : 'none';
+
+                if (matches && itemName) {
+                    matchingItems.add(itemName);
+                }
+            });
+
+            inventoryItemCount.textContent =
+                matchingItems.size + (matchingItems.size === 1 ? ' item' : ' items');
+        });
         document.addEventListener('DOMContentLoaded', function() {
             const modal = document.getElementById('inventoryModal');
             const modalItemName = document.getElementById('modalItemName');

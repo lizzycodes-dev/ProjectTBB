@@ -3,20 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
-use Illuminate\Http\Request;
 use App\Models\Item;
 use App\Models\Option_Values;
 use App\Models\Order_Item;
 use App\Models\Order_Item_Options;
 use App\Models\Kitchen_Order_Item;
 use App\Models\Payment;
-use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-use App\Models\Inventory_Stock;
-use App\Models\Inventory_Transactions;
-use App\Models\Inventory_Locations;
 
 class OrderController extends Controller
 {
@@ -37,7 +33,7 @@ class OrderController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Store a newly created order.
      */
     public function store(Request $request)
     {
@@ -76,8 +72,11 @@ class OrderController extends Controller
                 ],
                 'proof_path' => 'nullable|string|max:255',
             ]);
-            $subtotal = 0;
-            // Confirm each selected option belongs to the menu item's option groups.
+
+            /*
+             * Validate that selected options belong to the selected menu item,
+             * and that no more than one value is selected from each option group.
+             */
             foreach ($validated['items'] as $itemIndex => $item) {
                 $menuItem = Item::with('optionGroups.optionValues')
                     ->findOrFail($item['menu_item_id']);
@@ -92,7 +91,7 @@ class OrderController extends Controller
                 $selectedOptions = $item['options'] ?? [];
 
                 foreach ($selectedOptions as $optionId) {
-                    if (!$allowedOptions->contains(
+                    if (! $allowedOptions->contains(
                         fn($allowedId) => (int) $allowedId === (int) $optionId
                     )) {
                         throw ValidationException::withMessages([
@@ -102,12 +101,11 @@ class OrderController extends Controller
                     }
                 }
 
-                // Prevent selecting more than one value from the same option group.
                 $selectedGroups = [];
 
                 foreach ($selectedOptions as $optionId) {
                     $option = Option_Values::findOrFail($optionId);
-                    $groupId = $option->option_group_id;
+                    $groupId = (int) $option->option_group_id;
 
                     if (in_array($groupId, $selectedGroups, true)) {
                         throw ValidationException::withMessages([
@@ -120,164 +118,205 @@ class OrderController extends Controller
                 }
             }
 
+            /*
+             * Calculate order subtotal, including option price adjustments.
+             */
+            $subtotal = 0;
+
             foreach ($validated['items'] as $item) {
+                $menuItem = Item::findOrFail($item['menu_item_id']);
+                $itemPrice = (float) $menuItem->base_price;
 
-                $menuItem = Item::findOrFail(
-                    $item['menu_item_id']
-                );
-
-                $itemPrice = $menuItem->base_price;
-
-                if (!empty($item['options'])) {
-                    foreach ($item['options'] as $optionId) {
-
-                        $option = Option_Values::findOrFail($optionId);
-
-                        $itemPrice += $option->price_adjustment;
-                    }
+                foreach ($item['options'] ?? [] as $optionId) {
+                    $option = Option_Values::findOrFail($optionId);
+                    $itemPrice += (float) $option->price_adjustment;
                 }
 
                 $subtotal += $itemPrice * $item['quantity'];
             }
 
+            /*
+             * Calculate discount and total.
+             */
             $discountAmount = 0;
 
             if ($validated['discount_type'] === 'Senior/PWD') {
-
                 $discountAmount = round($subtotal * 0.20, 2);
             }
 
             $totalAmount = $subtotal - $discountAmount;
+
+            /*
+             * Validate cash payment.
+             * For GCash, amount received is set to the order total.
+             */
             if (
                 $validated['payment_method'] === 'Cash' &&
-                $validated['amount_received'] < $totalAmount
+                (float) $validated['amount_received'] < $totalAmount
             ) {
-                return response()->json([
-                    'message' => 'Payment amount is insufficient.',
-                ], 422);
+                throw ValidationException::withMessages([
+                    'amount_received' => 'Payment amount is insufficient.',
+                ]);
             }
 
             if ($validated['payment_method'] === 'GCash') {
                 $validated['amount_received'] = $totalAmount;
             }
 
-            $validated['subtotal'] = $subtotal;
-            $validated['discount_amount'] = $discountAmount;
-            $validated['total_amount'] = $totalAmount;
-
-            $validated['order_number'] = 'ORD-' . str_pad(
+            /*
+             * Generate order number.
+             */
+            $orderNumber = 'ORD-' . str_pad(
                 Order::count() + 1,
                 4,
                 '0',
                 STR_PAD_LEFT
             );
 
-            $validated['status'] = 'Pending';
-            $validated['ordered_at'] = now();
-            $validated['completed_at'] = null;
-
+            /*
+             * Create the order.
+             */
             $order = Order::create([
                 'cashier_id' => $cashier->id,
-                'order_number' => $validated['order_number'],
+                'order_number' => $orderNumber,
                 'order_type' => $validated['order_type'],
-                'status' => $validated['status'],
-                'subtotal' => $validated['subtotal'],
-                'discount_amount' => $validated['discount_amount'],
+                'status' => 'Pending',
+                'subtotal' => $subtotal,
+                'discount_amount' => $discountAmount,
                 'discount_type' => $validated['discount_type'],
-                'total_amount' => $validated['total_amount'],
-                'ordered_at' => $validated['ordered_at'],
-                'completed_at' => $validated['completed_at'],
+                'total_amount' => $totalAmount,
+                'ordered_at' => now(),
+                'completed_at' => null,
             ]);
+
+            /*
+             * Map sellable menu names to their corresponding prepared-food
+             * inventory names in Kitchen Area.
+             *
+             * Menu items not included here will not generate stock-out rows
+             * until their stock mapping and deduction quantity are decided.
+             */
+            $kitchenStockMap = [
+                'Pork Sisig' => 'Pork Sisig (Prepped)',
+                'Chicken Sisig' => 'Chicken Sisig (Prepped)',
+                'Porkchop with Sauce' => 'Pork Chop (Prepped)',
+                'Chicken Teriyaki' => 'C-Teriyaki',
+                'Fish Fillet' => 'Fish Fillet (Prepped)',
+                'Deep Fried Bangus' => 'Bangus (Prepped)',
+                'Chicken Adobo' => 'Chicken Adobo (Prepped)',
+                'Pork Adobo' => 'Pork Adobo (Prepped)',
+                'Chicken Carbonara with Coke' => 'Chicken Carbonara',
+                'Bihon Guisado' => 'Bihon (Prepped)',
+                'Bake Mac' => 'Baked Mac (Prepped)',
+                'Mozzarella Cheese Stick' => 'Mozzarella (Prepped)',
+                'French Fries' => 'Fries (Prepped)',
+            ];
+
+            /*
+             * Create order items, record stock-outs for mapped prepared foods,
+             * save chosen options, and create kitchen tickets.
+             */
             foreach ($validated['items'] as $item) {
+                $menuItem = Item::findOrFail($item['menu_item_id']);
 
-                $menuItem = Item::findOrFail(
-                    $item['menu_item_id']
-                );
+                $itemPrice = (float) $menuItem->base_price;
 
-                $itemPrice = $menuItem->base_price;
-
-                if (!empty($item['options'])) {
-                    foreach ($item['options'] as $optionId) {
-
-                        $option = Option_Values::findOrFail($optionId);
-
-                        $itemPrice += $option->price_adjustment;
-                    }
+                foreach ($item['options'] ?? [] as $optionId) {
+                    $option = Option_Values::findOrFail($optionId);
+                    $itemPrice += (float) $option->price_adjustment;
                 }
+
+                $quantity = (int) $item['quantity'];
 
                 $orderItem = Order_Item::create([
                     'order_id' => $order->id,
                     'menu_item_id' => $menuItem->id,
-                    'quantity' => $item['quantity'],
+                    'quantity' => $quantity,
                     'unit_price' => $itemPrice,
-                    'subtotal' => $itemPrice * $item['quantity'],
+                    'subtotal' => $itemPrice * $quantity,
                     'notes' => $item['notes'] ?? null,
                 ]);
 
-                // Deduct prepared-food stock for the matching kitchen item.
-                $kitchenItemMap = [
-                    'Bake Mac' => 'Baked Mac',
-                    'Bihon Guisado' => 'Bihon',
-                    'French Fries' => 'Fries',
-                    'Mozzarella Cheese Stick' => 'Mozzarella',
-                ];
+                /*
+                 * Record stock-out for mapped Kitchen Area prepared-food items.
+                 */
+                $menuName = $menuItem->name;
+                $stockItemName = $kitchenStockMap[$menuName] ?? null;
 
-                $menuName = $menuItem->menu_name;
-                $stockItemName = $kitchenItemMap[$menuName] ?? $menuName;
+                if ($stockItemName !== null) {
+                    $kitchenLocation = DB::table('inventory_locations')
+                        ->where('name', 'Kitchen Area')
+                        ->first();
 
-                $kitchen = Inventory_Locations::where('name', 'Kitchen Area')->first();
+                    if (! $kitchenLocation) {
+                        throw ValidationException::withMessages([
+                            'items' => 'Kitchen Area location was not found.',
+                        ]);
+                    }
 
-                $stockItem = Item::where('name', $stockItemName)
-                    ->where('inventory_type', 'Prepped Food')
-                    ->first();
-
-                if ($stockItem) {
-                    $stock = Inventory_Stock::where('inventory_item_id', $stockItem->id)
-                        ->where('location_id', $kitchen->id)
+                    $stockItem = DB::table('inventory_items')
+                        ->where('name', $stockItemName)
+                        ->where('inventory_location_id', $kitchenLocation->id)
                         ->lockForUpdate()
                         ->first();
 
-                    if (! $stock) {
+                    if (! $stockItem) {
                         throw ValidationException::withMessages([
-                            'items' => "No Kitchen Area stock record found for {$stockItemName}.",
+                            'items' =>
+                            "Kitchen stock item '{$stockItemName}' was not found.",
                         ]);
                     }
 
-                    if ($stock->current_quantity < $item['quantity']) {
+                    /*
+                     * Current available quantity = total stock-in - total stock-out.
+                     */
+                    $stockInTotal = DB::table('stock_ins')
+                        ->where('inventory_item_id', $stockItem->id)
+                        ->sum('quantity');
+
+                    $stockOutTotal = DB::table('stock_outs')
+                        ->where('inventory_item_id', $stockItem->id)
+                        ->sum('quantity');
+
+                    $availableQuantity =
+                        (float) $stockInTotal - (float) $stockOutTotal;
+
+                    if ($availableQuantity < $quantity) {
                         throw ValidationException::withMessages([
-                            'items' => "Not enough {$stockItemName} in Kitchen Area.",
+                            'items' =>
+                            "Not enough {$stockItemName} in Kitchen Area. "
+                                . "Available: {$availableQuantity}.",
                         ]);
                     }
 
-                    $stock->decrement('current_quantity', $item['quantity']);
-
-                    Inventory_Transactions::create([
-                        'inventory_stock_id' => $stock->id,
-                        'supplier_id' => null,
+                    DB::table('stock_outs')->insert([
+                        'inventory_item_id' => $stockItem->id,
+                        'quantity' => $quantity,
                         'recorded_by' => $cashier->id,
-                        'transaction_type' => 'Sale',
-                        'quantity' => $item['quantity'],
-                        'unit_cost' => null,
-                        'reference_type' => Order::class,
-                        'reference_id' => $order->id,
-                        'reason' => "Sold via POS: {$menuName}",
-                        'transaction_date' => now(),
+                        'reason' => "Sold via POS: {$order->order_number}",
+                        'recorded_at' => now(),
+                        'remarks' => "Order item: {$menuName}",
+                        'created_at' => now(),
+                        'updated_at' => now(),
                     ]);
                 }
 
-                if (!empty($item['options'])) {
+                /*
+                 * Save selected option values for this order item.
+                 */
+                foreach ($item['options'] ?? [] as $optionId) {
+                    $option = Option_Values::findOrFail($optionId);
 
-                    foreach ($item['options'] as $optionId) {
-
-                        $option = Option_Values::findOrFail($optionId);
-
-                        Order_Item_Options::create([
-                            'order_item_id' => $orderItem->id,
-                            'option_value_id' => $option->id,
-                            'price_adjustment' => $option->price_adjustment,
-                        ]);
-                    }
+                    Order_Item_Options::create([
+                        'order_item_id' => $orderItem->id,
+                        'option_value_id' => $option->id,
+                        'price_adjustment' => $option->price_adjustment,
+                    ]);
                 }
+
+                /*
+                 * Create kitchen ticket for the order item.
+                 */
                 Kitchen_Order_Item::create([
                     'order_item_id' => $orderItem->id,
                     'prepared_by' => null,
@@ -286,22 +325,33 @@ class OrderController extends Controller
                     'completed_at' => null,
                 ]);
             }
-            $changeAmount = $validated['amount_received'] - $totalAmount;
+
+            /*
+             * Record payment.
+             */
+            $amountReceived = (float) $validated['amount_received'];
+            $changeAmount = $amountReceived - $totalAmount;
 
             Payment::create([
                 'order_id' => $order->id,
                 'received_by' => $cashier->id,
                 'payment_method' => $validated['payment_method'],
                 'amount' => $totalAmount,
-                'amount_received' => $validated['amount_received'],
+                'amount_received' => $amountReceived,
                 'change_amount' => $changeAmount,
                 'reference_number' => $validated['reference_number'] ?? null,
                 'proof_path' => $validated['proof_path'] ?? null,
                 'paid_at' => now(),
             ]);
 
-            // Daily queue number: #101 for the first order of the day, then 102, 103...
-            $queueNumber = 100 + Order::whereDate('ordered_at', now()->toDateString())
+            /*
+             * Daily queue number: #101 for the first order of the day,
+             * then #102, #103, and so on.
+             */
+            $queueNumber = 100 + Order::whereDate(
+                'ordered_at',
+                now()->toDateString()
+            )
                 ->where('id', '<=', $order->id)
                 ->count();
 
@@ -328,6 +378,10 @@ class OrderController extends Controller
     {
         //
     }
+
+    /**
+     * Complete a ready order.
+     */
     public function completeOrder(Order $order)
     {
         if ($order->status !== 'Ready') {
@@ -343,6 +397,7 @@ class OrderController extends Controller
         return redirect('/kitchen')
             ->with('success', 'Order completed successfully.');
     }
+
     /**
      * Update the specified resource in storage.
      */

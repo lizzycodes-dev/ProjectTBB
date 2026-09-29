@@ -16,25 +16,19 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            RoleSeeder::class,
-            CategorySeeder::class,
-            UnitSeeder::class,
+            #RoleSeeder::class,
             InventoryLocationsSeeder::class,
+            CategorySeeder::class,
+            #UnitSeeder::class,
             OptionGroupsSeeder::class,
             OptionValuesSeeder::class,
             InventoryItemSeeder::class,
-            InventoryStockSeeder::class,
-            //MenuItemsSeeder::class,
-            //RecipeItemsSeeder::class,
-            MenuItemOptionGroupsSeeder::class,
-            //MenuOptionRecipeAdjustmentsSeeder::class,
-            UserSeeder::class,
-            OrderSeeder::class,
-            OrderItemSeeder::class,
-            KitchenOrderItemSeeder::class,
-            PaymentSeeder::class,
-            InventoryTransactionsSeeder::class,
-            //OrderItemOptionsSeeder::class,
+            InventoryItemOptionGroupsSeeder::class,
+            #UserSeeder::class,
+            #OrderSeeder::class,
+            #OrderItemSeeder::class,
+            #KitchenOrderItemSeeder::class,
+            #PaymentSeeder::class,
         ]);
     }
 }

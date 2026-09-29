@@ -5,9 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Menu_Item_Option_Groups extends Model
+class Inventory_Item_Option_Groups extends Model
 {
-    protected $table = 'menu_item_option_groups';
+    protected $table = 'inventory_item_option_groups';
 
     protected $fillable = [
         'menu_item_id',
@@ -15,11 +15,11 @@ class Menu_Item_Option_Groups extends Model
         'is_required',
     ];
 
-    public function menuItem(): BelongsTo
+    public function InventoryItem(): BelongsTo
     {
         return $this->belongsTo(
-            Item::class,
-            'menu_item_id'
+            Inventory_Item::class,
+            'inventory_item_id'
         );
     }
 

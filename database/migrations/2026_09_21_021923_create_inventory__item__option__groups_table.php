@@ -11,14 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('recipe_items', function (Blueprint $table) {
+        Schema::create('inventory_item_option_groups', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('menu_item_id')->constrained('menu_items');
-            $table->foreignId('inventory_item_id')->constrained('inventory_items');
-            $table->decimal('quantity_required', 12, 3);
+            $table->foreignId('inventory_item_id')
+                ->constrained('inventory_items');
+            $table->foreignId('option_group_id')->constrained('option_groups');
+            $table->boolean('is_required')->default(false);
             $table->timestamps();
-
-            $table->unique(['menu_item_id', 'inventory_item_id']);
         });
     }
 
@@ -27,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('recipe__items');
+        Schema::dropIfExists('menu__item__option__groups');
     }
 };

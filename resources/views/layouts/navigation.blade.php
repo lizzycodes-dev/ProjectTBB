@@ -49,14 +49,6 @@
 
 
         <a
-            href="{{ route('finance-report.index') }}"
-            class="sidebar-link {{ request()->routeIs('finance-report.index') ? 'active' : '' }}">
-            <span>→</span>
-            <span>Finance Report</span>
-        </a>
-
-
-        <a
             href="/pos"
             class="sidebar-link {{ request()->is('pos') ? 'active' : '' }}">
             <span>→</span>
@@ -77,6 +69,13 @@
             class="sidebar-link {{ request()->is('inventory*') ? 'active' : '' }}">
             <span>→</span>
             <span>Inventory</span>
+        </a>
+
+        <a
+            href="{{ route('finance-report.index') }}"
+            class="sidebar-link {{ request()->routeIs('finance-report.index') ? 'active' : '' }}">
+            <span>→</span>
+            <span>Finance Report</span>
         </a>
 
 

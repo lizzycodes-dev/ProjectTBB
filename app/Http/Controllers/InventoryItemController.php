@@ -12,19 +12,32 @@ use App\Models\Inventory_Locations;
 
 class InventoryItemController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $items = Inventory_Item::with([
+        $search = trim($request->query('search', ''));
+
+        $itemsQuery = Inventory_Item::with([
             'unit',
             'inventoryStocks.location',
-        ])
+        ]);
+
+        if ($search !== '') {
+            $itemsQuery->where(function ($query) use ($search) {
+                $query->where('name', 'like', "%{$search}%")
+                    ->orWhere('menu_name', 'like', "%{$search}%")
+                    ->orWhere('inventory_type', 'like', "%{$search}%");
+            });
+        }
+
+        $items = $itemsQuery
             ->orderByDesc('is_active')
             ->orderBy('name')
-            ->paginate(8);
+            ->paginate(6)
+            ->withQueryString();
 
         $activeItemCount = Inventory_Item::where('is_active', true)->count();
 
-        $lowStockCount = \App\Models\Inventory_Stock::whereColumn(
+        $lowStockCount = Inventory_Stock::whereColumn(
             'current_quantity',
             '<=',
             'reorder_level'

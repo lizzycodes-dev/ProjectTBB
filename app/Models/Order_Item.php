@@ -28,31 +28,20 @@ class Order_Item extends Model
     {
         return $this->belongsTo(Order::class);
     }
-    public function menuItem(): BelongsTo
+    public function InventoryItem(): BelongsTo
     {
         return $this->belongsTo(
-            Item::class,
+            Inventory_Item::class,
             'menu_item_id'
         );
     }
-    public function orderItemOptions(): HasMany
-    {
-        return $this->hasMany(Order_Item_Options::class);
-    }
+
     public function kitchenOrderItem(): HasOne
     {
         return $this->hasOne(
             Kitchen_Order_Item::class,
             'order_item_id',
             'id'
-        );
-    }
-
-    public function options(): HasMany
-    {
-        return $this->hasMany(
-            Order_Item_Options::class,
-            'order_item_id'
         );
     }
 }
