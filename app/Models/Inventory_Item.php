@@ -30,13 +30,18 @@ class Inventory_Item extends Model
         return $this->belongsTo(Inventory_Locations::class, 'inventory_location_id');
     }
 
-    public function StockIn(): HasMany
+    public function stockIns(): HasMany
     {
         return $this->hasMany(StockIn::class, 'inventory_item_id');
     }
 
-    public function StockOut(): HasMany
+    public function stockOuts(): HasMany
     {
         return $this->hasMany(StockOut::class, 'inventory_item_id');
+    }
+
+    public function dailyCounts(): HasMany
+    {
+        return $this->hasMany(DailyInventoryCount::class, 'inventory_item_id');
     }
 }

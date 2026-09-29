@@ -3,13 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
-use App\Models\Item;
+use App\Models\Inventory_Item;
+
 
 class POSController extends Controller
 {
     public function index()
     {
-        $menuItems = Item::with([
+        $menuItems = Inventory_Item::with([
             'category',
             'optionGroups.optionValues',
         ])

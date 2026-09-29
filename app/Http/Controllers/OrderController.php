@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
-use App\Models\Item;
+use App\Models\Inventory_Item;
 use App\Models\Option_Values;
 use App\Models\Order_Item;
 use App\Models\Order_Item_Options;
@@ -78,7 +78,7 @@ class OrderController extends Controller
              * and that no more than one value is selected from each option group.
              */
             foreach ($validated['items'] as $itemIndex => $item) {
-                $menuItem = Item::with('optionGroups.optionValues')
+                $menuItem = Inventory_item::with('optionGroups.optionValues')
                     ->findOrFail($item['menu_item_id']);
 
                 $allowedOptions = $menuItem->optionGroups
@@ -124,7 +124,7 @@ class OrderController extends Controller
             $subtotal = 0;
 
             foreach ($validated['items'] as $item) {
-                $menuItem = Item::findOrFail($item['menu_item_id']);
+                $menuItem = Inventory_item::findOrFail($item['menu_item_id']);
                 $itemPrice = (float) $menuItem->base_price;
 
                 foreach ($item['options'] ?? [] as $optionId) {
@@ -217,7 +217,7 @@ class OrderController extends Controller
              * save chosen options, and create kitchen tickets.
              */
             foreach ($validated['items'] as $item) {
-                $menuItem = Item::findOrFail($item['menu_item_id']);
+                $menuItem = Inventory_item::findOrFail($item['menu_item_id']);
 
                 $itemPrice = (float) $menuItem->base_price;
 
@@ -301,18 +301,7 @@ class OrderController extends Controller
                     ]);
                 }
 
-                /*
-                 * Save selected option values for this order item.
-                 */
-                foreach ($item['options'] ?? [] as $optionId) {
-                    $option = Option_Values::findOrFail($optionId);
 
-                    Order_Item_Options::create([
-                        'order_item_id' => $orderItem->id,
-                        'option_value_id' => $option->id,
-                        'price_adjustment' => $option->price_adjustment,
-                    ]);
-                }
 
                 /*
                  * Create kitchen ticket for the order item.

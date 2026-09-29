@@ -5,8 +5,30 @@
                 <h1>Inventory Management</h1>
                 <p>View and monitor stock across your inventory locations.</p>
             </div>
+            <a href="{{ route('inventory.begin-day') }}" class="inventory-new-button">
+                <span class="new-button-icon" aria-hidden="true">+</span>
+                <span>New</span>
+            </a>
         </div>
+        <div class="inventory-area-tabs">
+            <a
+                href="{{ route('inventory.index', ['search' => $search, 'category_id' => $categoryId]) }}"
+                class="inventory-area-tab {{ $locationId === null || $locationId === '' ? 'active' : '' }}">
+                All Areas
+            </a>
 
+            @foreach ($locations as $location)
+            <a
+                href="{{ route('inventory.index', [
+                'location_id' => $location->id,
+                'search' => $search,
+                'category_id' => $categoryId
+            ]) }}"
+                class="inventory-area-tab {{ (string) $locationId === (string) $location->id ? 'active' : '' }}">
+                {{ $location->name }}
+            </a>
+            @endforeach
+        </div>
         <div class="inventory-summary">
             <div class="inventory-summary-card">
                 <span class="summary-label">Active Items</span>
@@ -14,8 +36,8 @@
             </div>
 
             <div class="inventory-summary-card">
-                <span class="summary-label">Low Stock Records</span>
-                <strong>{{ $lowStockCount }}</strong>
+                <span class="summary-label">Inventory Items</span>
+                <strong>{{ $items->total() }}</strong>
             </div>
         </div>
 
@@ -46,13 +68,24 @@
                 <input
                     type="search"
                     name="search"
-                    value="{{ request('search') }}"
-                    placeholder="Search by item name or type..."
+                    value="{{ $search }}"
+                    placeholder="Search by item name..."
                     aria-label="Search inventory items">
 
-                <button type="submit">Search</button>
+                <select name="category_id" aria-label="Filter by category">
+                    <option value="">All Categories</option>
+                    @foreach ($categories as $category)
+                    <option
+                        value="{{ $category->id }}"
+                        @selected((string) $categoryId===(string) $category->id)>
+                        {{ $category->name }}
+                    </option>
+                    @endforeach
+                </select>
 
-                @if (request('search'))
+                <button type="submit">Filter</button>
+
+                @if ($search !== '' || ($categoryId !== null && $categoryId !== ''))
                 <a href="{{ route('inventory.index') }}">Clear</a>
                 @endif
             </form>
@@ -62,139 +95,52 @@
                     <thead>
                         <tr>
                             <th>Item Name</th>
-                            <th>Type</th>
-                            <th>Unit</th>
+                            <th>Category</th>
                             <th>Location</th>
                             <th>Current Stock</th>
-                            <th>Reorder Level</th>
-                            <th>Stock Status</th>
                             <th>Item Status</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
 
                     <tbody>
                         @forelse ($items as $item)
-                        @forelse ($item->inventoryStocks as $stock)
-                        <tr
-                            class="inventory-clickable-row"
-                            data-item-name="{{ $item->menu_name ?: $item->name }}"
-                            data-unit-id="{{ $item->unit_id }}"
-                            data-is-active="{{ $item->is_active ? '1' : '0' }}"
-                            data-unit-url="{{ route('inventory.update-unit', $item) }}"
-                            data-toggle-url="{{ route('inventory.toggle-active', $item) }}">
-                            <td>{{ $item->menu_name ?: $item->name }}</td>
-                            <td>{{ $item->inventory_type }}</td>
-                            <td>{{ $item->unit?->abbreviation ?? '—' }}</td>
-                            <td>{{ $stock->location?->name ?? '—' }}</td>
+                        @php
+                        $stockIn = (float) ($item->total_stock_in ?? 0);
+                        $stockOut = (float) ($item->total_stock_out ?? 0);
+                        $currentStock = $stockIn - $stockOut;
+                        @endphp
+
+                        <tr>
+                            <td>{{ $item->name }}</td>
+                            <td>{{ $item->category?->name ?? '—' }}</td>
+                            <td>{{ $item->inventoryLocation?->name ?? '—' }}</td>
+                            <td>{{ number_format($currentStock, 3) }}</td>
+                            <td>
+                                @if ($item->is_active)
+                                <span class="item-status active">Active</span>
+                                @else
+                                <span class="item-status inactive">Inactive</span>
+                                @endif
+                            </td>
                             <td>
                                 <form
                                     method="POST"
-                                    action="{{ route('inventory.update-stock-quantity', $stock) }}"
-                                    class="stock-quantity-form">
+                                    action="{{ route('inventory.toggle-active', $item) }}"
+                                    onsubmit="return confirm('Are you sure you want to {{ $item->is_active ? 'deactivate' : 'activate' }} this inventory item?');">
                                     @csrf
-                                    @method('PATCH')
 
-                                    <input
-                                        type="number"
-                                        name="current_quantity"
-                                        class="stock-quantity-input"
-                                        value="{{ number_format((float) $stock->current_quantity, 3, '.', '') }}"
-                                        min="0"
-                                        step="0.001"
-                                        aria-label="Current stock for {{ $item->menu_name ?: $item->name }} at {{ $stock->location?->name }}"
-                                        onchange="this.form.requestSubmit()">
+                                    <button
+                                        type="submit"
+                                        class="toggle-button {{ $item->is_active ? 'deactivate' : 'activate' }}">
+                                        {{ $item->is_active ? 'Deactivate' : 'Activate' }}
+                                    </button>
                                 </form>
                             </td>
-                            <td>{{ number_format((float) $stock->reorder_level, 3) }}</td>
-                            <td>
-                                @if ($stock->current_quantity <= $stock->reorder_level)
-                                    <span class="stock-status low">Low Stock</span>
-                                    @else
-                                    <span class="stock-status okay">In Stock</span>
-                                    @endif
-                            </td>
-
-                            @if ($loop->first)
-                            <td rowspan="{{ $item->inventoryStocks->count() }}">
-                                @if ($item->is_active)
-                                <span class="item-status active">Active</span>
-                                @else
-                                <span class="item-status inactive">Inactive</span>
-                                @endif
-                            </td>
-
-                            @endif
                         </tr>
-                        @empty
-                        <tr
-                            class="inventory-clickable-row"
-                            data-item-name="{{ $item->menu_name ?: $item->name }}"
-                            data-unit-id="{{ $item->unit_id }}"
-                            data-is-active="{{ $item->is_active ? '1' : '0' }}"
-                            data-unit-url="{{ route('inventory.update-unit', $item) }}"
-                            data-toggle-url="{{ route('inventory.toggle-active', $item) }}">
-                            <td>{{ $item->menu_name ?: $item->name }}</td>
-                            <td>{{ $item->inventory_type }}</td>
-                            <td>{{ $item->unit?->abbreviation ?? '—' }}</td>
-                            <td colspan="4" class="no-stock-cell">No stock record yet</td>
-
-                            <td>
-                                @if ($item->is_active)
-                                <span class="item-status active">Active</span>
-                                @else
-                                <span class="item-status inactive">Inactive</span>
-                                @endif
-                            </td>
-
-                            <td>
-                                <div class="action-stack">
-                                    <form
-                                        method="POST"
-                                        action="{{ route('inventory.update-unit', $item) }}"
-                                        class="unit-form">
-                                        @csrf
-                                        @method('PATCH')
-
-                                        <label for="unit-{{ $item->id }}">Unit</label>
-                                        <select
-                                            id="unit-{{ $item->id }}"
-                                            name="unit_id"
-                                            class="unit-select">
-                                            <option value="">Not set</option>
-
-                                            @foreach ($units as $unit)
-                                            <option
-                                                value="{{ $unit->id }}"
-                                                @selected($item->unit_id == $unit->id)>
-                                                {{ $unit->name }} ({{ $unit->abbreviation }})
-                                            </option>
-                                            @endforeach
-                                        </select>
-
-                                        <button type="submit" class="unit-save-button">
-                                            Save Unit
-                                        </button>
-                                    </form>
-
-                                    <form
-                                        method="POST"
-                                        action="{{ route('inventory.toggle-active', $item) }}"
-                                        onsubmit="return confirm('Are you sure you want to {{ $item->is_active ? 'deactivate' : 'activate' }} this inventory item?');">
-                                        @csrf
-
-                                        <button
-                                            type="submit"
-                                            class="toggle-button {{ $item->is_active ? 'deactivate' : 'activate' }}">
-                                            {{ $item->is_active ? 'Deactivate' : 'Activate' }}
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                        @endforelse
                         @empty
                         <tr>
-                            <td colspan="8" class="empty-state">
+                            <td colspan="6" class="empty-state">
                                 No inventory items found.
                             </td>
                         </tr>
@@ -208,70 +154,66 @@
             </div>
         </section>
     </div>
-    <div id="inventoryModal" class="inventory-modal" aria-hidden="true">
-        <div class="inventory-modal-backdrop" data-close-modal></div>
 
-        <div
-            class="inventory-modal-content"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="inventoryModalTitle">
-            <div class="inventory-modal-header">
-                <div>
-                    <h2 id="inventoryModalTitle">Inventory Item</h2>
-                    <p>Update this item’s unit or status.</p>
-                </div>
-
-                <button
-                    type="button"
-                    class="inventory-modal-close"
-                    aria-label="Close"
-                    data-close-modal>&times;</button>
-            </div>
-
-            <div class="inventory-modal-body">
-                <div class="modal-item-name">
-                    <span>Selected item</span>
-                    <strong id="modalItemName"></strong>
-                </div>
-
-                <form id="modalUnitForm" method="POST">
-                    @csrf
-                    @method('PATCH')
-
-                    <label for="modalUnitSelect">Unit of measurement</label>
-                    <select id="modalUnitSelect" name="unit_id" class="modal-input">
-                        <option value="">Not set</option>
-                        @foreach ($units as $unit)
-                        <option value="{{ $unit->id }}">
-                            {{ $unit->name }} ({{ $unit->abbreviation }})
-                        </option>
-                        @endforeach
-                    </select>
-
-                    <button type="submit" class="modal-primary-button">
-                        Save Unit
-                    </button>
-                </form>
-
-                <div class="modal-status-section">
-                    <div>
-                        <span class="modal-status-label">Item status</span>
-                        <strong id="modalItemStatus"></strong>
-                    </div>
-
-                    <form id="modalToggleForm" method="POST">
-                        @csrf
-                        <button
-                            type="submit"
-                            id="modalToggleButton"
-                            class="modal-toggle-button"></button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
     <style>
+        .inventory-area-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 18px 0;
+            border-bottom: 1px solid #e5e0da;
+        }
+
+        .inventory-area-tab {
+            display: inline-flex;
+            align-items: center;
+            padding: 10px 16px;
+            color: #6b4226;
+            text-decoration: none;
+            font-weight: 600;
+            border-bottom: 3px solid transparent;
+            transition: color 0.2s ease, border-color 0.2s ease;
+        }
+
+        .inventory-area-tab:hover {
+            color: #52321e;
+            border-bottom-color: #c89b70;
+        }
+
+        .inventory-area-tab.active {
+            color: #52321e;
+            border-bottom-color: #6b4226;
+        }
+
+        .inventory-new-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background-color: #6b4226;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.2s ease;
+        }
+
+        .inventory-new-button:hover {
+            background-color: #52321e;
+        }
+
+        .inventory-new-button:active {
+            transform: scale(0.98);
+        }
+
+        .new-button-icon {
+            font-size: 20px;
+            line-height: 1;
+        }
+
         /* Pagination container */
         .inventory-pagination {
             display: flex;

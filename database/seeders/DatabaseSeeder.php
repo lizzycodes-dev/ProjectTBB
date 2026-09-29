@@ -16,7 +16,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            #RoleSeeder::class,
+            RoleSeeder::class,
             InventoryLocationsSeeder::class,
             CategorySeeder::class,
             #UnitSeeder::class,
@@ -24,7 +24,7 @@ class DatabaseSeeder extends Seeder
             OptionValuesSeeder::class,
             InventoryItemSeeder::class,
             InventoryItemOptionGroupsSeeder::class,
-            #UserSeeder::class,
+            UserSeeder::class,
             #OrderSeeder::class,
             #OrderItemSeeder::class,
             #KitchenOrderItemSeeder::class,
