@@ -74,7 +74,34 @@ class InventoryStockSeeder extends Seeder
                 'Puree - Strawberry',
                 'Puree - Blueberry',
                 'Puree - Mango',
+                'Syrup - Lychee',
+                'Syrup - Peach',
+                'Syrup - Cucumber',
+                'Syrup - Blue Lemonade',
+                'Syrup - Orange',
+                'Coffee Beans',
+                'Fresh Milk',
+                'Ice Cream',
+                'Popping Boba - Mango',
+                'Popping Boba - Strawberry',
+                'Coffee Jelly',
+                'Soda Water',
             ],
+        ];
+
+        // Starting stock and reorder level for the Bar Area (units follow InventoryItemSeeder).
+        $barStart = [
+            'Vanilla' => [5, 1], 'Caramel' => [4, 1], 'Dark Chocolate' => [6, 1], 'Matcha' => [3, 1],
+            'Graham' => [5, 1], 'Crushed Oreo' => [4, 1], 'Cookies & Cream' => [4, 1],
+            'Strawberry' => [1, 1], 'Mango' => [4, 1], 'Ube' => [3, 1], 'Red Velvet' => [3, 1],
+            'Lemon Ice Tea' => [4, 1],
+            'Sauce - Caramel' => [6, 2], 'Sauce - Chocolate' => [7, 2], 'Sauce - Condensed Milk' => [5, 2],
+            'Puree - Strawberry' => [4, 2], 'Puree - Blueberry' => [2, 2], 'Puree - Mango' => [5, 2],
+            'Syrup - Lychee' => [4, 2], 'Syrup - Peach' => [4, 2], 'Syrup - Cucumber' => [3, 2],
+            'Syrup - Blue Lemonade' => [3, 2], 'Syrup - Orange' => [4, 2],
+            'Coffee Beans' => [5, 1], 'Fresh Milk' => [12, 4], 'Ice Cream' => [6, 2],
+            'Popping Boba - Mango' => [2, 1], 'Popping Boba - Strawberry' => [2, 1],
+            'Coffee Jelly' => [2, 1], 'Soda Water' => [24, 6],
         ];
 
         $locations = [
@@ -94,28 +121,22 @@ class InventoryStockSeeder extends Seeder
                     );
                 }
 
+                [$startQty, $reorder] = $locationName === 'Kitchen Area'
+                    ? [100, 20]
+                    : ($barStart[$itemName] ?? [0, 0]);
+
                 $stockData = [
-                    'current_quantity' => $locationName === 'Kitchen Area' ? 100 : 0,
-                    'reorder_level' => 0,
+                    'current_quantity' => $startQty,
+                    'reorder_level' => $reorder,
                 ];
 
-                if ($locationName === 'Kitchen Area') {
-                    Inventory_Stock::updateOrCreate(
-                        [
-                            'inventory_item_id' => $item->id,
-                            'location_id' => $location->id,
-                        ],
-                        $stockData
-                    );
-                } else {
-                    Inventory_Stock::firstOrCreate(
-                        [
-                            'inventory_item_id' => $item->id,
-                            'location_id' => $location->id,
-                        ],
-                        $stockData
-                    );
-                }
+                Inventory_Stock::updateOrCreate(
+                    [
+                        'inventory_item_id' => $item->id,
+                        'location_id' => $location->id,
+                    ],
+                    $stockData
+                );
             }
         }
     }

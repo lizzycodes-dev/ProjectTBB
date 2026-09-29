@@ -24,7 +24,8 @@ class DatabaseSeeder extends Seeder
             OptionValuesSeeder::class,
             InventoryItemSeeder::class,
             InventoryStockSeeder::class,
-            //MenuItemsSeeder::class,
+            SupplierSeeder::class,
+            MenuItemSeeder::class,
             //RecipeItemsSeeder::class,
             MenuItemOptionGroupsSeeder::class,
             //MenuOptionRecipeAdjustmentsSeeder::class,
@@ -37,4 +38,5 @@ class DatabaseSeeder extends Seeder
             //OrderItemOptionsSeeder::class,
         ]);
     }
+    
 }
