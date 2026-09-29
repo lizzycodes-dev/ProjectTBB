@@ -9,6 +9,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes; // 1. Added SoftDeletes import
 use App\Models\Inventory_Transactions;
 use App\Models\Order;
 use App\Models\Kitchen_Order_Item;
@@ -17,7 +18,7 @@ use App\Models\Payment;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, SoftDeletes; // 2. Added SoftDeletes trait
 
     /**
      * The attributes that are mass assignable.
@@ -28,6 +29,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role_id', // 3. Added role_id so we can assign positions!
     ];
 
     /**

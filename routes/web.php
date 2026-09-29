@@ -7,6 +7,7 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\POSController;
 use App\Http\Controllers\InventoryItemController;
 use App\Http\Controllers\FinanceReportController;
+use App\Http\Controllers\UserController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -26,6 +27,8 @@ Route::post('/orders', [OrderController::class, 'store']);
 Route::get('/test-order', function () {
     return view('test-order');
 })->middleware('auth');
+
+Route::resource('users', UserController::class);
 
 Route::get('/kitchen', [KitchenOrderItemController::class, 'index'])->middleware('auth');
 
@@ -69,6 +72,7 @@ Route::post('/inventory/stock-in', [InventoryItemController::class, 'storeStockI
 Route::patch('/inventory/stocks/{stock}/quantity', [InventoryItemController::class, 'updateStockQuantity'])
     ->middleware('auth')
     ->name('inventory.update-stock-quantity');
+    
 Route::get('/finance-report', [FinanceReportController::class, 'index'])
     ->middleware('auth')
     ->name('finance-report.index');
