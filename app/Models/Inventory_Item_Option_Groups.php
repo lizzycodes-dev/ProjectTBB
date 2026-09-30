@@ -10,7 +10,7 @@ class Inventory_Item_Option_Groups extends Model
     protected $table = 'inventory_item_option_groups';
 
     protected $fillable = [
-        'menu_item_id',
+        'inventory_item_id',
         'option_group_id',
         'is_required',
     ];

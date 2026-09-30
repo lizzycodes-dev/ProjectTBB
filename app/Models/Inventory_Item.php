@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\Inventory_Locations;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Inventory_Item extends Model
 {
@@ -43,5 +44,12 @@ class Inventory_Item extends Model
     public function dailyCounts(): HasMany
     {
         return $this->hasMany(DailyInventoryCount::class, 'inventory_item_id');
+    }
+    public function optionGroups(): HasMany
+    {
+        return $this->hasMany(
+            Inventory_Item_Option_Groups::class,
+            'inventory_item_id'
+        );
     }
 }

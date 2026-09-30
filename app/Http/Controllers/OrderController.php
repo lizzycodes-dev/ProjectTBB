@@ -37,317 +37,330 @@ class OrderController extends Controller
      */
     public function store(Request $request)
     {
-        $cashier = auth()->user();
+        $validated = $request->validate([
+            'cashier_id' => ['nullable', 'exists:users,id'],
+            'order_type' => ['required', 'string'],
+            'notes' => ['nullable', 'string'],
 
-        return DB::transaction(function () use ($request, $cashier) {
-            $validated = $request->validate([
-                'cashier_id' => 'nullable|exists:users,id',
-                'order_type' => 'required|string|max:50',
-                'items' => 'required|array|min:1',
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.inventory_item_id' => [
+                'required',
+                'integer',
+                'exists:inventory_items,id',
+            ],
+            'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'items.*.notes' => ['nullable', 'string'],
+            'items.*.options' => ['nullable', 'array'],
+            'items.*.options.*' => [
+                'integer',
+                'exists:option_values,id',
+            ],
 
-                'items.*.menu_item_id' => [
-                    'required',
-                    Rule::exists('inventory_items', 'id')
-                        ->where('is_active', true)
-                        ->where('is_sellable', true),
-                ],
-                'items.*.quantity' => 'required|integer|min:1',
-                'items.*.notes' => 'nullable|string',
+            'discount_type' => [
+                'nullable',
+                'in:None,Senior,PWD',
+            ],
+            'payment_method' => [
+                'required',
+                'in:Cash,GCash',
+            ],
+            'amount_tendered' => ['nullable', 'numeric', 'min:0'],
+        ]);
 
-                'items.*.options' => 'nullable|array',
-                'items.*.options.*' => [
-                    'integer',
-                    'distinct',
-                    'exists:option_values,id',
-                ],
+        /*
+     * Kitchen menu items that should deduct from prepared-food stock.
+     * The left side is the sellable POS item name.
+     * The right side is the matching inventory item name in Kitchen Area.
+     *
+     * Make sure these names match your inventory_items table exactly.
+     */
+        $kitchenStockMap = [
+            'Pork Sisig' => 'Pork Sisig',
+            'Chicken Sisig' => 'Chicken Sisig',
+            'Pork Sisig NS' => 'Pork Sisig NS',
+            'Chicken Sisig NS' => 'Chicken Sisig NS',
+            'Binagoongan' => 'Binagoongan',
+            'Chicken Teriyaki' => 'C-Teriyaki',
+            'Fish Fillet' => 'Fish Fillet',
+            'Deep Fried Bangus' => 'Bangus',
+            'Chicken Adobo' => 'Chicken Adobo',
+            'Pork Adobo' => 'Pork Adobo',
+            'Chicken Franks' => 'Chicken Franks',
+            'Pork/Chicken Tocino' => 'Pork/Chicken Tocino',
+            'Corn Beef' => 'Corn Beef',
+            'Pork/Chicken Ham' => 'Pork/Chicken Ham',
+            'Egg' => 'Egg',
+            'Baked Mac' => 'Baked Mac',
+            'Mozzarella Cheese Stick' => 'Mozzarella',
+            'French Fries' => 'Fries',
+            'Burger' => 'Burger Patty',
+            'Porkchop with Sauce' => 'Pork Chop',
+            'Bihon Guisado' => 'Bihon',
+            'Chicken Carbonara with Coke' => 'Chicken Carbonara',
+            'Nachos' => 'Nachos Chips/Beef',
+        ];
 
-                'discount_type' => 'required|in:None,Senior/PWD',
+        return \Illuminate\Support\Facades\DB::transaction(function () use (
+            $request,
+            $validated,
+            $kitchenStockMap
+        ) {
+            /*
+         * Load the selected menu items and their option groups.
+         * optionGroups is a hasMany relationship to the pivot model,
+         * then optionGroup is the related option group.
+         */
+            $menuItemIds = collect($validated['items'])
+                ->pluck('inventory_item_id')
+                ->unique()
+                ->values();
 
-                'payment_method' => 'required|in:Cash,GCash',
-                'amount_received' => 'required_if:payment_method,Cash|numeric|min:0',
-                'reference_number' => [
-                    'required_if:payment_method,GCash',
-                    'nullable',
-                    'digits:4',
-                ],
-                'proof_path' => 'nullable|string|max:255',
-            ]);
+            $menuItems = \App\Models\Inventory_Item::query()
+                ->whereIn('id', $menuItemIds)
+                ->where('is_active', true)
+                ->with([
+                    'optionGroups.optionGroup.optionValues',
+                ])
+                ->get()
+                ->keyBy('id');
 
             /*
-             * Validate that selected options belong to the selected menu item,
-             * and that no more than one value is selected from each option group.
-             */
-            foreach ($validated['items'] as $itemIndex => $item) {
-                $menuItem = Inventory_item::with('optionGroups.optionValues')
-                    ->findOrFail($item['menu_item_id']);
+         * Validate that the submitted option values belong to the
+         * option groups assigned to the selected menu item.
+         */
+            foreach ($validated['items'] as $itemData) {
+                $menuItem = $menuItems->get($itemData['inventory_item_id']);
 
-                $allowedOptions = $menuItem->optionGroups
-                    ->flatMap(function ($group) {
-                        return $group->optionValues
-                            ->where('is_active', true)
-                            ->pluck('id');
-                    });
-
-                $selectedOptions = $item['options'] ?? [];
-
-                foreach ($selectedOptions as $optionId) {
-                    if (! $allowedOptions->contains(
-                        fn($allowedId) => (int) $allowedId === (int) $optionId
-                    )) {
-                        throw ValidationException::withMessages([
-                            "items.$itemIndex.options" =>
-                            "One of the selected options is invalid for {$menuItem->name}.",
-                        ]);
-                    }
+                if (!$menuItem) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'items' => 'One of the selected menu items is unavailable.',
+                    ]);
                 }
 
-                $selectedGroups = [];
+                $selectedOptionIds = collect($itemData['options'] ?? [])
+                    ->map(fn($id) => (int) $id)
+                    ->values();
 
-                foreach ($selectedOptions as $optionId) {
-                    $option = Option_Values::findOrFail($optionId);
-                    $groupId = (int) $option->option_group_id;
+                $allowedOptionIds = $menuItem->optionGroups
+                    ->flatMap(function ($itemOptionGroup) {
+                        return $itemOptionGroup->optionGroup?->optionValues
+                            ->pluck('id') ?? collect();
+                    })
+                    ->map(fn($id) => (int) $id)
+                    ->values();
 
-                    if (in_array($groupId, $selectedGroups, true)) {
-                        throw ValidationException::withMessages([
-                            "items.$itemIndex.options" =>
-                            "Choose only one value for each option group on {$menuItem->name}.",
-                        ]);
-                    }
+                if ($selectedOptionIds->diff($allowedOptionIds)->isNotEmpty()) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'items' => 'An invalid option was selected for a menu item.',
+                    ]);
+                }
 
-                    $selectedGroups[] = $groupId;
+                /*
+             * Prevent selecting more than one option from the same group.
+             */
+                $selectedOptions = \App\Models\Option_Values::query()
+                    ->whereIn('id', $selectedOptionIds)
+                    ->get();
+
+                $duplicateGroup = $selectedOptions
+                    ->groupBy('option_group_id')
+                    ->contains(fn($options) => $options->count() > 1);
+
+                if ($duplicateGroup) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'items' => 'Please select no more than one option from each option group.',
+                    ]);
                 }
             }
 
             /*
-             * Calculate order subtotal, including option price adjustments.
-             */
-            $subtotal = 0;
+         * Get the Kitchen Area location once.
+         * No Bar Area ingredient stock is deducted by this order method.
+         */
+            $kitchenLocation = \App\Models\Inventory_Locations::query()
+                ->where('name', 'Kitchen Area')
+                ->first();
 
-            foreach ($validated['items'] as $item) {
-                $menuItem = Inventory_item::findOrFail($item['menu_item_id']);
-                $itemPrice = (float) $menuItem->base_price;
-
-                foreach ($item['options'] ?? [] as $optionId) {
-                    $option = Option_Values::findOrFail($optionId);
-                    $itemPrice += (float) $option->price_adjustment;
-                }
-
-                $subtotal += $itemPrice * $item['quantity'];
-            }
-
-            /*
-             * Calculate discount and total.
-             */
-            $discountAmount = 0;
-
-            if ($validated['discount_type'] === 'Senior/PWD') {
-                $discountAmount = round($subtotal * 0.20, 2);
-            }
-
-            $totalAmount = $subtotal - $discountAmount;
-
-            /*
-             * Validate cash payment.
-             * For GCash, amount received is set to the order total.
-             */
-            if (
-                $validated['payment_method'] === 'Cash' &&
-                (float) $validated['amount_received'] < $totalAmount
-            ) {
-                throw ValidationException::withMessages([
-                    'amount_received' => 'Payment amount is insufficient.',
+            if (!$kitchenLocation) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'items' => 'Kitchen Area was not found in inventory locations.',
                 ]);
             }
 
-            if ($validated['payment_method'] === 'GCash') {
-                $validated['amount_received'] = $totalAmount;
+            /*
+         * Calculate the order subtotal using the current inventory_items.price
+         * field, plus any selected option price adjustments.
+         */
+            $subtotal = 0;
+
+            foreach ($validated['items'] as $itemData) {
+                $menuItem = $menuItems->get($itemData['inventory_item_id']);
+                $quantity = (int) $itemData['quantity'];
+
+                $optionTotal = \App\Models\Option_Values::query()
+                    ->whereIn('id', $itemData['options'] ?? [])
+                    ->sum('price_adjustment');
+
+                $subtotal += (
+                    (float) $menuItem->price + (float) $optionTotal
+                ) * $quantity;
             }
 
-            /*
-             * Generate order number.
-             */
-            $orderNumber = 'ORD-' . str_pad(
-                Order::count() + 1,
-                4,
-                '0',
-                STR_PAD_LEFT
-            );
+            $discountType = $validated['discount_type'] ?? 'None';
+            $discountAmount = 0;
 
             /*
-             * Create the order.
-             */
-            $order = Order::create([
-                'cashier_id' => $cashier->id,
-                'order_number' => $orderNumber,
+         * Keep the discount calculation consistent with your current policy.
+         * This applies 20% for Senior/PWD when selected.
+         */
+            if (in_array($discountType, ['Senior', 'PWD'], true)) {
+                $discountAmount = $subtotal * 0.20;
+            }
+
+            $totalAmount = max(0, $subtotal - $discountAmount);
+
+            /*
+         * Create the order.
+         * If your orders table uses different column names, keep those
+         * existing names from your current Order model/migration.
+         */
+            $order = \App\Models\Order::create([
+                'cashier_id' => $validated['cashier_id'] ?? auth()->id(),
+                'order_number' => 'ORD-' . now()->format('Ymd') . '-' .
+                    str_pad(
+                        ((int) \App\Models\Order::whereDate('created_at', today())->count()) + 1,
+                        4,
+                        '0',
+                        STR_PAD_LEFT
+                    ),
                 'order_type' => $validated['order_type'],
                 'status' => 'Pending',
                 'subtotal' => $subtotal,
+                'discount_type' => $discountType,
                 'discount_amount' => $discountAmount,
-                'discount_type' => $validated['discount_type'],
                 'total_amount' => $totalAmount,
-                'ordered_at' => now(),
-                'completed_at' => null,
+                'notes' => $validated['notes'] ?? null,
             ]);
 
             /*
-             * Map sellable menu names to their corresponding prepared-food
-             * inventory names in Kitchen Area.
-             *
-             * Menu items not included here will not generate stock-out rows
-             * until their stock mapping and deduction quantity are decided.
-             */
-            $kitchenStockMap = [
-                'Pork Sisig' => 'Pork Sisig (Prepped)',
-                'Chicken Sisig' => 'Chicken Sisig (Prepped)',
-                'Porkchop with Sauce' => 'Pork Chop (Prepped)',
-                'Chicken Teriyaki' => 'C-Teriyaki',
-                'Fish Fillet' => 'Fish Fillet (Prepped)',
-                'Deep Fried Bangus' => 'Bangus (Prepped)',
-                'Chicken Adobo' => 'Chicken Adobo (Prepped)',
-                'Pork Adobo' => 'Pork Adobo (Prepped)',
-                'Chicken Carbonara with Coke' => 'Chicken Carbonara',
-                'Bihon Guisado' => 'Bihon (Prepped)',
-                'Bake Mac' => 'Baked Mac (Prepped)',
-                'Mozzarella Cheese Stick' => 'Mozzarella (Prepped)',
-                'French Fries' => 'Fries (Prepped)',
-            ];
+         * Save order lines and their selected options.
+         * Deduct only mapped Kitchen Area prepared-food stock.
+         */
+            foreach ($validated['items'] as $itemData) {
+                $inventoryItem = Inventory_Item::findOrFail(
+                    $itemData['inventory_item_id']
+                );
+                $quantity = (int) $itemData['quantity'];
 
-            /*
-             * Create order items, record stock-outs for mapped prepared foods,
-             * save chosen options, and create kitchen tickets.
-             */
-            foreach ($validated['items'] as $item) {
-                $menuItem = Inventory_item::findOrFail($item['menu_item_id']);
+                $selectedOptions = \App\Models\Option_Values::query()
+                    ->whereIn('id', $itemData['options'] ?? [])
+                    ->get();
 
-                $itemPrice = (float) $menuItem->base_price;
+                $optionTotal = (float) $selectedOptions->sum('price_adjustment');
+                $unitPrice = (float) $menuItem->price + $optionTotal;
+                $lineTotal = $unitPrice * $quantity;
 
-                foreach ($item['options'] ?? [] as $optionId) {
-                    $option = Option_Values::findOrFail($optionId);
-                    $itemPrice += (float) $option->price_adjustment;
-                }
-
-                $quantity = (int) $item['quantity'];
-
-                $orderItem = Order_Item::create([
+                $orderItem = \App\Models\Order_Item::create([
                     'order_id' => $order->id,
-                    'menu_item_id' => $menuItem->id,
+                    'inventory_item_id' => $inventoryItem->id,
                     'quantity' => $quantity,
-                    'unit_price' => $itemPrice,
-                    'subtotal' => $itemPrice * $quantity,
-                    'notes' => $item['notes'] ?? null,
+                    'unit_price' => $unitPrice,
+                    'subtotal' => $lineTotal,
+                    'notes' => $itemData['notes'] ?? null,
                 ]);
 
                 /*
-                 * Record stock-out for mapped Kitchen Area prepared-food items.
-                 */
-                $menuName = $menuItem->name;
-                $stockItemName = $kitchenStockMap[$menuName] ?? null;
-
-                if ($stockItemName !== null) {
-                    $kitchenLocation = DB::table('inventory_locations')
-                        ->where('name', 'Kitchen Area')
-                        ->first();
-
-                    if (! $kitchenLocation) {
-                        throw ValidationException::withMessages([
-                            'items' => 'Kitchen Area location was not found.',
-                        ]);
-                    }
-
-                    $stockItem = DB::table('inventory_items')
-                        ->where('name', $stockItemName)
-                        ->where('inventory_location_id', $kitchenLocation->id)
-                        ->lockForUpdate()
-                        ->first();
-
-                    if (! $stockItem) {
-                        throw ValidationException::withMessages([
-                            'items' =>
-                            "Kitchen stock item '{$stockItemName}' was not found.",
-                        ]);
-                    }
-
-                    /*
-                     * Current available quantity = total stock-in - total stock-out.
-                     */
-                    $stockInTotal = DB::table('stock_ins')
-                        ->where('inventory_item_id', $stockItem->id)
-                        ->sum('quantity');
-
-                    $stockOutTotal = DB::table('stock_outs')
-                        ->where('inventory_item_id', $stockItem->id)
-                        ->sum('quantity');
-
-                    $availableQuantity =
-                        (float) $stockInTotal - (float) $stockOutTotal;
-
-                    if ($availableQuantity < $quantity) {
-                        throw ValidationException::withMessages([
-                            'items' =>
-                            "Not enough {$stockItemName} in Kitchen Area. "
-                                . "Available: {$availableQuantity}.",
-                        ]);
-                    }
-
-                    DB::table('stock_outs')->insert([
-                        'inventory_item_id' => $stockItem->id,
-                        'quantity' => $quantity,
-                        'recorded_by' => $cashier->id,
-                        'reason' => "Sold via POS: {$order->order_number}",
-                        'recorded_at' => now(),
-                        'remarks' => "Order item: {$menuName}",
+             * Save option selections if your order_item_options table exists.
+             * Remove this block if your project stores options differently.
+             */
+                foreach ($selectedOptions as $optionValue) {
+                    \Illuminate\Support\Facades\DB::table('order_item_options')->insert([
+                        'order_item_id' => $orderItem->id,
+                        'option_value_id' => $optionValue->id,
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);
                 }
 
+                /*
+             * Stock-out: only food items in the mapping are deducted.
+             * The matching inventory record must be active and in Kitchen Area.
+             */
+                $stockItemName = $kitchenStockMap[$menuItem->name] ?? null;
 
+                if ($stockItemName !== null) {
+                    $stockItem = \App\Models\Inventory_Item::query()
+                        ->where('name', $stockItemName)
+                        ->where('inventory_location_id', $kitchenLocation->id)
+                        ->where('is_active', true)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (!$stockItem) {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'items' => "Kitchen stock item '{$stockItemName}' was not found.",
+                        ]);
+                    }
+
+                    $totalStockIn = (float) \App\Models\StockIn::query()
+                        ->where('inventory_item_id', $stockItem->id)
+                        ->sum('quantity');
+
+                    $totalStockOut = (float) \App\Models\StockOut::query()
+                        ->where('inventory_item_id', $stockItem->id)
+                        ->sum('quantity');
+
+                    $availableStock = $totalStockIn - $totalStockOut;
+
+                    if ($availableStock < $quantity) {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'items' => "Not enough prepared stock for {$menuItem->name}. Available: {$availableStock}. Requested: {$quantity}.",
+                        ]);
+                    }
+
+                    \App\Models\StockOut::create([
+                        'inventory_item_id' => $stockItem->id,
+                        'quantity' => $quantity,
+                        'recorded_by' => $validated['cashier_id'] ?? auth()->id(),
+                        'reason' => 'Sold via POS: ' . $order->order_number,
+                        'recorded_at' => now(),
+                        'remarks' => 'Order item: ' . $menuItem->name,
+                    ]);
+                }
 
                 /*
-                 * Create kitchen ticket for the order item.
-                 */
-                Kitchen_Order_Item::create([
+             * Create the kitchen ticket for this order line.
+             * Keep these field names aligned with your Kitchen_Order_Item model.
+             */
+                \App\Models\Kitchen_Order_Item::create([
+                    'order_id' => $order->id,
                     'order_item_id' => $orderItem->id,
-                    'prepared_by' => null,
                     'status' => 'Pending',
-                    'started_at' => null,
-                    'completed_at' => null,
                 ]);
             }
 
             /*
-             * Record payment.
-             */
-            $amountReceived = (float) $validated['amount_received'];
-            $changeAmount = $amountReceived - $totalAmount;
-
-            Payment::create([
+         * Record payment after all order items and stock-outs pass validation.
+         * Since this is inside the transaction, any error rolls back the order,
+         * order items, kitchen tickets, payment, and stock-outs together.
+         */
+            \App\Models\Payment::create([
                 'order_id' => $order->id,
-                'received_by' => $cashier->id,
                 'payment_method' => $validated['payment_method'],
                 'amount' => $totalAmount,
-                'amount_received' => $amountReceived,
-                'change_amount' => $changeAmount,
-                'reference_number' => $validated['reference_number'] ?? null,
-                'proof_path' => $validated['proof_path'] ?? null,
+                'received_by' => auth()->id(),
+                'amount_tendered' => $validated['amount_tendered'] ?? $totalAmount,
+                'change' => max(
+                    0,
+                    (float) ($validated['amount_tendered'] ?? $totalAmount) - $totalAmount
+                ),
+                'status' => 'Paid',
                 'paid_at' => now(),
             ]);
 
-            /*
-             * Daily queue number: #101 for the first order of the day,
-             * then #102, #103, and so on.
-             */
-            $queueNumber = 100 + Order::whereDate(
-                'ordered_at',
-                now()->toDateString()
-            )
-                ->where('id', '<=', $order->id)
-                ->count();
-
             return response()->json([
-                'message' => 'Order created successfully.',
-                'order' => $order,
-                'queue_number' => $queueNumber,
+                'message' => 'Order placed successfully.',
+                'order_id' => $order->id,
             ], 201);
         });
     }

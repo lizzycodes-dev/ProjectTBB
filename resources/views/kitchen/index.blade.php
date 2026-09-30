@@ -80,27 +80,8 @@
 
                             <div class="item-main">
                                 {{ $kitchenOrder->orderItem->quantity }}x
-                                {{ $kitchenOrder->orderItem->menuItem->name }}
+                                {{ $kitchenOrder->orderItem->InventoryItem->name }}
                             </div>
-
-
-                            @if ($kitchenOrder->orderItem->options->count())
-
-                            <div class="item-options">
-
-                                @foreach ($kitchenOrder->orderItem->options as $option)
-
-                                {{ $option->optionValue->name }}
-
-                                @if (!$loop->last)
-                                •
-                                @endif
-
-                                @endforeach
-
-                            </div>
-
-                            @endif
 
 
                             @if ($kitchenOrder->orderItem->notes)
@@ -201,7 +182,7 @@
 
                             <div class="item-main">
                                 {{ $kitchenOrder->orderItem->quantity }}x
-                                {{ $kitchenOrder->orderItem->menuItem->name }}
+                                {{ $kitchenOrder->orderItem->InventoryItem->name }}
                             </div>
 
 
@@ -329,7 +310,7 @@
 
                             <div class="item-main">
                                 {{ $kitchenOrder->orderItem->quantity }}x
-                                {{ $kitchenOrder->orderItem->menuItem->name }}
+                                {{ $kitchenOrder->orderItem->InventoryItem->name }}
                             </div>
 
 
@@ -426,7 +407,7 @@
                         @foreach ($orderItems as $kitchenOrder)
 
                         {{ $kitchenOrder->orderItem->quantity }}x
-                        {{ $kitchenOrder->orderItem->menuItem->name }}
+                        {{ $kitchenOrder->orderItem->InventoryItem->name }}
 
                         @if (!$loop->last)
                         •

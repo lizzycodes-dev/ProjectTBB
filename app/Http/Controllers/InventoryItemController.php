@@ -153,14 +153,15 @@ class InventoryItemController extends Controller
         $validated = $request->validate([
             'stock_date' => ['required', 'date'],
             'location_id' => ['required', 'integer', 'exists:inventory_locations,id'],
-            'beginning' => ['required', 'array'],
-            'beginning.*' => ['required', 'numeric', 'min:0'],
+            'beginning' => ['sometimes', 'array'],
+            'beginning.*' => ['nullable', 'numeric', 'min:0'],
             'remarks' => ['nullable', 'string', 'max:255'],
         ]);
 
         $stockDate = $validated['stock_date'];
         $locationId = $validated['location_id'];
 
+        // Get only active items in the selected area.
         $items = Inventory_Item::where('is_active', true)
             ->where('inventory_location_id', $locationId)
             ->orderBy('name')
@@ -174,30 +175,53 @@ class InventoryItemController extends Controller
                 ]);
         }
 
-        foreach ($items as $item) {
-            if (! array_key_exists($item->id, $validated['beginning'])) {
+        // Keep only quantities that were actually entered.
+        // Blank inputs are skipped; zero is retained as a valid quantity.
+        $enteredQuantities = collect($validated['beginning'] ?? [])
+            ->filter(fn($quantity) => $quantity !== null && $quantity !== '');
+
+        if ($enteredQuantities->isEmpty()) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'beginning' => 'Enter a quantity for at least one item.',
+                ]);
+        }
+
+        // Make sure the submitted item IDs belong to this selected area.
+        $itemsById = $items->keyBy('id');
+
+        foreach ($enteredQuantities as $itemId => $quantity) {
+            if (! $itemsById->has($itemId)) {
                 throw ValidationException::withMessages([
-                    "beginning.{$item->id}" => "Enter the beginning quantity for {$item->name}.",
+                    'beginning' => 'One or more selected items are not available in this area.',
                 ]);
             }
         }
 
-        $itemIds = $items->pluck('id');
+        $itemIds = $enteredQuantities->keys();
 
-        if (DailyInventoryCount::whereDate('stock_date', $stockDate)
+        // Prevent duplicate beginning entries for the same item and date.
+        if (
+            DailyInventoryCount::whereDate('stock_date', $stockDate)
             ->whereIn('inventory_item_id', $itemIds)
             ->exists()
         ) {
             return back()
                 ->withInput()
                 ->withErrors([
-                    'stock_date' => 'Beginning stock has already been recorded for this area and date.',
+                    'stock_date' => 'Beginning stock has already been recorded for one or more of these items on this date.',
                 ]);
         }
 
-        DB::transaction(function () use ($items, $validated, $stockDate) {
-            foreach ($items as $item) {
-                $quantity = $validated['beginning'][$item->id];
+        DB::transaction(function () use (
+            $itemsById,
+            $enteredQuantities,
+            $validated,
+            $stockDate
+        ) {
+            foreach ($enteredQuantities as $itemId => $quantity) {
+                $item = $itemsById->get($itemId);
                 $now = now();
 
                 $stockInId = DB::table('stock_ins')->insertGetId([

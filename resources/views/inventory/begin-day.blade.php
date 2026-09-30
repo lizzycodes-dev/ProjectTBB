@@ -121,7 +121,6 @@
                                         value="{{ old('beginning.' . $item->id, '') }}"
                                         min="0"
                                         step="0.001"
-                                        required
                                         aria-label="Beginning quantity for {{ $item->name }}">
                                 </td>
                             </tr>

@@ -44,7 +44,9 @@ Route::post(
     [OrderController::class, 'completeOrder']
 )->middleware(['auth', 'cook']);
 
-Route::get('/pos', [POSController::class, 'index'])->middleware('auth');
+Route::get('/pos', [POSController::class, 'index'])
+    ->name('pos.index')
+    ->middleware('auth');
 
 Route::get('/inventory', [InventoryItemController::class, 'index'])
     ->name('inventory.index');
