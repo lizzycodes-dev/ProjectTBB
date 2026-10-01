@@ -16,6 +16,8 @@ class Inventory_Item extends Model
         'name',
         'category_id',
         'inventory_location_id',
+        'unit_id',
+        'inventory_type',
         'price',
         'description',
         'is_active',
@@ -30,7 +32,10 @@ class Inventory_Item extends Model
     {
         return $this->belongsTo(Inventory_Locations::class, 'inventory_location_id');
     }
-
+    public function unit(): BelongsTo
+    {
+        return $this->belongsTo(Unit::class);
+    }
     public function stockIns(): HasMany
     {
         return $this->hasMany(StockIn::class, 'inventory_item_id');

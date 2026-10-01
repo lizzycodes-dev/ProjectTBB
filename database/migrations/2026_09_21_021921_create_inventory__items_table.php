@@ -13,6 +13,11 @@ return new class extends Migration
             $table->string('name');
             $table->foreignId('category_id')->constrained('categories');
             $table->foreignId('inventory_location_id')->constrained('inventory_locations');
+            $table->foreignId('unit_id')
+                ->nullable()
+                ->constrained('units');
+            $table->string('inventory_type')
+                ->nullable();
             $table->decimal('price', 10, 2);
             $table->text('description');
             $table->boolean('is_active')->default(true);

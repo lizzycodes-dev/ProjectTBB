@@ -59,7 +59,7 @@
                             type="date"
                             id="stock_date"
                             name="stock_date"
-                            value="{{ old('stock_date', now()->toDateString()) }}"
+                            value="{{ old('stock_date', $stockDate) }}"
                             required>
                     </div>
 
@@ -74,62 +74,99 @@
                             placeholder="e.g. Opening count before business hours">
                     </div>
                 </div>
-
+                {{-- PREPPED FOOD --}}
                 <div class="stock-entry-heading">
                     <div>
-                        <h2>Beginning quantities</h2>
-                        <p>Enter the starting quantity for each item. Use 0 if there is no stock.</p>
+                        <h2>Prepped Food</h2>
+                        <p>
+                            Track prepared food stock. Sold quantities are recorded from completed POS orders.
+                        </p>
                     </div>
-                    <span class="item-count">{{ $items->count() }} items</span>
+
+                    <span class="item-count">
+                        {{ $preppedItems->count() }} items
+                    </span>
                 </div>
+
                 <div class="begin-day-item-search">
-                    <label for="itemSearch">Search inventory items</label>
+                    <label for="preppedSearch">Search prepped food</label>
                     <input
                         type="search"
-                        id="itemSearch"
+                        id="preppedSearch"
                         placeholder="Search by item name..."
                         autocomplete="off">
                 </div>
+
                 <div class="begin-day-table-wrapper">
                     <table class="begin-day-table">
                         <thead>
                             <tr>
                                 <th>Item</th>
-                                <th>Category</th>
-                                <th>Location</th>
-                                <th class="quantity-column">Beginning quantity</th>
+                                <th>Beginning</th>
+                                <th>Sold</th>
+                                <th>Input New</th>
+                                <th class="quantity-column">Ending Balance</th>
                             </tr>
                         </thead>
 
                         <tbody>
-                            @forelse ($items as $item)
-                            <tr class="begin-day-item-row" data-item-name="{{ strtolower($item->name) }}">
+                            @forelse ($preppedItems as $item)
+                            <tr
+                                class="prepped-item-row"
+                                data-item-name="{{ strtolower($item->name) }}">
+
                                 <td>
-                                    <span class="begin-day-item-name">{{ $item->name }}</span>
-                                </td>
-                                <td>
-                                    <span class="begin-day-category">
-                                        {{ $item->category?->name ?? 'Uncategorized' }}
+                                    <span class="begin-day-item-name">
+                                        {{ $item->name }}
                                     </span>
                                 </td>
-                                <td>{{ $item->inventoryLocation?->name ?? '—' }}</td>
-                                <td class="quantity-column">
+
+                                <td>
+                                    <span class="beginning-value">
+                                        {{ number_format($beginningQuantities[$item->id] ?? 0, 3) }}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <span class="sold-value">
+                                        {{ number_format($soldQuantities[$item->id] ?? 0, 3) }}
+                                    </span>
+                                </td>
+
+                                <td>
                                     <input
-                                        class="quantity-input"
+                                        class="quantity-input input-new"
                                         type="number"
-                                        name="beginning[{{ $item->id }}]"
-                                        value="{{ old('beginning.' . $item->id, '') }}"
+                                        name="input_new[{{ $item->id }}]"
+                                        value="{{ old('input_new.' . $item->id, '') }}"
                                         min="0"
                                         step="0.001"
-                                        aria-label="Beginning quantity for {{ $item->name }}">
+                                        data-beginning="{{ $beginningQuantities[$item->id] ?? 0 }}"
+                                        data-sold="{{ $soldQuantities[$item->id] ?? 0 }}"
+                                        aria-label="New stock for {{ $item->name }}">
+                                </td>
+
+                                <td class="quantity-column">
+                                    <span
+                                        class="ending-value"
+                                        data-ending-for="{{ $item->id }}">
+                                        {{ number_format(
+                                            ($beginningQuantities[$item->id] ?? 0)
+                                            - ($soldQuantities[$item->id] ?? 0),
+                                            3
+                                        ) }}
+                                    </span>
                                 </td>
                             </tr>
+
                             @empty
                             <tr>
-                                <td colspan="4">
+                                <td colspan="5">
                                     <div class="begin-day-empty">
-                                        <strong>No active inventory items found</strong>
-                                        <p>Try selecting another area or add items in Inventory Management.</p>
+                                        <strong>No prepped food items found</strong>
+                                        <p>
+                                            Add or activate prepped inventory items in Inventory Management.
+                                        </p>
                                     </div>
                                 </td>
                             </tr>
@@ -138,29 +175,160 @@
                     </table>
                 </div>
 
-                @if ($items->isNotEmpty())
+
+                {{-- PHYSICAL INVENTORY --}}
+                <div class="stock-entry-heading physical-inventory-heading">
+                    <div>
+                        <h2>Physical Inventory</h2>
+                        <p>
+                            Record the actual quantity counted for physical inventory items.
+                        </p>
+                    </div>
+
+                    <span class="item-count">
+                        {{ $physicalItems->count() }} items
+                    </span>
+                </div>
+
+                <div class="begin-day-item-search">
+                    <label for="physicalSearch">Search physical inventory</label>
+                    <input
+                        type="search"
+                        id="physicalSearch"
+                        placeholder="Search by item name..."
+                        autocomplete="off">
+                </div>
+
+                <div class="begin-day-table-wrapper">
+                    <table class="begin-day-table">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Beginning</th>
+                                <th>System Unit</th>
+                                <th>Actual Quantity</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @forelse ($physicalItems as $item)
+                            <tr
+                                class="physical-item-row"
+                                data-item-name="{{ strtolower($item->name) }}">
+
+                                <td>
+                                    <span class="begin-day-item-name">
+                                        {{ $item->name }}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <span class="beginning-value">
+                                        {{ number_format($beginningQuantities[$item->id] ?? 0, 3) }}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    {{ $item->unit?->abbreviation ?? $item->unit?->name ?? '—' }}
+                                </td>
+
+                                <td>
+                                    <input
+                                        class="quantity-input"
+                                        type="number"
+                                        name="actual_quantity[{{ $item->id }}]"
+                                        value="{{ old('actual_quantity.' . $item->id, '') }}"
+                                        min="0"
+                                        step="0.001"
+                                        aria-label="Actual quantity for {{ $item->name }}">
+                                </td>
+
+                                <td>
+                                    <input
+                                        type="text"
+                                        name="physical_notes[{{ $item->id }}]"
+                                        value="{{ old('physical_notes.' . $item->id, '') }}"
+                                        maxlength="255"
+                                        placeholder="Optional note"
+                                        class="physical-note-input">
+                                </td>
+                            </tr>
+
+                            @empty
+                            <tr>
+                                <td colspan="5">
+                                    <div class="begin-day-empty">
+                                        <strong>No physical inventory items found</strong>
+                                        <p>
+                                            Add or activate physical inventory items in Inventory Management.
+                                        </p>
+                                    </div>
+                                </td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+
                 <div class="begin-day-footer">
-                    <p>Check the date and quantities before saving.</p>
+                    <p>
+                        Review the quantities before saving the daily inventory.
+                    </p>
+
                     <button type="submit" class="save-beginning-button">
-                        Save Beginning Stock
+                        Save Daily Inventory
                     </button>
                 </div>
-                @endif
+
             </form>
         </section>
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const searchInput = document.getElementById('itemSearch');
-            const itemRows = document.querySelectorAll('.begin-day-item-row');
 
-            searchInput.addEventListener('input', function() {
-                const searchTerm = this.value.trim().toLowerCase();
+            function setupSearch(inputId, rowSelector) {
+                const searchInput = document.getElementById(inputId);
+                const itemRows = document.querySelectorAll(rowSelector);
 
-                itemRows.forEach(function(row) {
-                    const itemName = row.dataset.itemName || '';
-                    row.style.display = itemName.includes(searchTerm) ? '' : 'none';
+                if (!searchInput) {
+                    return;
+                }
+
+                searchInput.addEventListener('input', function() {
+                    const searchTerm = this.value.trim().toLowerCase();
+
+                    itemRows.forEach(function(row) {
+                        const itemName = row.dataset.itemName || '';
+
+                        row.style.display =
+                            itemName.includes(searchTerm) ? '' : 'none';
+                    });
                 });
+            }
+
+            setupSearch('preppedSearch', '.prepped-item-row');
+            setupSearch('physicalSearch', '.physical-item-row');
+
+        });
+        document.querySelectorAll('.input-new').forEach(function(input) {
+            input.addEventListener('input', function() {
+                const beginning = parseFloat(this.dataset.beginning) || 0;
+                const sold = parseFloat(this.dataset.sold) || 0;
+                const inputNew = parseFloat(this.value) || 0;
+
+                const ending = beginning - sold + inputNew;
+
+                const itemId = this.name.match(/\d+/)[0];
+
+                const endingElement = document.querySelector(
+                    `[data-ending-for="${itemId}"]`
+                );
+
+                if (endingElement) {
+                    endingElement.textContent = ending.toFixed(3);
+                }
             });
         });
     </script>

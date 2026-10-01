@@ -19,7 +19,7 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             InventoryLocationsSeeder::class,
             CategorySeeder::class,
-            #UnitSeeder::class,
+            UnitSeeder::class,
             OptionGroupsSeeder::class,
             OptionValuesSeeder::class,
             InventoryItemSeeder::class,

@@ -57,8 +57,18 @@ Route::post(
     ->middleware('auth')
     ->name('inventory.toggle-active');
 
-Route::patch('/inventory/{inventoryItem}/unit', [InventoryItemController::class, 'updateUnit'])
-    ->name('inventory.update-unit');
+Route::get('/inventory/create', [InventoryItemController::class, 'create'])
+    ->name('inventory.create');
+
+Route::post('/inventory', [InventoryItemController::class, 'store'])
+    ->name('inventory.store');
+
+Route::get('/inventory/{inventoryItem}/edit', [InventoryItemController::class, 'edit'])
+    ->name('inventory.edit');
+
+Route::put('/inventory/{inventoryItem}', [InventoryItemController::class, 'update'])
+    ->name('inventory.update');
+
 
 Route::get('/inventory/stock-in', [InventoryItemController::class, 'createStockIn'])
     ->middleware('auth')
@@ -80,5 +90,6 @@ Route::get('/inventory/begin-day', [InventoryItemController::class, 'createBegin
 
 Route::post('/inventory/begin-day', [InventoryItemController::class, 'storeBeginDay'])
     ->name('inventory.begin-day.store');
+
 
 require __DIR__ . '/auth.php';
