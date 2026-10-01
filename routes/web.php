@@ -85,11 +85,6 @@ Route::get('/finance-report', [FinanceReportController::class, 'index'])
     ->middleware('auth')
     ->name('finance-report.index');
 
-Route::get('/inventory/begin-day', [InventoryItemController::class, 'createBeginDay'])
-    ->name('inventory.begin-day');
-
-Route::post('/inventory/begin-day', [InventoryItemController::class, 'storeBeginDay'])
-    ->name('inventory.begin-day.store');
 
 
 require __DIR__ . '/auth.php';
