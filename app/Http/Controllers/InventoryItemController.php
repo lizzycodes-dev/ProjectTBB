@@ -155,6 +155,9 @@ class InventoryItemController extends Controller
 
         $physicalItems = (clone $baseQuery)
             ->where('inventory_type', 'physical')
+            ->whereHas('category', function ($query) {
+                $query->where('name', 'Ingredient');
+            })
             ->orderBy('name')
             ->get();
 

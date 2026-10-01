@@ -804,6 +804,39 @@
         .menu-card.search-hidden {
             display: none !important;
         }
+
+        .menu-stock-status {
+            margin: 8px 0;
+        }
+
+        .stock-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 5px 9px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .stock-in {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .stock-low {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .stock-out {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .add-to-cart:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
     </style>
 
     <div class="pos-container">
@@ -839,14 +872,12 @@
             </div>
             <div class="menu-grid">
                 @foreach ($menuItems as $menuItem)
-                <div
-                    class="menu-card"
+                <div class="menu-card"
                     data-search="{{ strtolower($menuItem->name) }}"
                     data-category="{{ $menuItem->category->name ?? 'Menu Item' }}">
 
                     <div class="menu-card-photo">
-                        <img
-                            src="{{ asset('images/menu/sample.png') }}"
+                        <img src="{{ asset('images/menu/sample.png') }}"
                             alt="{{ $menuItem->name }}">
                     </div>
 
@@ -860,15 +891,30 @@
                         ₱{{ number_format($menuItem->price, 2) }}
                     </div>
 
-                    <button
-                        type="button"
+                    <div class="menu-stock-status">
+                        @if ($menuItem->stock_status === 'out')
+                        <span class="stock-badge stock-out">
+                            Out of Stock
+                        </span>
+                        @elseif ($menuItem->stock_status === 'low')
+                        <span class="stock-badge stock-low">
+                            Low Stock · {{ number_format($menuItem->current_stock, 0) }} left
+                        </span>
+                        @else
+                        <span class="stock-badge stock-in">
+                            In Stock · {{ number_format($menuItem->current_stock, 0) }} left
+                        </span>
+                        @endif
+                    </div>
+                    <button type="button"
                         class="add-to-cart"
                         data-id="{{ $menuItem->id }}"
                         data-name="{{ $menuItem->name }}"
                         data-price="{{ $menuItem->price }}"
                         data-options='@json($menuItem->optionGroups)'>
-                        Add to Order
+                        {{ $menuItem->stock_status === 'out' ? 'Out of Stock' : 'Add to Order' }}
                     </button>
+
                 </div>
                 @endforeach
             </div>
