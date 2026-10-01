@@ -12,14 +12,6 @@
                 <a href="{{ route('inventory.begin-day') }}" class="inventory-new-button">
                     Begin Day
                 </a>
-
-                <button
-                    type="button"
-                    class="inventory-new-button"
-                    id="openCreateModal">
-                    <span class="new-button-icon">+</span>
-                    <span>New Item</span>
-                </button>
             </div>
         </div>
 
@@ -70,7 +62,13 @@
                     </p>
                 </div>
 
-                <span>{{ $items->total() }} item(s)</span>
+                <button
+                    type="button"
+                    class="inventory-new-button"
+                    id="openCreateModal">
+                    <span class="new-button-icon">+</span>
+                    <span>New Item</span>
+                </button>
             </div>
 
 
@@ -233,17 +231,15 @@
 
                                     <button
                                         type="button"
-                                        class="edit-button"
-                                        data-edit-item="{{ base64_encode(json_encode([
-                                            'id' => $item->id,
-                                            'name' => $item->name,
-                                            'category_id' => $item->category_id,
-                                            'inventory_location_id' => $item->inventory_location_id,
-                                            'unit_id' => $item->unit_id,
-                                            'inventory_type' => $item->inventory_type,
-                                            'price' => $item->price,
-                                            'description' => $item->description,
-                                        ])) }}">
+                                        class="edit-inventory-button"
+                                        data-id="{{ $item->id }}"
+                                        data-name="{{ $item->name }}"
+                                        data-category="{{ $item->category_id }}"
+                                        data-location="{{ $item->inventory_location_id }}"
+                                        data-unit="{{ $item->unit_id }}"
+                                        data-type="{{ $item->inventory_type }}"
+                                        data-price="{{ $item->price }}"
+                                        data-description="{{ $item->description }}">
                                         Edit
                                     </button>
 
@@ -807,6 +803,111 @@
 
 
     <style>
+        .inventory-pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px 0 4px;
+        }
+
+        .inventory-pagination nav {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Pagination list */
+        .inventory-pagination nav>div:last-child {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* All pagination buttons */
+        .inventory-pagination a,
+        .inventory-pagination span {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 34px;
+            height: 34px;
+            padding: 0 9px;
+
+            border: 1px solid transparent;
+            border-radius: 8px;
+
+            background: transparent;
+            color: #76533c;
+
+            font-size: 13px;
+            font-weight: 500;
+            text-decoration: none;
+
+            transition: all 0.18s ease;
+        }
+
+        /* Page hover */
+        .inventory-pagination a:hover {
+            background: #f3e6da;
+            color: #593b29;
+        }
+
+        /* Active page */
+        .inventory-pagination span[aria-current="page"] {
+            color: #ffffff;
+            border-color: #8b5e3c;
+            font-weight: 600;
+        }
+
+        /* Disabled previous / next */
+        .inventory-pagination span[aria-disabled="true"] {
+            color: #c4b5a8;
+            background: transparent;
+        }
+
+        /* Previous and Next */
+        .inventory-pagination a[rel="prev"],
+        .inventory-pagination a[rel="next"] {
+            padding: 0 13px;
+            margin: 0 4px;
+
+            border: 1px solid #dcc5b1;
+            background: #fffaf6;
+            color: #76533c;
+        }
+
+        .inventory-pagination a[rel="prev"]:hover,
+        .inventory-pagination a[rel="next"]:hover {
+            background: #f3e6da;
+            border-color: #c9a789;
+        }
+
+        /* Remove the extra Laravel text styling */
+        .inventory-pagination p {
+            margin: 0;
+        }
+
+        /* Mobile */
+        @media (max-width: 640px) {
+            .inventory-pagination {
+                padding-top: 16px;
+            }
+
+            .inventory-pagination a,
+            .inventory-pagination span {
+                min-width: 32px;
+                height: 32px;
+                padding: 0 7px;
+                font-size: 12px;
+            }
+
+            .inventory-pagination a[rel="prev"],
+            .inventory-pagination a[rel="next"] {
+                padding: 0 10px;
+                margin: 0 2px;
+            }
+        }
+
         /* =========================
            PAGE
         ========================= */
@@ -1136,7 +1237,7 @@
         }
 
 
-        .edit-button,
+        .edit-inventory-button,
         .toggle-button {
             padding: 5px 8px;
             border: 0;
@@ -1147,13 +1248,18 @@
         }
 
 
-        .edit-button {
+        .edit-inventory-button {
+            padding: 5px 8px;
+            border: 0;
+            border-radius: 6px;
             background: #eee5df;
             color: #5b4032;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
         }
 
-
-        .edit-button:hover {
+        .edit-inventory-button:hover {
             background: #e1d3c8;
         }
 
@@ -1529,22 +1635,25 @@
 
 
             document
-                .querySelectorAll('.edit-button')
+                .querySelectorAll('.edit-inventory-button')
                 .forEach(function(button) {
 
-                    button.addEventListener(
-                        'click',
-                        function() {
+                    button.addEventListener('click', function() {
 
-                            const item =
-                                JSON.parse(
-                                    this.dataset.editItem
-                                );
+                        const item = {
+                            id: this.dataset.id,
+                            name: this.dataset.name,
+                            category_id: this.dataset.category,
+                            inventory_location_id: this.dataset.location,
+                            unit_id: this.dataset.unit,
+                            inventory_type: this.dataset.type,
+                            price: this.dataset.price,
+                            description: this.dataset.description
+                        };
 
-                            openEditModal(item);
+                        openEditModal(item);
 
-                        }
-                    );
+                    });
 
                 });
 
