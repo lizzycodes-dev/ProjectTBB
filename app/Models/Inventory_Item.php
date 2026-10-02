@@ -59,7 +59,11 @@ class Inventory_Item extends Model
 
     public function optionGroups(): BelongsToMany
     {
-        return $this->belongsToMany(Option_Groups::class, 'menu_item_option_groups', 'menu_item_id', 'option_group_id')
-            ->withPivot('is_required');
+        return $this->belongsToMany(
+            Option_Groups::class, 
+            'inventory_item_option_groups', 
+            'inventory_item_id', 
+            'option_group_id'
+        )->withPivot('is_required');
     }
 }
