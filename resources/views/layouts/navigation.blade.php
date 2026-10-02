@@ -2,7 +2,6 @@
 
     {{-- Logo / Brand --}}
     <div class="sidebar-brand">
-
         <a href="{{ route('dashboard') }}">
             <div class="sidebar-logo">
                 <img
@@ -19,13 +18,10 @@
                 POS & Inventory System
             </div>
         </a>
-
     </div>
-
 
     {{-- User --}}
     <div class="sidebar-user">
-
         <div class="sidebar-welcome">
             Welcome!
         </div>
@@ -33,9 +29,7 @@
         <div class="sidebar-username">
             {{ Auth::user()->name }}
         </div>
-
     </div>
-
 
     {{-- Navigation --}}
     <div class="sidebar-links">
@@ -47,6 +41,12 @@
             <span>Dashboard</span>
         </a>
 
+        <a
+            href="{{ route('finance-report.index') }}"
+            class="sidebar-link {{ request()->routeIs('finance-report.index') ? 'active' : '' }}">
+            <span>→</span>
+            <span>Finance Report</span>
+        </a>
 
         <a
             href="/pos"
@@ -55,14 +55,12 @@
             <span>POS</span>
         </a>
 
-
         <a
             href="/kitchen"
             class="sidebar-link {{ request()->is('kitchen*') ? 'active' : '' }}">
             <span>→</span>
             <span>Kitchen</span>
         </a>
-
 
         <a
             href="/inventory"
@@ -71,20 +69,20 @@
             <span>Inventory</span>
         </a>
 
-        <a
-            href="{{ route('finance-report.index') }}"
-            class="sidebar-link {{ request()->routeIs('finance-report.index') ? 'active' : '' }}">
-            <span>→</span>
-            <span>Finance Report</span>
-        </a>
-
+        {{-- USER MANAGEMENT (MANAGER ONLY) --}}
+        @if(Auth::user()->role?->name === 'Manager')
+            <a
+                href="{{ route('users.index') }}"
+                class="sidebar-link {{ request()->routeIs('users.*') || request()->is('users*') ? 'active' : '' }}">
+                <span>→</span>
+                <span>User Management</span>
+            </a>
+        @endif
 
     </div>
 
-
     {{-- Logout --}}
     <div class="sidebar-logout">
-
         <form
             method="POST"
             action="{{ route('logout') }}">
@@ -99,13 +97,10 @@
                 <span>Logout</span>
 
             </button>
-
         </form>
-
     </div>
 
 </nav>
-
 
 <style>
     .brewing-logo {
@@ -127,9 +122,7 @@
         color: #6b4328;
     }
 
-
     /* Brand */
-
     .sidebar-brand {
         text-align: center;
         padding-bottom: 15px;
@@ -160,9 +153,7 @@
         color: #76543c;
     }
 
-
     /* User */
-
     .sidebar-user {
         border-top: 1px dashed #9b7658;
         border-bottom: 1px dashed #9b7658;
@@ -181,9 +172,7 @@
         font-weight: bold;
     }
 
-
     /* Navigation */
-
     .sidebar-links {
         display: flex;
         flex-direction: column;
@@ -227,9 +216,7 @@
         background: transparent;
     }
 
-
     /* Logout */
-
     .sidebar-logout {
         margin-top: 24px;
         padding-top: 20px;

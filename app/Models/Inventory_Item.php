@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Models\Inventory_Locations;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Inventory_Item extends Model
@@ -32,10 +31,12 @@ class Inventory_Item extends Model
     {
         return $this->belongsTo(Inventory_Locations::class, 'inventory_location_id');
     }
+
     public function unit(): BelongsTo
     {
         return $this->belongsTo(Unit::class);
     }
+
     public function stockIns(): HasMany
     {
         return $this->hasMany(StockIn::class, 'inventory_item_id');
@@ -50,11 +51,15 @@ class Inventory_Item extends Model
     {
         return $this->hasMany(DailyInventoryCount::class, 'inventory_item_id');
     }
-    public function optionGroups(): HasMany
+
+    public function orderItems(): HasMany
     {
-        return $this->hasMany(
-            Inventory_Item_Option_Groups::class,
-            'inventory_item_id'
-        );
+        return $this->hasMany(Order_Item::class, 'menu_item_id');
+    }
+
+    public function optionGroups(): BelongsToMany
+    {
+        return $this->belongsToMany(Option_Groups::class, 'menu_item_option_groups', 'menu_item_id', 'option_group_id')
+            ->withPivot('is_required');
     }
 }

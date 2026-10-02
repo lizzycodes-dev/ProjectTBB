@@ -14,13 +14,17 @@ class OrderItemSeeder extends Seeder
         $order = Order::where('order_number', 'ORD-0001')->first();
         $porkSisig = Inventory_Item::where('name', 'Pork Sisig')->first();
 
-        Order_Item::create([
-            'order_id' => $order->id,
-            'menu_item_id' => $porkSisig->id,
-            'quantity' => 1,
-            'unit_price' => $porkSisig->base_price,
-            'subtotal' => $porkSisig->base_price,
-            'notes' => null,
-        ]);
+        if ($order && $porkSisig) {
+            $unitPrice = $porkSisig->base_price ?? 75.00;
+
+            Order_Item::create([
+                'order_id' => $order->id,
+                'menu_item_id' => $porkSisig->id,
+                'quantity' => 1,
+                'unit_price' => $unitPrice,
+                'subtotal' => $unitPrice * 1,
+                'notes' => null,
+            ]);
+        }
     }
 }
