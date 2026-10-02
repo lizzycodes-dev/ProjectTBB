@@ -1,7 +1,8 @@
-<nav class="sidebar">
+<nav class="sidebar" id="sidebar">
 
     {{-- Logo / Brand --}}
     <div class="sidebar-brand">
+
         <a href="{{ route('dashboard') }}">
             <div class="sidebar-logo">
                 <img
@@ -10,18 +11,22 @@
                     class="brewing-logo">
             </div>
 
-            <div class="sidebar-title">
-                The Brewing Bar
+            <div class="sidebar-brand-text">
+                <div class="sidebar-title">
+                    The Brewing Bar
+                </div>
+
+                <div class="sidebar-subtitle">
+                    POS & Inventory System
+                </div>
             </div>
 
-            <div class="sidebar-subtitle">
-                POS & Inventory System
-            </div>
         </a>
     </div>
 
     {{-- User --}}
     <div class="sidebar-user">
+
         <div class="sidebar-welcome">
             Welcome!
         </div>
@@ -29,16 +34,27 @@
         <div class="sidebar-username">
             {{ Auth::user()->name }}
         </div>
+
     </div>
+
 
     {{-- Navigation --}}
     <div class="sidebar-links">
 
+        {{-- Dashboard --}}
         <a
             href="{{ route('dashboard') }}"
-            class="sidebar-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
-            <span>→</span>
-            <span>Dashboard</span>
+            class="sidebar-link {{ request()->routeIs('dashboard') ? 'active' : '' }}"
+            title="Dashboard">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M3 11.5 12 4l9 7.5" />
+                <path d="M5 10.5V20h14v-9.5" />
+                <path d="M9 20v-6h6v6" />
+            </svg>
+
+            <span class="sidebar-link-text">
+                Dashboard
+            </span>
         </a>
 
         <a
@@ -48,36 +64,65 @@
             <span>Finance Report</span>
         </a>
 
+        {{-- POS --}}
         <a
             href="/pos"
-            class="sidebar-link {{ request()->is('pos') ? 'active' : '' }}">
-            <span>→</span>
-            <span>POS</span>
+            class="sidebar-link {{ request()->is('pos') ? 'active' : '' }}"
+            title="POS">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 3h12v18H6z" />
+                <path d="M9 7h6" />
+                <path d="M9 11h2M13 11h2" />
+                <path d="M9 15h2M13 15h2" />
+                <path d="M9 19h6" />
+            </svg>
+
+            <span class="sidebar-link-text">
+                POS
+            </span>
         </a>
 
+        {{-- Kitchen --}}
         <a
             href="/kitchen"
-            class="sidebar-link {{ request()->is('kitchen*') ? 'active' : '' }}">
-            <span>→</span>
-            <span>Kitchen</span>
+            class="sidebar-link {{ request()->is('kitchen*') ? 'active' : '' }}"
+            title="Kitchen">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 10h16v10H4z" />
+                <path d="M7 10V7a5 5 0 0 1 10 0v3" />
+                <path d="M8 14h8" />
+                <path d="M8 17h5" />
+            </svg>
+
+            <span class="sidebar-link-text">
+                Kitchen
+            </span>
+        </a>
+
+        {{-- Inventory --}}
+        <a
+            href="/inventory"
+            class="sidebar-link {{ request()->is('inventory*') ? 'active' : '' }}"
+            title="Inventory">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 7h16v13H4z" />
+                <path d="M7 7V4h10v3" />
+                <path d="M8 11h8" />
+                <path d="M8 15h5" />
+            </svg>
+
+            <span class="sidebar-link-text">
+                Inventory
+            </span>
         </a>
 
         <a
-            href="/inventory"
-            class="sidebar-link {{ request()->is('inventory*') ? 'active' : '' }}">
+            href="{{ route('finance-report.index') }}"
+            class="sidebar-link {{ request()->routeIs('finance-report.index') ? 'active' : '' }}">
             <span>→</span>
-            <span>Inventory</span>
+            <span>Finance Report</span>
         </a>
 
-        {{-- USER MANAGEMENT (MANAGER ONLY) --}}
-        @if(Auth::user()->role?->name === 'Manager')
-            <a
-                href="{{ route('users.index') }}"
-                class="sidebar-link {{ request()->routeIs('users.*') || request()->is('users*') ? 'active' : '' }}">
-                <span>→</span>
-                <span>User Management</span>
-            </a>
-        @endif
 
     </div>
 
@@ -86,16 +131,21 @@
         <form
             method="POST"
             action="{{ route('logout') }}">
-
             @csrf
 
             <button
                 type="submit"
-                class="sidebar-link logout-button">
+                class="sidebar-link logout-button"
+                title="Logout">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M10 4H5v16h5" />
+                    <path d="M14 8l4 4-4 4" />
+                    <path d="M18 12H9" />
+                </svg>
 
-                <span>→</span>
-                <span>Logout</span>
-
+                <span class="sidebar-link-text">
+                    Logout
+                </span>
             </button>
         </form>
     </div>
@@ -122,7 +172,9 @@
         color: #6b4328;
     }
 
+
     /* Brand */
+
     .sidebar-brand {
         text-align: center;
         padding-bottom: 15px;
@@ -153,7 +205,9 @@
         color: #76543c;
     }
 
+
     /* User */
+
     .sidebar-user {
         border-top: 1px dashed #9b7658;
         border-bottom: 1px dashed #9b7658;
@@ -172,7 +226,9 @@
         font-weight: bold;
     }
 
+
     /* Navigation */
+
     .sidebar-links {
         display: flex;
         flex-direction: column;
@@ -216,7 +272,9 @@
         background: transparent;
     }
 
+
     /* Logout */
+
     .sidebar-logout {
         margin-top: 24px;
         padding-top: 20px;
