@@ -8,7 +8,6 @@ use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use App\Models\DailyInventoryCount;
 use App\Models\Unit;
 
 class InventoryItemController extends Controller
@@ -222,7 +221,58 @@ class InventoryItemController extends Controller
             ->orderBy('name')
             ->paginate(10, ['*'], 'coffee_page')
             ->withQueryString();
+        /*
+        |--------------------------------------------------------------------------
+        | MODAL STOCK VALUES
+        |--------------------------------------------------------------------------
+        */
 
+        $stockDate = now()->toDateString();
+
+        $modalItems = $preppedItems->getCollection()
+            ->concat($nonCountableItems->getCollection());
+
+        $beginningQuantities = [];
+
+        foreach ($modalItems as $item) {
+            $stockInBefore = DB::table('stock_ins')
+                ->where('inventory_item_id', $item->id)
+                ->where('recorded_at', '<', $stockDate . ' 00:00:00')
+                ->sum('quantity');
+
+            $stockOutBefore = DB::table('stock_outs')
+                ->where('inventory_item_id', $item->id)
+                ->where('recorded_at', '<', $stockDate . ' 00:00:00')
+                ->sum('quantity');
+
+            $beginningQuantities[$item->id] =
+                (float) $stockInBefore - (float) $stockOutBefore;
+        }
+        $inputNewQuantities = DB::table('stock_ins')
+            ->whereDate('recorded_at', $stockDate)
+            ->whereIn(
+                'inventory_item_id',
+                $preppedItems->getCollection()->pluck('id')
+            )
+            ->select(
+                'inventory_item_id',
+                DB::raw('SUM(quantity) as total_input_new')
+            )
+            ->groupBy('inventory_item_id')
+            ->pluck('total_input_new', 'inventory_item_id');
+
+        $soldQuantities = DB::table('stock_outs')
+            ->whereDate('recorded_at', $stockDate)
+            ->whereIn(
+                'inventory_item_id',
+                $preppedItems->getCollection()->pluck('id')
+            )
+            ->select(
+                'inventory_item_id',
+                DB::raw('SUM(quantity) as total_sold')
+            )
+            ->groupBy('inventory_item_id')
+            ->pluck('total_sold', 'inventory_item_id');
         return view('inventory.index', compact(
             'preppedItems',
             'nonCountableItems',
@@ -237,6 +287,9 @@ class InventoryItemController extends Controller
             'coffeeItems',
             'coffeeItems',
             'juiceItems',
+            'beginningQuantities',
+            'inputNewQuantities',
+            'soldQuantities',
         ));
     }
 
@@ -305,302 +358,7 @@ class InventoryItemController extends Controller
             ->with('success', 'Stock added successfully.');
     }
 
-    public function createBeginDay(Request $request)
-    {
-        $locationId = $request->query('location_id');
-        $stockDate = $request->query('stock_date', now()->toDateString());
 
-        $baseQuery = Inventory_Item::with([
-            'category',
-            'inventoryLocation',
-            'unit',
-        ])
-            ->where('is_active', true);
-
-        if ($locationId !== null && $locationId !== '') {
-            $baseQuery->where('inventory_location_id', $locationId);
-        }
-
-        $preppedItems = (clone $baseQuery)
-            ->where('inventory_type', 'prepped')
-            ->orderBy('name')
-            ->get();
-
-        $physicalItems = (clone $baseQuery)
-            ->where('inventory_type', 'physical')
-            ->whereHas('category', function ($query) {
-                $query->where('name', 'Ingredient');
-            })
-            ->orderBy('name')
-            ->get();
-
-        /*
-    |--------------------------------------------------------------------------
-    | Beginning quantities
-    |--------------------------------------------------------------------------
-    | Use the most recent saved ending quantity before the selected date.
-    */
-        $beginningQuantities = [];
-
-        $allItems = $preppedItems->concat($physicalItems);
-
-        foreach ($allItems as $item) {
-            $previousCount = DailyInventoryCount::where(
-                'inventory_item_id',
-                $item->id
-            )
-                ->where('stock_date', '<', $stockDate)
-                ->whereNotNull('ending_quantity')
-                ->orderByDesc('stock_date')
-                ->first();
-
-            $beginningQuantities[$item->id] =
-                $previousCount?->ending_quantity ?? 0;
-        }
-
-        /*
-    |--------------------------------------------------------------------------
-    | Sold quantities
-    |--------------------------------------------------------------------------
-    | Sold stock comes from POS stock-outs recorded on the selected date.
-    */
-        $soldQuantities = DB::table('stock_outs')
-            ->select(
-                'inventory_item_id',
-                DB::raw('SUM(quantity) as total_sold')
-            )
-            ->whereDate('recorded_at', $stockDate)
-            ->whereIn(
-                'inventory_item_id',
-                $preppedItems->pluck('id')
-            )
-            ->groupBy('inventory_item_id')
-            ->pluck('total_sold', 'inventory_item_id');
-
-        $locations = Inventory_Locations::orderBy('name')->get();
-
-        return view('inventory.begin-day', compact(
-            'preppedItems',
-            'physicalItems',
-            'locations',
-            'locationId',
-            'stockDate',
-            'beginningQuantities',
-            'soldQuantities'
-        ));
-    }
-    public function storeBeginDay(Request $request)
-    {
-        $validated = $request->validate([
-            'stock_date' => ['required', 'date'],
-            'location_id' => [
-                'nullable',
-                'integer',
-                'exists:inventory_locations,id',
-            ],
-
-            'input_new' => ['nullable', 'array'],
-            'input_new.*' => [
-                'nullable',
-                'numeric',
-                'min:0',
-            ],
-
-            'actual_quantity' => ['nullable', 'array'],
-            'actual_quantity.*' => [
-                'nullable',
-                'numeric',
-                'min:0',
-            ],
-
-            'physical_notes' => ['nullable', 'array'],
-            'physical_notes.*' => [
-                'nullable',
-                'string',
-                'max:255',
-            ],
-        ]);
-
-        $stockDate = $validated['stock_date'];
-        $locationId = $validated['location_id'] ?? null;
-
-        /*
-    |--------------------------------------------------------------------------
-    | Get active inventory items in the selected location
-    |--------------------------------------------------------------------------
-    */
-        $items = Inventory_Item::where('is_active', true)
-            ->when(
-                $locationId !== null,
-                function ($query) use ($locationId) {
-                    $query->where('inventory_location_id', $locationId);
-                }
-            )
-            ->get();
-
-        if ($items->isEmpty()) {
-            return back()
-                ->withInput()
-                ->withErrors([
-                    'location_id' => 'There are no active inventory items in this area.',
-                ]);
-        }
-
-        $preppedItems = $items
-            ->where('inventory_type', 'prepped');
-
-        $physicalItems = $items
-            ->where('inventory_type', 'physical');
-
-        /*
-    |--------------------------------------------------------------------------
-    | Prevent duplicate daily records
-    |--------------------------------------------------------------------------
-    */
-        $itemIds = $items->pluck('id');
-
-        if (
-            DailyInventoryCount::whereDate('stock_date', $stockDate)
-            ->whereIn('inventory_item_id', $itemIds)
-            ->exists()
-        ) {
-            return back()
-                ->withInput()
-                ->withErrors([
-                    'stock_date' => 'Daily inventory has already been recorded for one or more items on this date.',
-                ]);
-        }
-
-        DB::transaction(function () use (
-            $validated,
-            $stockDate,
-            $preppedItems,
-            $physicalItems
-        ) {
-
-            /*
-        |--------------------------------------------------------------------------
-        | PREPPED FOOD
-        |--------------------------------------------------------------------------
-        */
-
-            foreach ($preppedItems as $item) {
-
-                // Get previous day's ending balance.
-                $previousCount = DailyInventoryCount::where(
-                    'inventory_item_id',
-                    $item->id
-                )
-                    ->where('stock_date', '<', $stockDate)
-                    ->whereNotNull('ending_quantity')
-                    ->orderByDesc('stock_date')
-                    ->first();
-
-                $beginning = (float) (
-                    $previousCount?->ending_quantity ?? 0
-                );
-
-                // Get total sold through POS on this date.
-                $sold = (float) (
-                    DB::table('stock_outs')
-                    ->where('inventory_item_id', $item->id)
-                    ->whereDate('recorded_at', $stockDate)
-                    ->sum('quantity')
-                );
-
-                // Newly prepared stock entered by the user.
-                $inputNew = (float) (
-                    $validated['input_new'][$item->id] ?? 0
-                );
-
-                // Beginning - Sold + Input New.
-                $ending = $beginning - $sold + $inputNew;
-
-                /*
-            |--------------------------------------------------------------------------
-            | Save newly prepared stock as Stock In
-            |--------------------------------------------------------------------------
-            */
-
-                $stockInId = null;
-
-                if ($inputNew > 0) {
-                    $stockInId = DB::table('stock_ins')->insertGetId([
-                        'inventory_item_id' => $item->id,
-                        'quantity' => $inputNew,
-                        'supplier_id' => null,
-                        'recorded_by' => auth()->id(),
-                        'recorded_at' => $stockDate . ' 00:00:00',
-                        'remarks' => 'Input new - daily inventory',
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-                }
-
-                /*
-            |--------------------------------------------------------------------------
-            | Save daily inventory record
-            |--------------------------------------------------------------------------
-            */
-
-                DailyInventoryCount::create([
-                    'inventory_item_id' => $item->id,
-                    'stock_date' => $stockDate,
-                    'beginning_quantity' => $beginning,
-                    'ending_quantity' => $ending,
-                    'beginning_stock_in_id' => $stockInId,
-                    'remarks' => null,
-                ]);
-            }
-
-            /*
-        |--------------------------------------------------------------------------
-        | PHYSICAL INVENTORY
-        |--------------------------------------------------------------------------
-        */
-
-            foreach ($physicalItems as $item) {
-
-                // Get previous day's ending balance.
-                $previousCount = DailyInventoryCount::where(
-                    'inventory_item_id',
-                    $item->id
-                )
-                    ->where('stock_date', '<', $stockDate)
-                    ->whereNotNull('ending_quantity')
-                    ->orderByDesc('stock_date')
-                    ->first();
-
-                $beginning = (float) (
-                    $previousCount?->ending_quantity ?? 0
-                );
-
-                // Actual physical count entered by the user.
-                $actualQuantity = $validated['actual_quantity'][$item->id] ?? null;
-
-                // If the user did not enter a physical count, skip it.
-                if ($actualQuantity === null || $actualQuantity === '') {
-                    continue;
-                }
-
-                DailyInventoryCount::create([
-                    'inventory_item_id' => $item->id,
-                    'stock_date' => $stockDate,
-                    'beginning_quantity' => $beginning,
-                    'ending_quantity' => $actualQuantity,
-                    'beginning_stock_in_id' => null,
-                    'remarks' => $validated['physical_notes'][$item->id] ?? null,
-                ]);
-            }
-        });
-
-        return redirect()
-            ->route('inventory.begin-day', [
-                'location_id' => $locationId,
-                'stock_date' => $stockDate,
-            ])
-            ->with('success', 'Daily inventory saved successfully.');
-    }
 
     public function create()
     {
@@ -781,17 +539,6 @@ class InventoryItemController extends Controller
                 'string',
                 'max:255',
             ],
-
-            'sold_quantity' => [
-                'nullable',
-                'array',
-            ],
-
-            'sold_quantity.*' => [
-                'nullable',
-                'numeric',
-                'min:0',
-            ],
         ]);
 
         $type = $validated['inventory_type'];
@@ -801,6 +548,11 @@ class InventoryItemController extends Controller
     |--------------------------------------------------------------------------
     | PREPPED FOOD
     |--------------------------------------------------------------------------
+    |
+    | Only Input New is entered manually.
+    | Sold comes automatically from stock_outs.
+    | Beginning and Ending are calculated from stock transactions.
+    |
     */
 
         if ($type === 'prepped') {
@@ -810,73 +562,38 @@ class InventoryItemController extends Controller
                 ->orderBy('name')
                 ->get();
 
-            DB::transaction(function () use ($items, $validated, $stockDate) {
+            DB::transaction(function () use (
+                $items,
+                $validated,
+                $stockDate
+            ) {
 
                 foreach ($items as $item) {
-
-                    $previousCount = DailyInventoryCount::where(
-                        'inventory_item_id',
-                        $item->id
-                    )
-                        ->where('stock_date', '<', $stockDate)
-                        ->whereNotNull('ending_quantity')
-                        ->orderByDesc('stock_date')
-                        ->first();
-
-                    $beginning = (float) ($previousCount?->ending_quantity ?? 0);
-
-                    $sold = (float) DB::table('stock_outs')
-                        ->where('inventory_item_id', $item->id)
-                        ->whereDate('recorded_at', $stockDate)
-                        ->sum('quantity');
 
                     $inputNew = (float) (
                         $validated['input_new'][$item->id] ?? 0
                     );
 
-                    $ending = $beginning - $sold + $inputNew;
-
-                    $stockInId = null;
-
-                    /*
-                |--------------------------------------------------------------------------
-                | Record Input New
-                |--------------------------------------------------------------------------
-                */
-
-                    if ($inputNew > 0) {
-
-                        $stockInId = DB::table('stock_ins')->insertGetId([
-                            'inventory_item_id' => $item->id,
-                            'quantity' => $inputNew,
-                            'supplier_id' => null,
-                            'recorded_by' => auth()->id(),
-                            'recorded_at' => $stockDate . ' 00:00:00',
-                            'remarks' => 'Input new - daily inventory',
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ]);
+                    if ($inputNew <= 0) {
+                        continue;
                     }
 
-                    DailyInventoryCount::updateOrCreate(
-                        [
-                            'inventory_item_id' => $item->id,
-                            'stock_date' => $stockDate,
-                        ],
-                        [
-                            'beginning_quantity' => $beginning,
-                            'sold_quantity' => $sold,
-                            'ending_quantity' => $ending,
-                            'beginning_stock_in_id' => $stockInId,
-                            'remarks' => null,
-                        ]
-                    );
+                    DB::table('stock_ins')->insert([
+                        'inventory_item_id' => $item->id,
+                        'quantity' => $inputNew,
+                        'supplier_id' => null,
+                        'recorded_by' => auth()->id(),
+                        'recorded_at' => $stockDate . ' 00:00:00',
+                        'remarks' => 'Added through prepped food inventory',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
                 }
             });
 
             return back()->with(
                 'success',
-                'Prepped food daily inventory saved successfully.'
+                'Prepped food stock added successfully.'
             );
         }
 
@@ -884,6 +601,10 @@ class InventoryItemController extends Controller
     |--------------------------------------------------------------------------
     | NON-COUNTABLE
     |--------------------------------------------------------------------------
+    |
+    | These are manually counted items.
+    | They are not automatically deducted by POS.
+    |
     */
 
         if ($type === 'non-countable') {
@@ -901,55 +622,39 @@ class InventoryItemController extends Controller
                 ->orderBy('name')
                 ->get();
 
-            DB::transaction(function () use ($items, $validated, $stockDate) {
+            DB::transaction(function () use (
+                $items,
+                $validated,
+                $stockDate
+            ) {
 
                 foreach ($items as $item) {
 
                     $actualQuantity =
                         $validated['actual_quantity'][$item->id] ?? null;
 
-                    /*
-                |--------------------------------------------------------------------------
-                | Nothing entered = do not create a record
-                |--------------------------------------------------------------------------
-                */
-
                     if ($actualQuantity === null || $actualQuantity === '') {
                         continue;
                     }
 
-                    $previousCount = DailyInventoryCount::where(
-                        'inventory_item_id',
-                        $item->id
-                    )
-                        ->where('stock_date', '<', $stockDate)
-                        ->whereNotNull('ending_quantity')
-                        ->orderByDesc('stock_date')
-                        ->first();
-
-                    $beginning = (float) ($previousCount?->ending_quantity ?? 0);
-
-                    DailyInventoryCount::updateOrCreate(
-                        [
-                            'inventory_item_id' => $item->id,
-                            'stock_date' => $stockDate,
-                        ],
-                        [
-                            'beginning_quantity' => $beginning,
-                            'sold_quantity' => 0,
-                            'ending_quantity' => $actualQuantity,
-                            'beginning_stock_in_id' => null,
-                            'remarks' =>
-                            $validated['physical_notes'][$item->id]
-                                ?? null,
-                        ]
-                    );
+                    DB::table('stock_ins')->insert([
+                        'inventory_item_id' => $item->id,
+                        'quantity' => $actualQuantity,
+                        'supplier_id' => null,
+                        'recorded_by' => auth()->id(),
+                        'recorded_at' => $stockDate . ' 00:00:00',
+                        'remarks' =>
+                        $validated['physical_notes'][$item->id]
+                            ?? 'Manual physical count',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
                 }
             });
 
             return back()->with(
                 'success',
-                'Non-countable inventory saved successfully.'
+                'Non-countable inventory updated successfully.'
             );
         }
 
@@ -957,47 +662,17 @@ class InventoryItemController extends Controller
     |--------------------------------------------------------------------------
     | COFFEE / JUICE
     |--------------------------------------------------------------------------
+    |
+    | These are made-to-order items.
+    | Their sold quantity is handled by POS.
+    |
     */
 
         if (in_array($type, ['coffee', 'juice'])) {
 
-            $categoryName = ucfirst($type);
-
-            $items = Inventory_Item::where('is_active', true)
-                ->where('inventory_type', 'physical')
-                ->whereHas('category', function ($query) use ($categoryName) {
-                    $query->where('name', $categoryName);
-                })
-                ->orderBy('name')
-                ->get();
-
-            DB::transaction(function () use ($items, $validated, $stockDate) {
-
-                foreach ($items as $item) {
-
-                    $sold = (float) (
-                        $validated['sold_quantity'][$item->id] ?? 0
-                    );
-
-                    DailyInventoryCount::updateOrCreate(
-                        [
-                            'inventory_item_id' => $item->id,
-                            'stock_date' => $stockDate,
-                        ],
-                        [
-                            'beginning_quantity' => 0,
-                            'sold_quantity' => $sold,
-                            'ending_quantity' => null,
-                            'beginning_stock_in_id' => null,
-                            'remarks' => null,
-                        ]
-                    );
-                }
-            });
-
             return back()->with(
                 'success',
-                "{$categoryName} daily sales saved successfully."
+                ucfirst($type) . ' sales are automatically tracked from POS.'
             );
         }
 

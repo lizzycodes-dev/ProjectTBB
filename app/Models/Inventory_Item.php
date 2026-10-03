@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Inventory_Item extends Model
 {
@@ -47,11 +46,6 @@ class Inventory_Item extends Model
         return $this->hasMany(StockOut::class, 'inventory_item_id');
     }
 
-    public function dailyCounts(): HasMany
-    {
-        return $this->hasMany(DailyInventoryCount::class, 'inventory_item_id');
-    }
-
     public function orderItems(): HasMany
     {
         return $this->hasMany(Order_Item::class, 'menu_item_id');
@@ -60,9 +54,9 @@ class Inventory_Item extends Model
     public function optionGroups(): BelongsToMany
     {
         return $this->belongsToMany(
-            Option_Groups::class, 
-            'inventory_item_option_groups', 
-            'inventory_item_id', 
+            Option_Groups::class,
+            'inventory_item_option_groups',
+            'inventory_item_id',
             'option_group_id'
         )->withPivot('is_required');
     }
