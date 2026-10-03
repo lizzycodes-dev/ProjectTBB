@@ -113,4 +113,12 @@ class UserController extends Controller
 
         return redirect()->route('users.index')->with('success', 'User archived successfully.');
     }
+
+    public function restore($id)
+    {
+        $user = User::onlyTrashed()->findOrFail($id);
+        $user->restore();
+
+        return redirect()->route('users.index')->with('success', 'User account successfully reactivated.');
+    }
 }

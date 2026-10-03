@@ -27,7 +27,7 @@
         </div>
 
         <div class="sidebar-username">
-            {{ Auth::user()->name }}
+            {{ Auth::user()?->name ?? 'Guest' }}
         </div>
     </div>
 

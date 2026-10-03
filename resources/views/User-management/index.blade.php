@@ -62,7 +62,6 @@
                         placeholder="Search by name or email..." 
                         class="w-full sm:w-72 rounded-lg border-gray-300 text-sm shadow-sm focus:border-amber-700 focus:ring-amber-700">
                     
-                    {{-- Filter Dropdown --}}
                     <select name="filter" class="rounded-lg border-gray-300 text-sm shadow-sm focus:border-amber-700 focus:ring-amber-700">
                         <option value="">All Roles / Active</option>
                         <option value="Manager" @selected(request('filter') == 'Manager')>Manager</option>
@@ -92,6 +91,7 @@
                                 <th class="px-5 py-3">Name</th>
                                 <th class="px-5 py-3">Email</th>
                                 <th class="px-5 py-3">Position</th>
+                                <th class="px-5 py-3">Status</th>
                                 <th class="px-5 py-3 text-right">Actions</th>
                             </tr>
                         </thead>
@@ -106,14 +106,28 @@
                                     {{ $user->email }}
                                 </td>
                                 <td class="px-5 py-4">
-                                    <span class="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">
+                                    <span class="px-3 py-1 text-xs font-medium text-gray-800">
                                         {{ $user->role->name ?? 'None' }}
                                     </span>
+                                </td>
+                                <td class="px-5 py-4">
+                                    @if($user->trashed())
+                                        <span class="px-3 py-1 text-xs font-semibold text-red-700">Archived</span>
+                                    @else
+                                        <span class="px-3 py-1 text-xs font-semibold text-green-700">Active</span>
+                                    @endif
                                 </td>
                                 <td class="px-5 py-4 text-right">
                                     <div class="flex items-center justify-end gap-2">
                                         @if($user->trashed())
-                                            <span class="text-xs font-semibold text-red-600 bg-red-50 px-2.5 py-1 rounded-md">Archived</span>
+                                            {{-- Activate Button --}}
+                                            <form action="{{ route('users.restore', $user->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to reactivate this user account?');">
+                                                @csrf
+                                                @method('PUT')
+                                                <button type="submit" class="rounded-lg bg-green-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-900 shadow-sm">
+                                                    Activate
+                                                </button>
+                                            </form>
                                         @else
                                             {{-- Edit Button --}}
                                             <button
@@ -138,10 +152,10 @@
                                 </td>
                             </tr>
 
-                            {{-- Expandable edit details row (Only for non-archived users) --}}
+                            {{-- Expandable edit details row (Only for active users) --}}
                             @unless($user->trashed())
                             <tr id="user-details-{{ $user->id }}" class="hidden bg-gray-50">
-                                <td colspan="4" class="px-5 py-5">
+                                <td colspan="5" class="px-5 py-5">
                                     <div class="rounded-lg border border-gray-200 bg-white p-4 sm:p-5">
                                         <div class="mb-5">
                                             <h2 class="text-base font-semibold text-gray-800">
@@ -194,7 +208,7 @@
 
                             @empty
                             <tr>
-                                <td colspan="4" class="px-5 py-8 text-center text-gray-500">
+                                <td colspan="5" class="px-5 py-8 text-center text-gray-500">
                                     No users found matching your filter criteria.
                                 </td>
                             </tr>
