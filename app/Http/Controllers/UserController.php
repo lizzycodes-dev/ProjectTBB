@@ -12,21 +12,38 @@ class UserController extends Controller
     public function index(Request $request)
     {
         $search = $request->input('search');
+        $filter = $request->input('filter');
 
-        $users = User::with('role')
-            ->when($search, function ($query, $search) {
-                $query->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
-            })
-            ->paginate(10)
-            ->withQueryString();
+        $query = User::with('role');
 
+        // Search query filter
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        // Role or Archived status filter
+        if ($filter === 'archived') {
+            $query->onlyTrashed();
+        } elseif ($filter) {
+            $query->whereHas('role', function($q) use ($filter) {
+                if ($filter === 'Cook') {
+                    $q->whereIn('name', ['Cook', 'Kitchen Staff']);
+                } else {
+                    $q->where('name', $filter);
+                }
+            });
+        }
+
+        $users = $query->paginate(10)->withQueryString();
         $roles = Role::all();
 
-        // Calculate role counts for the summary cards
+        // Summary counts (keeping active counts)
         $managerCount = User::whereHas('role', fn($q) => $q->where('name', 'Manager'))->count();
         $cashierCount = User::whereHas('role', fn($q) => $q->where('name', 'Cashier'))->count();
-        $cookCount = User::whereHas('role', fn($q) => $q->where('name', 'Kitchen Staff')->orWhere('name', 'Cook'))->count();
+        $cookCount = User::whereHas('role', fn($q) => $q->whereIn('name', ['Cook', 'Kitchen Staff']))->count();
 
         return view('User-management.index', compact('users', 'roles', 'managerCount', 'cashierCount', 'cookCount'));
     }

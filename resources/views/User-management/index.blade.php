@@ -17,7 +17,7 @@
                 </a>
             </div>
 
-            {{-- Summary Statistics Cards (Words left, Number right) --}}
+            {{-- Summary Statistics Cards --}}
             <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div class="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
                     <span class="text-sm font-medium text-gray-600">Managers</span>
@@ -52,7 +52,7 @@
             </div>
             @endif
 
-            {{-- Search Bar Form --}}
+            {{-- Search Bar & Filter Form --}}
             <div class="mb-5">
                 <form method="GET" action="{{ route('users.index') }}" class="flex flex-wrap items-center gap-2">
                     <input 
@@ -60,15 +60,24 @@
                         name="search" 
                         value="{{ request('search') }}" 
                         placeholder="Search by name or email..." 
-                        class="w-full sm:w-80 rounded-lg border-gray-300 text-sm shadow-sm focus:border-amber-700 focus:ring-amber-700">
+                        class="w-full sm:w-72 rounded-lg border-gray-300 text-sm shadow-sm focus:border-amber-700 focus:ring-amber-700">
                     
+                    {{-- Filter Dropdown --}}
+                    <select name="filter" class="rounded-lg border-gray-300 text-sm shadow-sm focus:border-amber-700 focus:ring-amber-700">
+                        <option value="">All Roles / Active</option>
+                        <option value="Manager" @selected(request('filter') == 'Manager')>Manager</option>
+                        <option value="Cashier" @selected(request('filter') == 'Cashier')>Cashier</option>
+                        <option value="Cook" @selected(request('filter') == 'Cook')>Cook / Kitchen</option>
+                        <option value="archived" @selected(request('filter') == 'archived')>Archived Accounts</option>
+                    </select>
+
                     <button type="submit" class="rounded-lg bg-gray-800 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-700 shadow-sm">
-                        Search
+                        Filter
                     </button>
 
-                    @if(request('search'))
+                    @if(request('search') || request('filter'))
                         <a href="{{ route('users.index') }}" class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 bg-white">
-                            Clear Filter
+                            Reset
                         </a>
                     @endif
                 </form>
@@ -89,7 +98,6 @@
 
                         <tbody class="divide-y divide-gray-100">
                             @forelse ($users as $user)
-                            {{-- User row --}}
                             <tr class="hover:bg-amber-50">
                                 <td class="px-5 py-4 font-medium text-gray-800">
                                     {{ $user->name }}
@@ -104,33 +112,37 @@
                                 </td>
                                 <td class="px-5 py-4 text-right">
                                     <div class="flex items-center justify-end gap-2">
-                                        {{-- Edit / Accordion Button --}}
-                                        <button
-                                            type="button"
-                                            class="toggle-user rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100"
-                                            data-target="user-details-{{ $user->id }}"
-                                            aria-expanded="false">
-                                            <span class="toggle-label">Edit</span>
-                                            <span class="ml-1 toggle-icon">＋</span>
-                                        </button>
-
-                                        {{-- Archive Button --}}
-                                        <form action="{{ route('users.destroy', $user->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to archive this user?');">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="rounded-lg border border-red-300 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50">
-                                                Archive
+                                        @if($user->trashed())
+                                            <span class="text-xs font-semibold text-red-600 bg-red-50 px-2.5 py-1 rounded-md">Archived</span>
+                                        @else
+                                            {{-- Edit Button --}}
+                                            <button
+                                                type="button"
+                                                class="toggle-user rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100"
+                                                data-target="user-details-{{ $user->id }}"
+                                                aria-expanded="false">
+                                                <span class="toggle-label">Edit</span>
+                                                <span class="ml-1 toggle-icon">＋</span>
                                             </button>
-                                        </form>
+
+                                            {{-- Archive Button --}}
+                                            <form action="{{ route('users.destroy', $user->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to archive this user?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="rounded-lg border border-red-300 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50">
+                                                    Archive
+                                                </button>
+                                            </form>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>
 
-                            {{-- Expandable edit details row --}}
+                            {{-- Expandable edit details row (Only for non-archived users) --}}
+                            @unless($user->trashed())
                             <tr id="user-details-{{ $user->id }}" class="hidden bg-gray-50">
                                 <td colspan="4" class="px-5 py-5">
                                     <div class="rounded-lg border border-gray-200 bg-white p-4 sm:p-5">
-
                                         <div class="mb-5">
                                             <h2 class="text-base font-semibold text-gray-800">
                                                 {{ $user->name }} — Account Details
@@ -171,7 +183,6 @@
                                         </form>
 
                                         <div class="mt-6 flex justify-end border-t border-gray-100 pt-4">
-                                            {{-- Save Update Button --}}
                                             <button type="submit" form="update-form-{{ $user->id }}" class="rounded-lg bg-amber-800 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-900 shadow-sm">
                                                 Save Changes
                                             </button>
@@ -179,10 +190,12 @@
                                     </div>
                                 </td>
                             </tr>
+                            @endunless
+
                             @empty
                             <tr>
                                 <td colspan="4" class="px-5 py-8 text-center text-gray-500">
-                                    No users found matching your search.
+                                    No users found matching your filter criteria.
                                 </td>
                             </tr>
                             @endforelse
