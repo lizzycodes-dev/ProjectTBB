@@ -706,4 +706,86 @@ class InventoryItemController extends Controller
             'items' => $data,
         ]);
     }
+
+    public function nonCountableHistory(Request $request)
+    {
+        $request->validate([
+            'date' => ['required', 'date'],
+        ]);
+
+        $stockDate = \Carbon\Carbon::parse($request->date)->toDateString();
+        $today = now()->toDateString();
+
+        if ($stockDate > $today) {
+            return response()->json([
+                'message' => 'Future dates are not allowed.',
+            ], 422);
+        }
+
+        $items = Inventory_Item::with([
+            'category',
+            'inventoryLocation',
+            'unit',
+        ])
+            ->where('is_active', true)
+            ->where('inventory_type', 'physical')
+            ->whereHas('category', function ($query) {
+                $query->whereIn('name', [
+                    'Ingredient',
+                    'Puree',
+                    'Sauce',
+                    'Powder',
+                ]);
+            })
+            ->orderBy('name')
+            ->get();
+
+        $data = [];
+
+        foreach ($items as $item) {
+
+            $stockInBefore = DB::table('stock_ins')
+                ->where('inventory_item_id', $item->id)
+                ->where('recorded_at', '<', $stockDate . ' 00:00:00')
+                ->sum('quantity');
+
+            $stockOutBefore = DB::table('stock_outs')
+                ->where('inventory_item_id', $item->id)
+                ->where('recorded_at', '<', $stockDate . ' 00:00:00')
+                ->sum('quantity');
+
+            $beginning =
+                (float) $stockInBefore -
+                (float) $stockOutBefore;
+
+            $record = DB::table('stock_ins')
+                ->where('inventory_item_id', $item->id)
+                ->whereDate('recorded_at', $stockDate)
+                ->orderByDesc('id')
+                ->first();
+
+            $actualQuantity = $record
+                ? (float) $record->quantity
+                : null;
+
+            $notes = $record
+                ? $record->remarks
+                : '';
+
+            $data[] = [
+                'id' => $item->id,
+                'name' => $item->name,
+                'beginning' => $beginning,
+                'unit' => $item->unit?->abbreviation ?? '—',
+                'actual_quantity' => $actualQuantity,
+                'notes' => $notes,
+            ];
+        }
+
+        return response()->json([
+            'date' => $stockDate,
+            'is_today' => $stockDate === $today,
+            'items' => $data,
+        ]);
+    }
 }

@@ -95,4 +95,6 @@ Route::post('/inventory/daily', [InventoryItemController::class, 'storeDailyInve
 Route::get('/inventory/daily-history', [InventoryItemController::class, 'dailyHistory'])
     ->name('inventory.daily-history');
 
+Route::get('/inventory/non-countable-history', [InventoryItemController::class, 'nonCountableHistory'])
+    ->name('inventory.non-countable-history');
 require __DIR__ . '/auth.php';

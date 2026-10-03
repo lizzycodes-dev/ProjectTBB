@@ -172,8 +172,23 @@
                                     type="button"
                                     class="inventory-settings-button"
                                     data-settings-type="prepped"
-                                    title="Daily stock settings">
-                                    ⚙
+                                    title="Daily sales settings">
+
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        aria-hidden="true"
+                                        class="inventory-settings-icon">
+                                        <path d="M9 4h6" />
+                                        <path d="M9 3h6v3H9z" />
+                                        <path d="M6 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1" />
+                                        <path d="M8 11h8" />
+                                        <path d="M8 15h5" />
+                                        <path d="M17 14v5" />
+                                        <path d="M14.5 16.5h5" />
+                                    </svg>
+
+                                    <span>Manage Stocks</span>
+
                                 </button>
 
                             </div>
@@ -292,7 +307,22 @@
                                     class="inventory-settings-button"
                                     data-settings-type="coffee"
                                     title="Daily sales settings">
-                                    ⚙
+
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        aria-hidden="true"
+                                        class="inventory-settings-icon">
+                                        <path d="M9 4h6" />
+                                        <path d="M9 3h6v3H9z" />
+                                        <path d="M6 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1" />
+                                        <path d="M8 11h8" />
+                                        <path d="M8 15h5" />
+                                        <path d="M17 14v5" />
+                                        <path d="M14.5 16.5h5" />
+                                    </svg>
+
+                                    <span>Manage Stocks</span>
+
                                 </button>
                             </div>
                             <span class="table-type-badge made-to-order">Made to Order</span>
@@ -403,7 +433,22 @@
                                     class="inventory-settings-button"
                                     data-settings-type="juice"
                                     title="Daily sales settings">
-                                    ⚙
+
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        aria-hidden="true"
+                                        class="inventory-settings-icon">
+                                        <path d="M9 4h6" />
+                                        <path d="M9 3h6v3H9z" />
+                                        <path d="M6 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1" />
+                                        <path d="M8 11h8" />
+                                        <path d="M8 15h5" />
+                                        <path d="M17 14v5" />
+                                        <path d="M14.5 16.5h5" />
+                                    </svg>
+
+                                    <span>Manage Stocks</span>
+
                                 </button>
                             </div>
                             <span class="table-type-badge made-to-order">Made to Order</span>
@@ -513,8 +558,23 @@
                                     type="button"
                                     class="inventory-settings-button"
                                     data-settings-type="non-countable"
-                                    title="Manual inventory settings">
-                                    ⚙
+                                    title="Daily sales settings">
+
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        aria-hidden="true"
+                                        class="inventory-settings-icon">
+                                        <path d="M9 4h6" />
+                                        <path d="M9 3h6v3H9z" />
+                                        <path d="M6 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1" />
+                                        <path d="M8 11h8" />
+                                        <path d="M8 15h5" />
+                                        <path d="M17 14v5" />
+                                        <path d="M14.5 16.5h5" />
+                                    </svg>
+
+                                    <span>Manage Stocks</span>
+
                                 </button>
                             </div>
                             <span class="table-type-badge non-countable">Non-Countable</span>
@@ -1165,7 +1225,7 @@
 
                             <input
                                 type="date"
-                                id="preppedStockDate"
+                                id="nonCountableStockDate"
                                 value="{{ $stockDate }}"
                                 max="{{ now()->toDateString() }}">
 
@@ -1203,67 +1263,7 @@
                                 </thead>
 
 
-                                <tbody>
-
-                                    @foreach ($nonCountableItems ?? [] as $item)
-
-                                    <tr>
-
-                                        <td>
-                                            <strong>
-                                                {{ $item->name }}
-                                            </strong>
-                                        </td>
-
-
-                                        <td>
-
-                                            <span class="system-value">
-                                                {{ number_format(
-                                                $beginningQuantities[$item->id] ?? 0,
-                                                2
-                                            ) }}
-                                            </span>
-
-                                        </td>
-
-
-                                        <td>
-
-                                            <span class="unit-badge">
-                                                {{ $item->unit?->abbreviation ?? '—' }}
-                                            </span>
-
-                                        </td>
-
-
-                                        <td>
-
-                                            <input
-                                                type="number"
-                                                name="actual_quantity[{{ $item->id }}]"
-                                                class="daily-input"
-                                                min="0"
-                                                step="0.01"
-                                                placeholder="Enter quantity">
-
-                                        </td>
-
-
-                                        <td>
-
-                                            <input
-                                                type="text"
-                                                name="physical_notes[{{ $item->id }}]"
-                                                class="daily-input daily-notes"
-                                                maxlength="255"
-                                                placeholder="Optional note">
-
-                                        </td>
-
-                                    </tr>
-
-                                    @endforeach
+                                <tbody id="nonCountableDailyTableBody">
 
                                 </tbody>
 
@@ -2149,5 +2149,148 @@
             }
 
         });
+    </script>
+    <script>
+        const nonCountableStockDate =
+            document.getElementById('nonCountableStockDate');
+
+        if (nonCountableStockDate) {
+
+            nonCountableStockDate.addEventListener('change', async function() {
+
+                const selectedDate = this.value;
+
+                if (!selectedDate) return;
+
+                const today = new Date()
+                    .toISOString()
+                    .split('T')[0];
+
+                if (selectedDate > today) {
+                    this.value = today;
+                    return;
+                }
+
+                try {
+
+                    const response = await fetch(
+                        `{{ route('inventory.non-countable-history') }}?date=${selectedDate}`, {
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        }
+                    );
+
+                    if (!response.ok) {
+                        throw new Error(
+                            'Failed to load non-countable inventory history.'
+                        );
+                    }
+
+                    const result = await response.json();
+
+                    updateNonCountableInventoryTable(result);
+
+                } catch (error) {
+
+                    console.error(error);
+
+                    alert(
+                        'Unable to load non-countable inventory history.'
+                    );
+                }
+
+            });
+
+        }
+
+        function updateNonCountableInventoryTable(result) {
+
+            const tableBody = document.getElementById(
+                'nonCountableDailyTableBody'
+            );
+
+            if (!tableBody) return;
+
+            tableBody.innerHTML = '';
+
+            result.items.forEach(item => {
+
+                const beginning = Number(item.beginning || 0);
+
+                const actualQuantity =
+                    item.actual_quantity !== null ?
+                    Number(item.actual_quantity) :
+                    '';
+
+                const row = document.createElement('tr');
+
+                row.innerHTML = `
+            <td>
+                <strong>${item.name}</strong>
+            </td>
+
+            <td>
+                <span class="system-value">
+                    ${beginning.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    })}
+                </span>
+            </td>
+
+            <td>
+                <span class="unit-badge">
+                    ${item.unit || '—'}
+                </span>
+            </td>
+
+            <td>
+                <input
+                    type="number"
+                    name="actual_quantity[${item.id}]"
+                    class="daily-input"
+                    min="0"
+                    step="0.01"
+                    value="${actualQuantity}"
+                    placeholder="Enter quantity">
+            </td>
+
+            <td>
+                <input
+                    type="text"
+                    name="physical_notes[${item.id}]"
+                    class="daily-input daily-notes"
+                    maxlength="255"
+                    value="${item.notes || ''}"
+                    placeholder="Optional note">
+            </td>
+        `;
+
+                tableBody.appendChild(row);
+            });
+
+            updateNonCountableEditability(result.is_today);
+        }
+
+        function updateNonCountableEditability(isToday) {
+
+            const inputs = document.querySelectorAll(
+                '#nonCountableDailyFields .daily-input'
+            );
+
+            const saveButton = document.getElementById(
+                'dailyInventorySaveButton'
+            );
+
+            inputs.forEach(input => {
+                input.disabled = !isToday;
+            });
+
+            if (saveButton) {
+                saveButton.style.display = isToday ? '' : 'none';
+            }
+        }
     </script>
 </x-app-layout>
