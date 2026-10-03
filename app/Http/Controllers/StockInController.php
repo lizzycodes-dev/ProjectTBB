@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Order_Item_Options;
+use App\Models\StockIn;
 use Illuminate\Http\Request;
 
-class OrderItemOptionsController extends Controller
+class StockInController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -34,7 +34,7 @@ class OrderItemOptionsController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Order_Item_Options $order_Item_Options)
+    public function show(StockIn $stockIn)
     {
         //
     }
@@ -42,7 +42,7 @@ class OrderItemOptionsController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Order_Item_Options $order_Item_Options)
+    public function edit(StockIn $stockIn)
     {
         //
     }
@@ -50,7 +50,7 @@ class OrderItemOptionsController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Order_Item_Options $order_Item_Options)
+    public function update(Request $request, StockIn $stockIn)
     {
         //
     }
@@ -58,7 +58,7 @@ class OrderItemOptionsController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Order_Item_Options $order_Item_Options)
+    public function destroy(StockIn $stockIn)
     {
         //
     }

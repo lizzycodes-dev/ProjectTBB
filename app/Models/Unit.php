@@ -8,6 +8,11 @@ use App\Models\Inventory_Item;
 
 class Unit extends Model
 {
+    protected $fillable = [
+        'name',
+        'abbreviation',
+    ];
+
     public function inventoryItems(): HasMany
     {
         return $this->hasMany(Inventory_Item::class);

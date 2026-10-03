@@ -59,11 +59,6 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Role::class);
     }
-
-    public function inventoryTransactions(): HasMany
-    {
-        return $this->hasMany(Inventory_Transactions::class, 'recorded_by');
-    }
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class, 'cashier_id');

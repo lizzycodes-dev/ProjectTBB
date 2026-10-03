@@ -13,8 +13,8 @@ class Category extends Model
         'is_active',
     ];
 
-    public function menuItems(): HasMany
+    public function InventoryItem(): HasMany
     {
-        return $this->hasMany(Item::class, 'category_id');
+        return $this->hasMany(Inventory_Item::class, 'category_id');
     }
 }

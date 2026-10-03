@@ -5,23 +5,17 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Inventory_Spoilage extends Model
+class StockOut extends Model
 {
-    protected $table = 'inventory_spoilages';
-
     protected $fillable = [
         'inventory_item_id',
-        'inventory_stock_id',
-        'recorded_by',
         'quantity',
+        'recorded_by',
         'reason',
-        'spoiled_at',
+        'recorded_at',
+        'remarks',
     ];
-
-    protected $casts = [
-        'quantity' => 'decimal:3',
-        'spoiled_at' => 'datetime',
-    ];
+    protected $table = 'stock_outs';
 
     public function inventoryItem(): BelongsTo
     {

@@ -12,11 +12,10 @@ class OptionValuesSeeder extends Seeder
     public function run(): void
     {
         $temperature = Option_Groups::where('name', 'Temperature')->first();
-        $sizeGroup = Option_Groups::where('name', 'Size')->first();
 
-        if (! $temperature || ! $sizeGroup) {
+        if (! $temperature) {
             throw new RuntimeException(
-                'Missing Temperature or Size option group. Run OptionGroupsSeeder first.'
+                'Missing Temperature option group. Run OptionGroupsSeeder first.'
             );
         }
 
@@ -39,29 +38,6 @@ class OptionValuesSeeder extends Seeder
             ],
             [
                 'price_adjustment' => 10,
-                'is_active' => true,
-            ]
-        );
-
-        // Keep these available for future menu items that offer a size choice.
-        Option_Values::firstOrCreate(
-            [
-                'option_group_id' => $sizeGroup->id,
-                'name' => 'Regular',
-            ],
-            [
-                'price_adjustment' => 0,
-                'is_active' => true,
-            ]
-        );
-
-        Option_Values::firstOrCreate(
-            [
-                'option_group_id' => $sizeGroup->id,
-                'name' => 'Large',
-            ],
-            [
-                'price_adjustment' => 20,
                 'is_active' => true,
             ]
         );
