@@ -6,42 +6,49 @@
 /* =========================================================
    GLOBAL THEME
    ========================================================= */
-
+/*updated the color and follow the figma palette*/
 :root {
-    --background: rgb(248, 247, 242);
-    --foreground: rgb(26, 26, 26);
+    /* Backgrounds & Text */
+    --background: rgb(242, 237, 235);            /* Light (#f2edeb) */
+    --foreground: rgb(42, 26, 20);               /* Darker (#2a1a14) */
 
     --card: rgb(255, 255, 255);
-    --card-foreground: rgb(26, 26, 26);
+    --card-foreground: rgb(42, 26, 20);          /* Darker (#2a1a14) */
 
-    --primary: rgb(193, 168, 117);
+    /* Primary Accent (Brown) */
+    --primary: rgb(120, 73, 58);                 /* Normal (#78493a) */
     --primary-foreground: rgb(255, 255, 255);
 
-    --secondary: rgb(229, 225, 213);
-    --secondary-foreground: rgb(26, 26, 26);
+    /* Secondary & Muted Shades */
+    --secondary: rgb(235, 228, 225);             /* Light :hover (#ebe4e1) */
+    --secondary-foreground: rgb(42, 26, 20);     /* Darker (#2a1a14) */
 
-    --muted: rgb(241, 237, 225);
-    --muted-foreground: rgb(107, 99, 82);
+    --muted: rgb(213, 199, 194);                 /* Light :active (#d5c7c2) */
+    --muted-foreground: rgb(90, 55, 44);         /* Dark (#5a372c) */
 
-    --accent: rgb(193, 168, 117);
-    --accent-foreground: rgb(255, 255, 255);
+    /* Interactive / Accent States */
+    --accent: rgb(194, 173, 166);                /* Lighter (#c2ada6) */
+    --accent-foreground: rgb(42, 26, 20);        /* Darker (#2a1a14) */
 
     --destructive: rgb(211, 47, 47);
     --destructive-foreground: rgb(255, 255, 255);
 
-    --border: rgb(226, 222, 203);
-    --input: rgb(226, 222, 203);
-    --ring: rgb(193, 168, 117);
+    /* Borders, Inputs, & Focus Rings */
+    --border: rgb(213, 199, 194);                /* Light :active (#d5c7c2) */
+    --input: rgb(213, 199, 194);                 /* Light :active (#d5c7c2) */
+    --ring: rgb(120, 73, 58);                    /* Normal (#78493a) */
 
-    --sidebar: rgb(241, 237, 225);
-    --sidebar-foreground: rgb(26, 26, 26);
+    /* Sidebar Variables */
+    --sidebar: rgb(235, 228, 225);               /* Light :hover (#ebe4e1) */
+    --sidebar-foreground: rgb(42, 26, 20);       /* Darker (#2a1a14) */
 
-    --sidebar-primary: rgb(193, 168, 117);
+    --sidebar-primary: rgb(120, 73, 58);         /* Normal (#78493a) */
     --sidebar-primary-foreground: rgb(255, 255, 255);
 
-    --sidebar-accent: rgb(226, 222, 203);
-    --sidebar-border: rgb(226, 222, 203);
+    --sidebar-accent: rgb(213, 199, 194);        /* Light :active (#d5c7c2) */
+    --sidebar-border: rgb(213, 199, 194);        /* Light :active (#d5c7c2) */
 
+    /* Typography & Shape */
     --font-sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     --font-serif: Georgia, serif;
     --font-mono: "JetBrains Mono", monospace;
@@ -99,7 +106,6 @@
     --radius-lg: var(--radius);
     --radius-xl: calc(var(--radius) + 4px);
 }
-
 
 /* =========================================================
    BASE
@@ -3240,3 +3246,395 @@
 }
 
 
+/* =========================================================
+   INVENTORY TABS
+   ========================================================= */
+
+.inventory-tabs {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 18px;
+    padding: 5px;
+    width: fit-content;
+    max-width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--cream-light);
+    box-shadow: 0 1px 3px rgba(91, 70, 53, 0.04);
+}
+
+.inventory-tab {
+    position: relative;
+    min-width: 105px;
+    padding: 9px 18px;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--muted-foreground);
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+        background-color 0.18s ease,
+        color 0.18s ease,
+        box-shadow 0.18s ease;
+}
+
+.inventory-tab:hover {
+    background: var(--muted);
+    color: var(--coffee-dark);
+}
+
+.inventory-tab.is-active {
+    background: var(--primary);
+    color: var(--primary-foreground);
+    box-shadow: 0 2px 5px rgba(82, 50, 30, 0.14);
+}
+
+.inventory-tab.is-active:hover {
+    background: var(--coffee-dark);
+    color: var(--primary-foreground);
+}
+
+/* Keyboard accessibility */
+.inventory-tab:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+}
+
+/* Smaller screens */
+@media (max-width: 650px) {
+    .inventory-tabs {
+        width: 100%;
+        overflow-x: auto;
+        scrollbar-width: thin;
+    }
+
+    .inventory-tab {
+        min-width: 100px;
+        padding: 9px 14px;
+        flex-shrink: 0;
+    }
+}
+
+/* =========================================================
+   INVENTORY ACTIVATE / DEACTIVATE BUTTON
+   ========================================================= */
+
+.toggle-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 82px;
+    padding: 6px 11px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease,
+        transform 0.1s ease;
+}
+
+.toggle-button:active {
+    transform: translateY(1px);
+}
+
+/* Active item → button says Deactivate */
+.toggle-button.deactivate {
+    background: var(--warning-light);
+    border-color: var(--warning-border);
+    color: var(--warning);
+}
+
+.toggle-button.deactivate:hover {
+    background: #f8e2d8;
+    border-color: var(--warning);
+}
+
+/* Inactive item → button says Activate */
+.toggle-button.activate {
+    background: var(--sage-light);
+    border-color: var(--sage-border);
+    color: var(--sage);
+}
+
+.toggle-button.activate:hover {
+    background: #dcefe2;
+    border-color: var(--sage);
+}
+
+/* Keyboard focus */
+.toggle-button:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+}
+
+.inventory-table-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.inventory-settings-button {
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--cream-light);
+    color: var(--coffee-medium);
+    font-size: 17px;
+    cursor: pointer;
+    transition:
+        background-color 0.15s ease,
+        color 0.15s ease,
+        border-color 0.15s ease,
+        transform 0.15s ease;
+}
+
+.inventory-settings-button:hover {
+    background: var(--secondary);
+    border-color: var(--input);
+    color: var(--coffee-dark);
+}
+
+.inventory-settings-button:active {
+    transform: scale(0.96);
+}
+
+.inventory-settings-button:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+}
+
+/* =========================================================
+   DAILY INVENTORY MODAL
+   ========================================================= */
+
+.inventory-daily-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    box-sizing: border-box;
+}
+
+.inventory-daily-modal.is-open {
+    display: flex;
+}
+
+.inventory-daily-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(35, 25, 20, 0.55);
+}
+
+.inventory-daily-content {
+    position: relative;
+    z-index: 1;
+    width: min(1100px, 100%);
+    max-height: calc(100vh - 48px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--card);
+    box-shadow: 0 18px 50px rgba(50, 35, 25, 0.18);
+}
+
+.inventory-daily-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--cream-light);
+}
+
+.inventory-daily-header h2 {
+    margin: 0;
+    color: var(--coffee-dark);
+    font-family: var(--font-serif);
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.inventory-daily-header p {
+    margin: 4px 0 0;
+    color: var(--muted-foreground);
+    font-size: 12px;
+}
+
+.inventory-daily-close {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--card);
+    color: var(--soft-brown);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.inventory-daily-close:hover {
+    background: var(--muted);
+    color: var(--coffee-dark);
+}
+
+.inventory-daily-body {
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.daily-field-group[hidden] {
+    display: none;
+}
+
+.daily-date-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.daily-date-row label {
+    color: var(--coffee-medium);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.daily-date-row input {
+    padding: 7px 10px;
+    border: 1px solid var(--input);
+    border-radius: 6px;
+    background: var(--card);
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: 12px;
+}
+
+.daily-date-row input:focus {
+    outline: 2px solid var(--ring);
+    outline-offset: 1px;
+}
+
+.daily-info-box {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-bottom: 14px;
+    padding: 11px 13px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--cream);
+}
+
+.daily-info-box strong {
+    color: var(--coffee-dark);
+    font-size: 12px;
+}
+
+.daily-info-box span {
+    color: var(--muted-foreground);
+    font-size: 11px;
+}
+
+.daily-table-wrapper {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+}
+
+.daily-inventory-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 650px;
+}
+
+.daily-inventory-table th {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    background: #f5f0eb;
+    color: var(--soft-brown);
+    font-size: 10px;
+    font-weight: 700;
+    text-align: left;
+    text-transform: uppercase;
+    letter-spacing: 0.35px;
+}
+
+.daily-inventory-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--foreground);
+    font-size: 12px;
+}
+
+.daily-inventory-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.daily-inventory-table tbody tr:hover {
+    background: var(--cream-light);
+}
+
+.system-value {
+    color: var(--coffee-medium);
+    font-weight: 600;
+}
+
+.ending-value {
+    color: var(--sage);
+    font-weight: 700;
+}
+
+.daily-input {
+    width: 100%;
+    min-width: 90px;
+    box-sizing: border-box;
+    padding: 7px 9px;
+    border: 1px solid var(--input);
+    border-radius: 6px;
+    background: var(--card);
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: 12px;
+}
+
+.daily-input:focus {
+    outline: 2px solid var(--ring);
+    outline-offset: 1px;
+}
+
+.daily-notes {
+    min-width: 150px;
+}
+
+.inventory-daily-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--cream);
+}

@@ -84,11 +84,12 @@ Route::post('/inventory/stock-in', [InventoryItemController::class, 'storeStockI
 Route::patch('/inventory/stocks/{stock}/quantity', [InventoryItemController::class, 'updateStockQuantity'])
     ->middleware('auth')
     ->name('inventory.update-stock-quantity');
-    
+
 Route::get('/finance-report', [FinanceReportController::class, 'index'])
     ->middleware('auth')
     ->name('finance-report.index');
 
-
+Route::post('/inventory/daily', [InventoryItemController::class, 'storeDailyInventory'])
+    ->name('inventory.daily.store');
 
 require __DIR__ . '/auth.php';

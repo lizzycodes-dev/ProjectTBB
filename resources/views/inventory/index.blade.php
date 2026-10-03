@@ -168,6 +168,14 @@
                             <div>
                                 <h3>Prepped Food</h3>
                                 <p>Countable inventory prepared in advance.</p>
+                                <button
+                                    type="button"
+                                    class="inventory-settings-button"
+                                    data-settings-type="prepped"
+                                    title="Daily stock settings">
+                                    ⚙
+                                </button>
+
                             </div>
                             <span class="table-type-badge countable">Countable</span>
                         </div>
@@ -279,6 +287,13 @@
                             <div>
                                 <h3>Coffee</h3>
                                 <p>Coffee drinks prepared when ordered.</p>
+                                <button
+                                    type="button"
+                                    class="inventory-settings-button"
+                                    data-settings-type="coffee"
+                                    title="Daily sales settings">
+                                    ⚙
+                                </button>
                             </div>
                             <span class="table-type-badge made-to-order">Made to Order</span>
                         </div>
@@ -383,6 +398,13 @@
                             <div>
                                 <h3>Juice</h3>
                                 <p>Juice drinks prepared when ordered.</p>
+                                <button
+                                    type="button"
+                                    class="inventory-settings-button"
+                                    data-settings-type="juice"
+                                    title="Daily sales settings">
+                                    ⚙
+                                </button>
                             </div>
                             <span class="table-type-badge made-to-order">Made to Order</span>
                         </div>
@@ -487,6 +509,13 @@
                             <div>
                                 <h3>Non-Countable Inventory</h3>
                                 <p>Ingredients and supplies that are manually monitored.</p>
+                                <button
+                                    type="button"
+                                    class="inventory-settings-button"
+                                    data-settings-type="non-countable"
+                                    title="Manual inventory settings">
+                                    ⚙
+                                </button>
                             </div>
                             <span class="table-type-badge non-countable">Non-Countable</span>
                         </div>
@@ -904,153 +933,603 @@
         </div>
     </div>
 
+    {{-- =========================================================
+     DAILY INVENTORY MODAL
+     ========================================================= --}}
+
+    <div class="inventory-daily-modal" id="inventoryDailyModal" aria-hidden="true">
+        <div class="inventory-daily-backdrop" data-close-daily-modal></div>
+
+        <div class="inventory-daily-content" role="dialog" aria-modal="true">
+
+            <div class="inventory-daily-header">
+                <div>
+                    <h2 id="dailyModalTitle">Daily Inventory</h2>
+                    <p id="dailyModalDescription">
+                        Record today's inventory.
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    class="inventory-daily-close"
+                    data-close-daily-modal
+                    aria-label="Close">
+                    &times;
+                </button>
+            </div>
+
+            <form
+                method="POST"
+                action="{{ route('inventory.daily.store') }}"
+                id="dailyInventoryForm">
+
+                @csrf
+                <input type="hidden" name="inventory_type" id="dailyInventoryType">
+                <input
+                    type="hidden"
+                    name="stock_date"
+                    id="dailyStockDate"
+                    value="{{ now()->toDateString() }}">
+
+                <div class="inventory-daily-body">
+
+                    {{-- PREPPED --}}
+                    <div id="preppedDailyFields" class="daily-field-group">
+
+                        <div class="daily-date-row">
+                            <label for="preppedStockDate">
+                                Date
+                            </label>
+
+                            <input
+                                type="date"
+                                id="preppedStockDate"
+                                value="{{ now()->toDateString() }}">
+                        </div>
+
+                        <div class="daily-info-box">
+                            <strong>Prepped Food</strong>
+                            <span>
+                                Beginning and Sold are system values.
+                                Enter only Input New.
+                            </span>
+                        </div>
+
+                        <div class="daily-table-wrapper">
+                            <table class="daily-inventory-table">
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th>Beginning</th>
+                                        <th>Sold</th>
+                                        <th>Input New</th>
+                                        <th>Ending</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    @foreach ($preppedItems ?? [] as $item)
+                                    <tr>
+                                        <td>
+                                            <strong>{{ $item->name }}</strong>
+                                        </td>
+
+                                        <td>
+                                            <span class="system-value">
+                                                {{ number_format($beginningQuantities[$item->id] ?? 0, 0) }}
+                                            </span>
+                                        </td>
+
+                                        <td>
+                                            <span class="system-value">
+                                                {{ number_format($soldQuantities[$item->id] ?? 0, 0) }}
+                                            </span>
+                                        </td>
+
+                                        <td>
+                                            <input
+                                                type="number"
+                                                name="input_new[{{ $item->id }}]"
+                                                class="daily-input prepped-input-new"
+                                                data-beginning="{{ $beginningQuantities[$item->id] ?? 0 }}"
+                                                data-sold="{{ $soldQuantities[$item->id] ?? 0 }}"
+                                                min="0"
+                                                step="1"
+                                                value="0">
+                                        </td>
+
+                                        <td>
+                                            <span class="ending-value">
+                                                {{ number_format(
+                                                    ($beginningQuantities[$item->id] ?? 0)
+                                                    - ($soldQuantities[$item->id] ?? 0),
+                                                    0
+                                                ) }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+
+                    {{-- NON-COUNTABLE --}}
+                    <div id="nonCountableDailyFields" class="daily-field-group" hidden>
+
+                        <div class="daily-date-row">
+                            <label for="nonCountableStockDate">
+                                Date
+                            </label>
+
+                            <input
+                                type="date"
+                                id="nonCountableStockDate"
+                                value="{{ now()->toDateString() }}">
+                        </div>
+
+                        <div class="daily-info-box">
+                            <strong>Non-Countable Inventory</strong>
+                            <span>
+                                Manually count the actual quantity.
+                                The system does not deduct these items from sales.
+                            </span>
+                        </div>
+
+                        <div class="daily-table-wrapper">
+                            <table class="daily-inventory-table">
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th>Beginning</th>
+                                        <th>System Unit</th>
+                                        <th>Actual Quantity</th>
+                                        <th>Notes</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    @foreach ($physicalItems ?? [] as $item)
+                                    <tr>
+                                        <td>
+                                            <strong>{{ $item->name }}</strong>
+                                        </td>
+
+                                        <td>
+                                            <span class="system-value">
+                                                {{ number_format($beginningQuantities[$item->id] ?? 0, 2) }}
+                                            </span>
+                                        </td>
+
+                                        <td>
+                                            <span class="unit-badge">
+                                                {{ $item->unit?->abbreviation ?? '—' }}
+                                            </span>
+                                        </td>
+
+                                        <td>
+                                            <input
+                                                type="number"
+                                                name="actual_quantity[{{ $item->id }}]"
+                                                class="daily-input"
+                                                min="0"
+                                                step="0.01"
+                                                placeholder="Enter quantity">
+                                        </td>
+
+                                        <td>
+                                            <input
+                                                type="text"
+                                                name="physical_notes[{{ $item->id }}]"
+                                                class="daily-input daily-notes"
+                                                maxlength="255"
+                                                placeholder="Optional note">
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+
+                    {{-- COFFEE / JUICE --}}
+                    <div id="salesDailyFields" class="daily-field-group" hidden>
+
+                        <div class="daily-date-row">
+                            <label for="salesStockDate">
+                                Date
+                            </label>
+
+                            <input
+                                type="date"
+                                id="salesStockDate"
+                                value="{{ now()->toDateString() }}">
+                        </div>
+
+                        <div class="daily-info-box">
+                            <strong id="salesDailyType">
+                                Daily Sales
+                            </strong>
+
+                            <span>
+                                These items are made to order.
+                                Only the number sold is monitored.
+                            </span>
+                        </div>
+
+                        <div class="daily-table-wrapper">
+                            <table class="daily-inventory-table">
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th>Sold</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="salesDailyItems">
+
+                                    @foreach (($coffeeItems ?? collect())->concat($juiceItems ?? collect()) as $item)
+                                    <tr
+                                        data-sales-type="{{ strtolower($item->category?->name ?? '') }}"
+                                        hidden>
+                                        <td>
+                                            <strong>{{ $item->name }}</strong>
+                                        </td>
+
+                                        <td>
+                                            <input
+                                                type="number"
+                                                name="sold_quantity[{{ $item->id }}]"
+                                                class="daily-input"
+                                                min="0"
+                                                step="1"
+                                                value="0"
+                                                placeholder="Enter sold">
+                                        </td>
+                                    </tr>
+                                    @endforeach
+
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="inventory-daily-footer">
+
+                    <button
+                        type="button"
+                        class="modal-secondary-button"
+                        data-close-daily-modal>
+                        Cancel
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="modal-primary-button">
+                        Save Daily Inventory
+                    </button>
+
+                </div>
+
+            </form>
+        </div>
+    </div>
 
 
     {{-- ========================================================= --}}
     {{-- JAVASCRIPT --}}
     {{-- ========================================================= --}}
-
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-
-            /* =====================================================
-               TABS
-            ===================================================== */
 
             const tabs = document.querySelectorAll('.inventory-tab');
             const panels = document.querySelectorAll('.inventory-tab-panel');
 
-            function activateTab(tabName) {
-                tabs.forEach(function(tab) {
-                    const isActive = tab.dataset.tab === tabName;
-                    tab.classList.toggle('is-active', isActive);
-                    tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
-                });
+            tabs.forEach(function(tab) {
 
-                panels.forEach(function(panel) {
-                    const isActive = panel.dataset.panel === tabName;
-                    panel.classList.toggle('is-active', isActive);
-                    if (isActive) {
-                        panel.removeAttribute('hidden');
-                    } else {
-                        panel.setAttribute('hidden', '');
+                tab.addEventListener('click', function() {
+
+                    const target = this.dataset.tab;
+
+                    // Remove active state from all tabs
+                    tabs.forEach(function(item) {
+                        item.classList.remove('is-active');
+                        item.setAttribute('aria-selected', 'false');
+                    });
+
+                    // Hide all panels
+                    panels.forEach(function(panel) {
+                        panel.classList.remove('is-active');
+                        panel.hidden = true;
+                    });
+
+                    // Activate clicked tab
+                    this.classList.add('is-active');
+                    this.setAttribute('aria-selected', 'true');
+
+                    // Show matching panel
+                    const targetPanel = document.querySelector(
+                        '.inventory-tab-panel[data-panel="' + target + '"]'
+                    );
+
+                    if (targetPanel) {
+                        targetPanel.classList.add('is-active');
+                        targetPanel.hidden = false;
                     }
                 });
 
-                if (history.replaceState) {
-                    history.replaceState(null, '', '#' + tabName);
-                }
-            }
-
-            tabs.forEach(function(tab) {
-                tab.addEventListener('click', function() {
-                    activateTab(this.dataset.tab);
-                });
             });
 
-            // Restore tab from hash on load
-            const hash = window.location.hash.replace('#', '');
-            if (hash && document.querySelector('[data-tab="' + hash + '"]')) {
-                activateTab(hash);
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+
+            const modal = document.getElementById('inventoryDailyModal');
+
+            if (!modal) return;
+
+            const title = document.getElementById('dailyModalTitle');
+            const description = document.getElementById('dailyModalDescription');
+
+            const preppedFields = document.getElementById('preppedDailyFields');
+            const nonCountableFields = document.getElementById('nonCountableDailyFields');
+            const salesFields = document.getElementById('salesDailyFields');
+
+            const salesTitle = document.getElementById('salesDailyType');
+            const salesDailyItems = document.getElementById('salesDailyItems');
+
+            const dailyInventoryType =
+                document.getElementById('dailyInventoryType');
+
+            const dailyStockDate =
+                document.getElementById('dailyStockDate');
+
+            const preppedStockDate =
+                document.getElementById('preppedStockDate');
+
+            const nonCountableStockDate =
+                document.getElementById('nonCountableStockDate');
+
+            const salesStockDate =
+                document.getElementById('salesStockDate');
+
+
+            /* =====================================================
+               CLOSE DAILY MODAL
+            ===================================================== */
+
+            function closeDailyModal() {
+
+                modal.classList.remove('is-open');
+                modal.setAttribute('aria-hidden', 'true');
+
             }
 
 
             /* =====================================================
-               SEARCH (debounced)
+               SYNC DATE
             ===================================================== */
 
-            const inventorySearch = document.getElementById('inventorySearch');
+            function syncStockDate(input) {
 
-            if (inventorySearch) {
-                let searchTimer;
+                if (dailyStockDate && input) {
+                    dailyStockDate.value = input.value;
+                }
 
-                inventorySearch.addEventListener('input', function() {
-                    clearTimeout(searchTimer);
-                    searchTimer = setTimeout(() => {
-                        this.form.submit();
-                    }, 400);
+            }
+
+            if (preppedStockDate) {
+
+                preppedStockDate.addEventListener('change', function() {
+                    syncStockDate(this);
                 });
+
             }
 
+            if (nonCountableStockDate) {
 
-            /* =====================================================
-               CREATE MODAL
-            ===================================================== */
-
-            const createModal = document.getElementById('createItemModal');
-            const openCreateButton = document.getElementById('openCreateModal');
-
-            function openCreateModal() {
-                createModal.classList.add('is-open');
-                createModal.setAttribute('aria-hidden', 'false');
-                document.getElementById('create_name')?.focus();
-            }
-
-            function closeCreateModal() {
-                createModal.classList.remove('is-open');
-                createModal.setAttribute('aria-hidden', 'true');
-            }
-
-            if (openCreateButton) {
-                openCreateButton.addEventListener('click', openCreateModal);
-            }
-
-            createModal
-                .querySelectorAll('[data-close-create-modal]')
-                .forEach(function(element) {
-                    element.addEventListener('click', closeCreateModal);
+                nonCountableStockDate.addEventListener('change', function() {
+                    syncStockDate(this);
                 });
 
+            }
+
+            if (salesStockDate) {
+
+                salesStockDate.addEventListener('change', function() {
+                    syncStockDate(this);
+                });
+
+            }
+
 
             /* =====================================================
-               EDIT MODAL
+               SHOW COFFEE / JUICE ITEMS
             ===================================================== */
 
-            const editModal = document.getElementById('editItemModal');
-            const editForm = document.getElementById('editItemForm');
+            function showSalesItems(type) {
 
-            function openEditModal(item) {
-                document.getElementById('edit_name').value = item.name ?? '';
-                document.getElementById('edit_category_id').value = item.category_id ?? '';
-                document.getElementById('edit_inventory_location_id').value = item.inventory_location_id ?? '';
-                document.getElementById('edit_unit_id').value = item.unit_id ?? '';
-                document.getElementById('edit_inventory_type').value = item.inventory_type ?? '';
-                document.getElementById('edit_price').value = item.price ?? 0;
-                document.getElementById('edit_description').value = item.description ?? '';
+                if (!salesDailyItems) return;
 
-                editForm.action = "{{ url('/inventory') }}/" + item.id;
+                salesDailyItems
+                    .querySelectorAll('tr')
+                    .forEach(function(row) {
 
-                editModal.classList.add('is-open');
-                editModal.setAttribute('aria-hidden', 'false');
+                        const rowType = row.dataset.salesType;
+
+                        row.hidden = rowType !== type;
+
+                        if (row.hidden) {
+
+                            const input = row.querySelector('input');
+
+                            if (input) {
+                                input.value = 0;
+                            }
+
+                        }
+
+                    });
+
             }
 
-            function closeEditModal() {
-                editModal.classList.remove('is-open');
-                editModal.setAttribute('aria-hidden', 'true');
-            }
+
+            /* =====================================================
+               OPEN DAILY INVENTORY MODAL
+            ===================================================== */
 
             document
-                .querySelectorAll('.edit-inventory-button')
+                .querySelectorAll('.inventory-settings-button')
                 .forEach(function(button) {
+
                     button.addEventListener('click', function() {
-                        const item = {
-                            id: this.dataset.id,
-                            name: this.dataset.name,
-                            category_id: this.dataset.category,
-                            inventory_location_id: this.dataset.location,
-                            unit_id: this.dataset.unit,
-                            inventory_type: this.dataset.type,
-                            price: this.dataset.price,
-                            description: this.dataset.description
-                        };
-                        openEditModal(item);
+
+                        const type = this.dataset.settingsType;
+
+
+                        /* Set inventory type */
+
+                        if (dailyInventoryType) {
+                            dailyInventoryType.value = type;
+                        }
+
+
+                        /* Set correct date */
+
+                        if (dailyStockDate) {
+
+                            if (
+                                type === 'prepped' &&
+                                preppedStockDate
+                            ) {
+
+                                dailyStockDate.value =
+                                    preppedStockDate.value;
+
+                            } else if (
+                                type === 'non-countable' &&
+                                nonCountableStockDate
+                            ) {
+
+                                dailyStockDate.value =
+                                    nonCountableStockDate.value;
+
+                            } else if (
+                                (type === 'coffee' || type === 'juice') &&
+                                salesStockDate
+                            ) {
+
+                                dailyStockDate.value =
+                                    salesStockDate.value;
+
+                            }
+
+                        }
+
+
+                        /* Hide everything first */
+
+                        preppedFields.hidden = true;
+                        nonCountableFields.hidden = true;
+                        salesFields.hidden = true;
+
+
+                        /* PREPPED */
+
+                        if (type === 'prepped') {
+
+                            title.textContent =
+                                'Prepped Food — Daily Inventory';
+
+                            description.textContent =
+                                'Review beginning stock, sold items, input new stock, and ending balance.';
+
+                            preppedFields.hidden = false;
+
+                        }
+
+
+                        /* NON-COUNTABLE */
+                        else if (type === 'non-countable') {
+
+                            title.textContent =
+                                'Non-Countable — Manual Inventory';
+
+                            description.textContent =
+                                'Manually record the actual quantity of ingredients and supplies.';
+
+                            nonCountableFields.hidden = false;
+
+                        }
+
+
+                        /* COFFEE */
+                        else if (type === 'coffee') {
+
+                            title.textContent =
+                                'Coffee — Daily Sales';
+
+                            description.textContent =
+                                'Record the number of coffee items sold for the selected day.';
+
+                            salesTitle.textContent =
+                                'Coffee Sales';
+
+                            showSalesItems('coffee');
+
+                            salesFields.hidden = false;
+
+                        }
+
+
+                        /* JUICE */
+                        else if (type === 'juice') {
+
+                            title.textContent =
+                                'Juice — Daily Sales';
+
+                            description.textContent =
+                                'Record the number of juice items sold for the selected day.';
+
+                            salesTitle.textContent =
+                                'Juice Sales';
+
+                            showSalesItems('juice');
+
+                            salesFields.hidden = false;
+
+                        }
+
+
+                        /* OPEN MODAL */
+
+                        modal.classList.add('is-open');
+
+                        modal.setAttribute('aria-hidden', 'false');
+
                     });
+
                 });
 
-            editModal
-                .querySelectorAll('[data-close-edit-modal]')
+
+            /* =====================================================
+               CLOSE BUTTONS / BACKDROP
+            ===================================================== */
+
+            document
+                .querySelectorAll('[data-close-daily-modal]')
                 .forEach(function(element) {
-                    element.addEventListener('click', closeEditModal);
+
+                    element.addEventListener(
+                        'click',
+                        closeDailyModal
+                    );
+
                 });
 
 
@@ -1059,10 +1538,63 @@
             ===================================================== */
 
             document.addEventListener('keydown', function(event) {
-                if (event.key !== 'Escape') return;
-                closeCreateModal();
-                closeEditModal();
+
+                if (
+                    event.key === 'Escape' &&
+                    modal.classList.contains('is-open')
+                ) {
+
+                    closeDailyModal();
+
+                }
+
             });
+
+
+            /* =====================================================
+               PREPPED ENDING CALCULATION
+               Ending = Beginning - Sold + Input New
+            ===================================================== */
+
+            document
+                .querySelectorAll('.prepped-input-new')
+                .forEach(function(input) {
+
+                    input.addEventListener('input', function() {
+
+                        const beginning =
+                            Number(this.dataset.beginning || 0);
+
+                        const sold =
+                            Number(this.dataset.sold || 0);
+
+                        const inputNew =
+                            Number(this.value || 0);
+
+                        const ending =
+                            beginning - sold + inputNew;
+
+                        const row =
+                            this.closest('tr');
+
+                        const endingElement =
+                            row.querySelector('.ending-value');
+
+                        if (endingElement) {
+
+                            endingElement.textContent =
+                                ending.toLocaleString(
+                                    undefined, {
+                                        minimumFractionDigits: 0,
+                                        maximumFractionDigits: 0
+                                    }
+                                );
+
+                        }
+
+                    });
+
+                });
 
         });
     </script>

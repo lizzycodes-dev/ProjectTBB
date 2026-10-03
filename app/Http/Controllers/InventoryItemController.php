@@ -133,6 +133,25 @@ class InventoryItemController extends Controller
             ->paginate(10, ['*'], 'non_countable_page')
             ->withQueryString();
 
+
+        //modal items
+        $coffeeItems = Inventory_Item::with('category')
+            ->where('is_active', true)
+            ->where('inventory_type', 'physical')
+            ->whereHas('category', function ($query) {
+                $query->where('name', 'Coffee');
+            })
+            ->orderBy('name')
+            ->get();
+
+        $juiceItems = Inventory_Item::with('category')
+            ->where('is_active', true)
+            ->where('inventory_type', 'physical')
+            ->whereHas('category', function ($query) {
+                $query->where('name', 'Juice');
+            })
+            ->orderBy('name')
+            ->get();
         /*
     |--------------------------------------------------------------------------
     | SUMMARY
@@ -216,6 +235,8 @@ class InventoryItemController extends Controller
             'locationId',
             'juiceItems',
             'coffeeItems',
+            'coffeeItems',
+            'juiceItems',
         ));
     }
 
@@ -713,5 +734,275 @@ class InventoryItemController extends Controller
         return redirect()
             ->route('inventory.index')
             ->with('success', 'Inventory item updated successfully.');
+    }
+    public function storeDailyInventory(Request $request)
+    {
+        $validated = $request->validate([
+            'inventory_type' => [
+                'required',
+                'string',
+                'in:prepped,non-countable,coffee,juice',
+            ],
+
+            'stock_date' => [
+                'required',
+                'date',
+            ],
+
+            'input_new' => [
+                'nullable',
+                'array',
+            ],
+
+            'input_new.*' => [
+                'nullable',
+                'numeric',
+                'min:0',
+            ],
+
+            'actual_quantity' => [
+                'nullable',
+                'array',
+            ],
+
+            'actual_quantity.*' => [
+                'nullable',
+                'numeric',
+                'min:0',
+            ],
+
+            'physical_notes' => [
+                'nullable',
+                'array',
+            ],
+
+            'physical_notes.*' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'sold_quantity' => [
+                'nullable',
+                'array',
+            ],
+
+            'sold_quantity.*' => [
+                'nullable',
+                'numeric',
+                'min:0',
+            ],
+        ]);
+
+        $type = $validated['inventory_type'];
+        $stockDate = $validated['stock_date'];
+
+        /*
+    |--------------------------------------------------------------------------
+    | PREPPED FOOD
+    |--------------------------------------------------------------------------
+    */
+
+        if ($type === 'prepped') {
+
+            $items = Inventory_Item::where('is_active', true)
+                ->where('inventory_type', 'prepped')
+                ->orderBy('name')
+                ->get();
+
+            DB::transaction(function () use ($items, $validated, $stockDate) {
+
+                foreach ($items as $item) {
+
+                    $previousCount = DailyInventoryCount::where(
+                        'inventory_item_id',
+                        $item->id
+                    )
+                        ->where('stock_date', '<', $stockDate)
+                        ->whereNotNull('ending_quantity')
+                        ->orderByDesc('stock_date')
+                        ->first();
+
+                    $beginning = (float) ($previousCount?->ending_quantity ?? 0);
+
+                    $sold = (float) DB::table('stock_outs')
+                        ->where('inventory_item_id', $item->id)
+                        ->whereDate('recorded_at', $stockDate)
+                        ->sum('quantity');
+
+                    $inputNew = (float) (
+                        $validated['input_new'][$item->id] ?? 0
+                    );
+
+                    $ending = $beginning - $sold + $inputNew;
+
+                    $stockInId = null;
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Record Input New
+                |--------------------------------------------------------------------------
+                */
+
+                    if ($inputNew > 0) {
+
+                        $stockInId = DB::table('stock_ins')->insertGetId([
+                            'inventory_item_id' => $item->id,
+                            'quantity' => $inputNew,
+                            'supplier_id' => null,
+                            'recorded_by' => auth()->id(),
+                            'recorded_at' => $stockDate . ' 00:00:00',
+                            'remarks' => 'Input new - daily inventory',
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
+
+                    DailyInventoryCount::updateOrCreate(
+                        [
+                            'inventory_item_id' => $item->id,
+                            'stock_date' => $stockDate,
+                        ],
+                        [
+                            'beginning_quantity' => $beginning,
+                            'sold_quantity' => $sold,
+                            'ending_quantity' => $ending,
+                            'beginning_stock_in_id' => $stockInId,
+                            'remarks' => null,
+                        ]
+                    );
+                }
+            });
+
+            return back()->with(
+                'success',
+                'Prepped food daily inventory saved successfully.'
+            );
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | NON-COUNTABLE
+    |--------------------------------------------------------------------------
+    */
+
+        if ($type === 'non-countable') {
+
+            $items = Inventory_Item::where('is_active', true)
+                ->where('inventory_type', 'physical')
+                ->whereHas('category', function ($query) {
+                    $query->whereIn('name', [
+                        'Ingredient',
+                        'Puree',
+                        'Sauce',
+                        'Powder',
+                    ]);
+                })
+                ->orderBy('name')
+                ->get();
+
+            DB::transaction(function () use ($items, $validated, $stockDate) {
+
+                foreach ($items as $item) {
+
+                    $actualQuantity =
+                        $validated['actual_quantity'][$item->id] ?? null;
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Nothing entered = do not create a record
+                |--------------------------------------------------------------------------
+                */
+
+                    if ($actualQuantity === null || $actualQuantity === '') {
+                        continue;
+                    }
+
+                    $previousCount = DailyInventoryCount::where(
+                        'inventory_item_id',
+                        $item->id
+                    )
+                        ->where('stock_date', '<', $stockDate)
+                        ->whereNotNull('ending_quantity')
+                        ->orderByDesc('stock_date')
+                        ->first();
+
+                    $beginning = (float) ($previousCount?->ending_quantity ?? 0);
+
+                    DailyInventoryCount::updateOrCreate(
+                        [
+                            'inventory_item_id' => $item->id,
+                            'stock_date' => $stockDate,
+                        ],
+                        [
+                            'beginning_quantity' => $beginning,
+                            'sold_quantity' => 0,
+                            'ending_quantity' => $actualQuantity,
+                            'beginning_stock_in_id' => null,
+                            'remarks' =>
+                            $validated['physical_notes'][$item->id]
+                                ?? null,
+                        ]
+                    );
+                }
+            });
+
+            return back()->with(
+                'success',
+                'Non-countable inventory saved successfully.'
+            );
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | COFFEE / JUICE
+    |--------------------------------------------------------------------------
+    */
+
+        if (in_array($type, ['coffee', 'juice'])) {
+
+            $categoryName = ucfirst($type);
+
+            $items = Inventory_Item::where('is_active', true)
+                ->where('inventory_type', 'physical')
+                ->whereHas('category', function ($query) use ($categoryName) {
+                    $query->where('name', $categoryName);
+                })
+                ->orderBy('name')
+                ->get();
+
+            DB::transaction(function () use ($items, $validated, $stockDate) {
+
+                foreach ($items as $item) {
+
+                    $sold = (float) (
+                        $validated['sold_quantity'][$item->id] ?? 0
+                    );
+
+                    DailyInventoryCount::updateOrCreate(
+                        [
+                            'inventory_item_id' => $item->id,
+                            'stock_date' => $stockDate,
+                        ],
+                        [
+                            'beginning_quantity' => 0,
+                            'sold_quantity' => $sold,
+                            'ending_quantity' => null,
+                            'beginning_stock_in_id' => null,
+                            'remarks' => null,
+                        ]
+                    );
+                }
+            });
+
+            return back()->with(
+                'success',
+                "{$categoryName} daily sales saved successfully."
+            );
+        }
+
+        return back()->withErrors([
+            'inventory_type' => 'Invalid inventory type.',
+        ]);
     }
 }
