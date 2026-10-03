@@ -13,5 +13,10 @@ class OptionGroupsSeeder extends Seeder
             ['name' => 'Temperature'],
             ['description' => 'Temperature options for beverages.']
         );
+
+        Option_Groups::firstOrCreate(
+            ['name' => 'Size'],
+            ['description' => 'Drink size options.']
+        );
     }
 }

@@ -18,7 +18,7 @@ class Order_Item extends Model
 
     protected $fillable = [
         'order_id',
-        'inventory_item_id',
+        'menu_item_id',
         'quantity',
         'unit_price',
         'subtotal',
@@ -28,20 +28,31 @@ class Order_Item extends Model
     {
         return $this->belongsTo(Order::class);
     }
-    public function InventoryItem(): BelongsTo
+    public function menuItem(): BelongsTo
     {
         return $this->belongsTo(
-            Inventory_Item::class,
-            'inventory_item_id'
+            Item::class,
+            'menu_item_id'
         );
     }
-
+    public function orderItemOptions(): HasMany
+    {
+        return $this->hasMany(Order_Item_Options::class);
+    }
     public function kitchenOrderItem(): HasOne
     {
         return $this->hasOne(
             Kitchen_Order_Item::class,
             'order_item_id',
             'id'
+        );
+    }
+
+    public function options(): HasMany
+    {
+        return $this->hasMany(
+            Order_Item_Options::class,
+            'order_item_id'
         );
     }
 }

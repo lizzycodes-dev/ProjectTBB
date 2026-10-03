@@ -2,34 +2,39 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Inventory_Item extends Model
 {
     protected $table = 'inventory_items';
 
     protected $fillable = [
-        'name',
-        'category_id',
-        'inventory_location_id',
         'unit_id',
+        'category_id',
+        'name',
+        'menu_name',
         'inventory_type',
-        'price',
+        'sheet_group',
+        'cost_per_unit',
+        'base_price',
         'description',
+        'is_sellable',
         'is_active',
     ];
 
-    public function category(): BelongsTo
-    {
-        return $this->belongsTo(Category::class);
-    }
+    protected $casts = [
+        'cost_per_unit' => 'decimal:2',
+        'is_active' => 'boolean',
+    ];
 
-    public function inventoryLocation(): BelongsTo
+    /** Ingredient / Prepped Food rows only. Sellable menu products are excluded. */
+    public function scopeStockable(Builder $query): Builder
     {
-        return $this->belongsTo(Inventory_Locations::class, 'inventory_location_id');
+        return $query->whereIn('inventory_type', ['Ingredient', 'Prepped Food']);
     }
 
     public function unit(): BelongsTo
@@ -37,33 +42,60 @@ class Inventory_Item extends Model
         return $this->belongsTo(Unit::class);
     }
 
-    public function stockIns(): HasMany
+    public function inventoryStocks(): HasMany
     {
-        return $this->hasMany(StockIn::class, 'inventory_item_id');
+        return $this->hasMany(Inventory_Stock::class, 'inventory_item_id');
     }
 
-    public function stockOuts(): HasMany
+    public function suppliers(): BelongsToMany
+{
+    return $this->belongsToMany(
+        Supplier::class,
+        'inventory_item_supplier',
+        'inventory_item_id',
+        'supplier_id'
+    )->withTimestamps();
+}
+
+    /** Name of the area this item is kept in ("Bar Area" or "Kitchen Area"). */
+    public function areaName(): string
     {
-        return $this->hasMany(StockOut::class, 'inventory_item_id');
+        $stock = $this->relationLoaded('inventoryStocks')
+            ? $this->inventoryStocks->first()
+            : $this->inventoryStocks()->orderBy('id')->first();
+
+        if ($stock) {
+            $stock->loadMissing('location');
+
+            if ($stock->location) {
+                return $stock->location->name;
+            }
+        }
+
+        return $this->inventory_type === 'Prepped Food' ? 'Kitchen Area' : 'Bar Area';
     }
 
-    public function dailyCounts(): HasMany
+    /**
+     * The stock record used by the Daily Sheet, Spoilage Log and deliveries.
+     * Created in the item's default area when it does not exist yet.
+     */
+    public function primaryStock(): Inventory_Stock
     {
-        return $this->hasMany(DailyInventoryCount::class, 'inventory_item_id');
-    }
+        $stock = $this->inventoryStocks()->orderBy('id')->first();
 
-    public function orderItems(): HasMany
-    {
-        return $this->hasMany(Order_Item::class, 'menu_item_id');
-    }
+        if ($stock) {
+            return $stock;
+        }
 
-    public function optionGroups(): BelongsToMany
-    {
-        return $this->belongsToMany(
-            Option_Groups::class, 
-            'inventory_item_option_groups', 
-            'inventory_item_id', 
-            'option_group_id'
-        )->withPivot('is_required');
+        $locationName = $this->inventory_type === 'Prepped Food' ? 'Kitchen Area' : 'Bar Area';
+        $location = Inventory_Locations::where('name', $locationName)->first()
+            ?? Inventory_Locations::where('is_active', true)->orderBy('id')->firstOrFail();
+
+        return Inventory_Stock::create([
+            'inventory_item_id' => $this->id,
+            'location_id' => $location->id,
+            'current_quantity' => 0,
+            'reorder_level' => 0,
+        ]);
     }
 }

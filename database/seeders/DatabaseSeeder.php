@@ -17,18 +17,26 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             RoleSeeder::class,
-            InventoryLocationsSeeder::class,
             CategorySeeder::class,
             UnitSeeder::class,
+            InventoryLocationsSeeder::class,
             OptionGroupsSeeder::class,
             OptionValuesSeeder::class,
             InventoryItemSeeder::class,
-            InventoryItemOptionGroupsSeeder::class,
+            InventoryStockSeeder::class,
+            SupplierSeeder::class,
+            MenuItemSeeder::class,
+            //RecipeItemsSeeder::class,
+            MenuItemOptionGroupsSeeder::class,
+            //MenuOptionRecipeAdjustmentsSeeder::class,
             UserSeeder::class,
-            #OrderSeeder::class,
-            #OrderItemSeeder::class,
-            #KitchenOrderItemSeeder::class,
-            #PaymentSeeder::class,
+            OrderSeeder::class,
+            OrderItemSeeder::class,
+            KitchenOrderItemSeeder::class,
+            PaymentSeeder::class,
+            InventoryTransactionsSeeder::class,
+            //OrderItemOptionsSeeder::class,
         ]);
     }
+    
 }

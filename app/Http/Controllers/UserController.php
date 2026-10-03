@@ -9,26 +9,12 @@ use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
-    public function index(Request $request)
+    // 1. Show the list of users
+    public function index()
     {
-        $search = $request->input('search');
-
-        $users = User::with('role')
-            ->when($search, function ($query, $search) {
-                $query->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
-            })
-            ->paginate(10)
-            ->withQueryString();
-
-        $roles = Role::all();
-
-        // Calculate role counts for the summary cards
-        $managerCount = User::whereHas('role', fn($q) => $q->where('name', 'Manager'))->count();
-        $cashierCount = User::whereHas('role', fn($q) => $q->where('name', 'Cashier'))->count();
-        $cookCount = User::whereHas('role', fn($q) => $q->where('name', 'Kitchen Staff')->orWhere('name', 'Cook'))->count();
-
-        return view('User-management.index', compact('users', 'roles', 'managerCount', 'cashierCount', 'cookCount'));
+        $users = User::with('role')->get(); 
+        $roles = Role::all(); // Add this line!
+        return view('User-management.index', compact('users', 'roles'));
     }
 
     // 2. Show the "Create User" form

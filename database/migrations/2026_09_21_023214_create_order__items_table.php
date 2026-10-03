@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('order_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('order_id')->constrained('orders');
-            $table->foreignId('inventory_item_id')->constrained('inventory_items');
+            $table->foreignId('menu_item_id')->constrained('menu_items');
             $table->unsignedInteger('quantity');
             $table->decimal('unit_price', 10, 2);
             $table->decimal('subtotal', 10, 2);

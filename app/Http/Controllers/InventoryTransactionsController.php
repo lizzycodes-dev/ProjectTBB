@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Menu_Item_Option_Groups;
+use App\Models\Inventory_Transactions;
 use Illuminate\Http\Request;
 
-class InventoryItemOptionGroupsController extends Controller
+class InventoryTransactionsController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -34,7 +34,7 @@ class InventoryItemOptionGroupsController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Menu_Item_Option_Groups $menu_Item_Option_Groups)
+    public function show(Inventory_Transactions $inventory_Transactions)
     {
         //
     }
@@ -42,7 +42,7 @@ class InventoryItemOptionGroupsController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Menu_Item_Option_Groups $menu_Item_Option_Groups)
+    public function edit(Inventory_Transactions $inventory_Transactions)
     {
         //
     }
@@ -50,7 +50,7 @@ class InventoryItemOptionGroupsController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Menu_Item_Option_Groups $menu_Item_Option_Groups)
+    public function update(Request $request, Inventory_Transactions $inventory_Transactions)
     {
         //
     }
@@ -58,7 +58,7 @@ class InventoryItemOptionGroupsController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Menu_Item_Option_Groups $menu_Item_Option_Groups)
+    public function destroy(Inventory_Transactions $inventory_Transactions)
     {
         //
     }

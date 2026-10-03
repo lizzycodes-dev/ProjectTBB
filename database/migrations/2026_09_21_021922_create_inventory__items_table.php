@@ -10,16 +10,18 @@ return new class extends Migration
     {
         Schema::create('inventory_items', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->foreignId('category_id')->constrained('categories');
-            $table->foreignId('inventory_location_id')->constrained('inventory_locations');
+
             $table->foreignId('unit_id')
                 ->nullable()
                 ->constrained('units');
-            $table->string('inventory_type')
-                ->nullable();
-            $table->decimal('price', 10, 2);
-            $table->text('description');
+
+            $table->string('name')->unique();
+
+            $table->enum('inventory_type', [
+                'Prepped Food',
+                'Ingredient',
+            ]);
+
             $table->boolean('is_active')->default(true);
 
             $table->timestamps();

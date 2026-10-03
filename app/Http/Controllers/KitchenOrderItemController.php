@@ -15,7 +15,8 @@ class KitchenOrderItemController extends Controller
     {
         $kitchenOrders = Kitchen_Order_Item::with([
             'orderItem.order',
-            'orderItem.InventoryItem',
+            'orderItem.menuItem',
+            'orderItem.options.optionValue',
             'preparedBy',
         ])
             ->whereIn('status', ['Pending', 'Preparing', 'Ready'])
@@ -31,7 +32,8 @@ class KitchenOrderItemController extends Controller
 
         $completedOrders = Kitchen_Order_Item::with([
             'orderItem.order',
-            'orderItem.InventoryItem',
+            'orderItem.menuItem',
+            'orderItem.options.optionValue',
             'preparedBy',
         ])
             ->whereHas('orderItem.order', function ($query) {

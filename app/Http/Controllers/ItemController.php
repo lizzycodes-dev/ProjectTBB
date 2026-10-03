@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\StockOut;
+use App\Models\Item;
 use Illuminate\Http\Request;
 
-class StockOutController extends Controller
+class ItemController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -34,7 +34,7 @@ class StockOutController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(StockOut $stockOut)
+    public function show(Item $item)
     {
         //
     }
@@ -42,7 +42,7 @@ class StockOutController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(StockOut $stockOut)
+    public function edit(Item $item)
     {
         //
     }
@@ -50,7 +50,7 @@ class StockOutController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, StockOut $stockOut)
+    public function update(Request $request, Item $item)
     {
         //
     }
@@ -58,7 +58,7 @@ class StockOutController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(StockOut $stockOut)
+    public function destroy(Item $item)
     {
         //
     }
