@@ -128,12 +128,23 @@
     }
 
 }
+.app-layout {
+    min-height: 100vh;
+}
 
+.app-content {
+    margin-left: 58px;
+    min-height: 100vh;
+    transition: margin-left 0.2s ease;
+}
 /* =========================================================
    SIDEBAR
    ========================================================= */
-
 .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+
     width: 58px;
     min-width: 58px;
     height: 100vh;
@@ -148,16 +159,13 @@
     padding: 8px 5px;
     box-sizing: border-box;
 
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
 
     transition: width 0.2s ease, min-width 0.2s ease;
-}
 
-.sidebar.expanded {
-    width: 220px;
-    min-width: 220px;
+    z-index: 1000;
 }
-/* Expanded */
 
 .sidebar.expanded {
     width: 220px;
@@ -3014,12 +3022,58 @@
 
 .inventory-pagination {
     display: flex;
-    justify-content: center;
     align-items: center;
-
-    padding-top: 16px;
+    justify-content: center;
+    gap: 5px;
+    margin-top: 16px;
 }
 
+.pagination-button,
+.pagination-dots {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    padding: 0 8px;
+    box-sizing: border-box;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--card);
+    color: var(--coffee-medium);
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.pagination-button:hover {
+    background: var(--cream-light);
+    color: var(--coffee-dark);
+}
+
+.pagination-button.active {
+    background: var(--coffee-dark);
+    border-color: var(--coffee-dark);
+    color:var(--accent-foreground) !important;
+    opacity: 1;
+}
+.pagination-button.disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.pagination-arrow {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.pagination-dots {
+    border: none;
+    background: transparent;
+    min-width: 20px;
+    padding: 0;
+    cursor: default;
+}
 /* =========================================================
    EMPTY
 ========================================================= */
@@ -3646,4 +3700,67 @@
     flex: 1 1 auto;
     min-height: 0;
     overflow: hidden;
+}
+@media (max-width: 768px) {
+
+    /* Hide the sidebar off-screen */
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 280px;
+        height: 100%;
+        z-index: 1000;
+
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+
+        /* keep your normal sidebar styles */
+        flex-direction: column;
+        overflow-y: auto;
+    }
+
+    /* Slide in when open */
+    .sidebar.expanded {
+        transform: translateX(0);
+        box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Main content - no left margin */
+    .app-content {
+        margin-left: 0 !important;
+        padding-top: 0;
+    }
+
+    /* Floating hamburger button (only on mobile) */
+    .mobile-menu-btn {
+        display: flex;
+        position: fixed;
+        top: 14px;
+        left: 14px;
+        z-index: 1001;
+
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: #f0e9e0;
+        border: none;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .mobile-menu-btn svg {
+        width: 22px;
+        height: 22px;
+        stroke: #5c4033;
+        stroke-width: 2.2;
+        fill: none;
+    }
+
+    /* Hide the original toggle that is inside the sidebar */
+    .sidebar-toggle {
+        display: none;
+    }
 }

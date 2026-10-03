@@ -39,7 +39,12 @@
 <body class="font-sans antialiased">
 
     <div class="app-layout">
-
+        <!-- Mobile hamburger button -->
+        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">
+            <svg viewBox="0 0 24 24">
+                <path d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+        </button>
         {{-- Sidebar --}}
         @include('layouts.navigation')
 

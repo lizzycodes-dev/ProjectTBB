@@ -38,37 +38,37 @@
 
                     <button
                         type="button"
-                        class="inventory-tab is-active"
+                        class="inventory-tab {{ request()->has('prepped_page') || (!request()->hasAny(['coffee_page', 'juice_page', 'non_countable_page'])) ? 'is-active' : '' }}"
                         role="tab"
                         data-tab="prepped"
-                        aria-selected="true">
+                        aria-selected="{{ request()->has('prepped_page') || (!request()->hasAny(['coffee_page', 'juice_page', 'non_countable_page'])) ? 'true' : 'false' }}">
                         Prepped
                     </button>
 
                     <button
                         type="button"
-                        class="inventory-tab"
+                        class="inventory-tab {{ request()->has('coffee_page') ? 'is-active' : '' }}"
                         role="tab"
                         data-tab="coffee"
-                        aria-selected="false">
+                        aria-selected="{{ request()->has('coffee_page') ? 'true' : 'false' }}">
                         Coffee
                     </button>
 
                     <button
                         type="button"
-                        class="inventory-tab"
+                        class="inventory-tab {{ request()->has('juice_page') ? 'is-active' : '' }}"
                         role="tab"
                         data-tab="juice"
-                        aria-selected="false">
+                        aria-selected="{{ request()->has('juice_page') ? 'true' : 'false' }}">
                         Juice
                     </button>
 
                     <button
                         type="button"
-                        class="inventory-tab"
+                        class="inventory-tab {{ request()->has('non_countable_page') ? 'is-active' : '' }}"
                         role="tab"
                         data-tab="non-countable"
-                        aria-selected="false">
+                        aria-selected="{{ request()->has('non_countable_page') ? 'true' : 'false' }}">
                         Non countable
                     </button>
 
@@ -1411,40 +1411,64 @@
             const tabs = document.querySelectorAll('.inventory-tab');
             const panels = document.querySelectorAll('.inventory-tab-panel');
 
-            tabs.forEach(function(tab) {
+            function activateTab(target) {
 
-                tab.addEventListener('click', function() {
-
-                    const target = this.dataset.tab;
-
-                    // Remove active state from all tabs
-                    tabs.forEach(function(item) {
-                        item.classList.remove('is-active');
-                        item.setAttribute('aria-selected', 'false');
-                    });
-
-                    // Hide all panels
-                    panels.forEach(function(panel) {
-                        panel.classList.remove('is-active');
-                        panel.hidden = true;
-                    });
-
-                    // Activate clicked tab
-                    this.classList.add('is-active');
-                    this.setAttribute('aria-selected', 'true');
-
-                    // Show matching panel
-                    const targetPanel = document.querySelector(
-                        '.inventory-tab-panel[data-panel="' + target + '"]'
-                    );
-
-                    if (targetPanel) {
-                        targetPanel.classList.add('is-active');
-                        targetPanel.hidden = false;
-                    }
+                // Remove active state from all tabs
+                tabs.forEach(function(item) {
+                    item.classList.remove('is-active');
+                    item.setAttribute('aria-selected', 'false');
                 });
 
+                // Hide all panels
+                panels.forEach(function(panel) {
+                    panel.classList.remove('is-active');
+                    panel.hidden = true;
+                });
+
+                // Activate selected tab
+                const targetTab = document.querySelector(
+                    '.inventory-tab[data-tab="' + target + '"]'
+                );
+
+                if (targetTab) {
+                    targetTab.classList.add('is-active');
+                    targetTab.setAttribute('aria-selected', 'true');
+                }
+
+                // Show matching panel
+                const targetPanel = document.querySelector(
+                    '.inventory-tab-panel[data-panel="' + target + '"]'
+                );
+
+                if (targetPanel) {
+                    targetPanel.classList.add('is-active');
+                    targetPanel.hidden = false;
+                }
+            }
+
+            // Normal tab clicking
+            tabs.forEach(function(tab) {
+                tab.addEventListener('click', function() {
+                    activateTab(this.dataset.tab);
+                });
             });
+
+            // Determine active tab after page reload
+            const params = new URLSearchParams(window.location.search);
+
+            let initialTab = 'prepped';
+
+            if (params.has('coffee_page')) {
+                initialTab = 'coffee';
+            } else if (params.has('juice_page')) {
+                initialTab = 'juice';
+            } else if (params.has('non_countable_page')) {
+                initialTab = 'non-countable';
+            } else if (params.has('prepped_page')) {
+                initialTab = 'prepped';
+            }
+
+            activateTab(initialTab);
 
         });
     </script>

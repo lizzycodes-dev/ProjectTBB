@@ -123,7 +123,7 @@
                 <path d="m7 15 4-4 3 2 5-6" />
             </svg>
 
-                        <span class="sidebar-link-text">
+            <span class="sidebar-link-text">
                 Finance Report
             </span>
         </a>
@@ -195,5 +195,37 @@
             sidebar.classList.toggle('expanded');
         });
 
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const sidebar = document.getElementById('sidebar');
+        const mobileBtn = document.getElementById('mobileMenuBtn');
+
+        if (!sidebar || !mobileBtn) return;
+
+        // Toggle sidebar
+        mobileBtn.addEventListener('click', function() {
+            sidebar.classList.toggle('expanded');
+        });
+
+        // Optional: close when clicking a link
+        sidebar.querySelectorAll('.sidebar-link').forEach(link => {
+            link.addEventListener('click', () => {
+                sidebar.classList.remove('expanded');
+            });
+        });
+
+        // Optional: close when clicking outside
+        document.addEventListener('click', function(e) {
+            if (
+                sidebar.classList.contains('expanded') &&
+                !sidebar.contains(e.target) &&
+                !mobileBtn.contains(e.target)
+            ) {
+                sidebar.classList.remove('expanded');
+            }
+        });
     });
 </script>

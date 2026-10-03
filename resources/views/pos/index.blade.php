@@ -74,18 +74,31 @@
                     </div>
 
                     <div class="menu-stock-status">
-                        @if ($menuItem->stock_status === 'out')
+                        @if (in_array($menuItem->category->name, ['Coffee', 'Juice']))
+
+                        {{-- Invisible badge to keep alignment --}}
+                        <span class="stock-badge stock-placeholder">
+                            &nbsp;
+                        </span>
+
+                        @elseif ($menuItem->stock_status === 'out')
+
                         <span class="stock-badge stock-out">
                             Out of Stock
                         </span>
+
                         @elseif ($menuItem->stock_status === 'low')
+
                         <span class="stock-badge stock-low">
                             Low Stock · {{ number_format($menuItem->current_stock, 0) }} left
                         </span>
+
                         @else
+
                         <span class="stock-badge stock-in">
                             In Stock · {{ number_format($menuItem->current_stock, 0) }} left
                         </span>
+
                         @endif
                     </div>
                     <button type="button"

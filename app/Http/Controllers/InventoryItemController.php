@@ -133,24 +133,7 @@ class InventoryItemController extends Controller
             ->withQueryString();
 
 
-        //modal items
-        $coffeeItems = Inventory_Item::with('category')
-            ->where('is_active', true)
-            ->where('inventory_type', 'physical')
-            ->whereHas('category', function ($query) {
-                $query->where('name', 'Coffee');
-            })
-            ->orderBy('name')
-            ->get();
 
-        $juiceItems = Inventory_Item::with('category')
-            ->where('is_active', true)
-            ->where('inventory_type', 'physical')
-            ->whereHas('category', function ($query) {
-                $query->where('name', 'Juice');
-            })
-            ->orderBy('name')
-            ->get();
         /*
     |--------------------------------------------------------------------------
     | SUMMARY
