@@ -227,7 +227,13 @@ class InventoryItemController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $stockDate = now()->toDateString();
+        $stockDate = $request->query('stock_date', now()->toDateString());
+
+        $today = now()->toDateString();
+
+        if ($stockDate > $today) {
+            $stockDate = $today;
+        }
 
         $modalItems = $preppedItems->getCollection()
             ->concat($nonCountableItems->getCollection());
@@ -290,6 +296,7 @@ class InventoryItemController extends Controller
             'beginningQuantities',
             'inputNewQuantities',
             'soldQuantities',
+            'stockDate',
         ));
     }
 
@@ -501,78 +508,44 @@ class InventoryItemController extends Controller
                 'string',
                 'in:prepped,non-countable,coffee,juice',
             ],
-
-            'stock_date' => [
-                'required',
-                'date',
-            ],
-
-            'input_new' => [
-                'nullable',
-                'array',
-            ],
-
-            'input_new.*' => [
-                'nullable',
-                'numeric',
-                'min:0',
-            ],
-
-            'actual_quantity' => [
-                'nullable',
-                'array',
-            ],
-
-            'actual_quantity.*' => [
-                'nullable',
-                'numeric',
-                'min:0',
-            ],
-
-            'physical_notes' => [
-                'nullable',
-                'array',
-            ],
-
-            'physical_notes.*' => [
-                'nullable',
-                'string',
-                'max:255',
-            ],
+            'stock_date' => ['required', 'date'],
+            'input_new' => ['nullable', 'array'],
+            'input_new.*' => ['nullable', 'numeric', 'min:0'],
+            'actual_quantity' => ['nullable', 'array'],
+            'actual_quantity.*' => ['nullable', 'numeric', 'min:0'],
+            'physical_notes' => ['nullable', 'array'],
+            'physical_notes.*' => ['nullable', 'string', 'max:255'],
         ]);
 
         $type = $validated['inventory_type'];
-        $stockDate = $validated['stock_date'];
+        $stockDate = \Carbon\Carbon::parse($validated['stock_date'])->toDateString();
+        $today = now()->toDateString();
+
+        /*
+    |--------------------------------------------------------------------------
+    | Only today's date can receive new stock
+    |--------------------------------------------------------------------------
+    */
+        if ($stockDate !== $today) {
+            return back()->withErrors([
+                'stock_date' => 'Stock can only be added for today.',
+            ]);
+        }
 
         /*
     |--------------------------------------------------------------------------
     | PREPPED FOOD
     |--------------------------------------------------------------------------
-    |
-    | Only Input New is entered manually.
-    | Sold comes automatically from stock_outs.
-    | Beginning and Ending are calculated from stock transactions.
-    |
     */
-
         if ($type === 'prepped') {
-
             $items = Inventory_Item::where('is_active', true)
                 ->where('inventory_type', 'prepped')
                 ->orderBy('name')
                 ->get();
 
-            DB::transaction(function () use (
-                $items,
-                $validated,
-                $stockDate
-            ) {
-
+            DB::transaction(function () use ($items, $validated, $stockDate) {
                 foreach ($items as $item) {
-
-                    $inputNew = (float) (
-                        $validated['input_new'][$item->id] ?? 0
-                    );
+                    $inputNew = (float) ($validated['input_new'][$item->id] ?? 0);
 
                     if ($inputNew <= 0) {
                         continue;
@@ -601,14 +574,8 @@ class InventoryItemController extends Controller
     |--------------------------------------------------------------------------
     | NON-COUNTABLE
     |--------------------------------------------------------------------------
-    |
-    | These are manually counted items.
-    | They are not automatically deducted by POS.
-    |
     */
-
         if ($type === 'non-countable') {
-
             $items = Inventory_Item::where('is_active', true)
                 ->where('inventory_type', 'physical')
                 ->whereHas('category', function ($query) {
@@ -622,14 +589,8 @@ class InventoryItemController extends Controller
                 ->orderBy('name')
                 ->get();
 
-            DB::transaction(function () use (
-                $items,
-                $validated,
-                $stockDate
-            ) {
-
+            DB::transaction(function () use ($items, $validated, $stockDate) {
                 foreach ($items as $item) {
-
                     $actualQuantity =
                         $validated['actual_quantity'][$item->id] ?? null;
 
@@ -662,14 +623,8 @@ class InventoryItemController extends Controller
     |--------------------------------------------------------------------------
     | COFFEE / JUICE
     |--------------------------------------------------------------------------
-    |
-    | These are made-to-order items.
-    | Their sold quantity is handled by POS.
-    |
     */
-
         if (in_array($type, ['coffee', 'juice'])) {
-
             return back()->with(
                 'success',
                 ucfirst($type) . ' sales are automatically tracked from POS.'
@@ -678,6 +633,94 @@ class InventoryItemController extends Controller
 
         return back()->withErrors([
             'inventory_type' => 'Invalid inventory type.',
+        ]);
+    }
+
+    public function dailyHistory(Request $request)
+    {
+        $request->validate([
+            'date' => ['required', 'date'],
+        ]);
+
+        $stockDate = \Carbon\Carbon::parse($request->date)->toDateString();
+        $today = now()->toDateString();
+
+        // Do not allow future dates
+        if ($stockDate > $today) {
+            return response()->json([
+                'message' => 'Future dates are not allowed.',
+            ], 422);
+        }
+
+        $items = Inventory_Item::with([
+            'category',
+            'inventoryLocation',
+            'unit',
+        ])
+            ->where('is_active', true)
+            ->where('inventory_type', 'prepped')
+            ->orderBy('name')
+            ->get();
+
+        $data = [];
+
+        foreach ($items as $item) {
+
+            // Stock received before selected date
+            $stockInBefore = DB::table('stock_ins')
+                ->where('inventory_item_id', $item->id)
+                ->where(
+                    'recorded_at',
+                    '<',
+                    $stockDate . ' 00:00:00'
+                )
+                ->sum('quantity');
+
+            // Stock sold before selected date
+            $stockOutBefore = DB::table('stock_outs')
+                ->where('inventory_item_id', $item->id)
+                ->where(
+                    'recorded_at',
+                    '<',
+                    $stockDate . ' 00:00:00'
+                )
+                ->sum('quantity');
+
+            $beginning =
+                (float) $stockInBefore -
+                (float) $stockOutBefore;
+
+            // New stock added on selected date
+            $inputNew = DB::table('stock_ins')
+                ->where('inventory_item_id', $item->id)
+                ->whereDate('recorded_at', $stockDate)
+                ->sum('quantity');
+
+            // Stock sold on selected date
+            $sold = DB::table('stock_outs')
+                ->where('inventory_item_id', $item->id)
+                ->whereDate('recorded_at', $stockDate)
+                ->sum('quantity');
+
+            $ending =
+                $beginning +
+                (float) $inputNew -
+                (float) $sold;
+
+            $data[] = [
+                'id' => $item->id,
+                'name' => $item->name,
+                'beginning' => $beginning,
+                'input_new' => (float) $inputNew,
+                'sold' => (float) $sold,
+                'ending' => $ending,
+            ];
+        }
+
+        return response()->json([
+            'date' => $stockDate,
+            'is_today' => $stockDate === $today,
+            'items' => $data,
         ]);
     }
 }

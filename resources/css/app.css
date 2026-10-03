@@ -3500,9 +3500,11 @@
     background: var(--muted);
     color: var(--coffee-dark);
 }
-
 .inventory-daily-body {
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 20px;
 }
 
@@ -3637,4 +3639,11 @@
     padding: 12px 20px;
     border-top: 1px solid var(--border);
     background: var(--cream);
+}
+.inventory-daily-content form {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
 }

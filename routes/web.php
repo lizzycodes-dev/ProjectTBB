@@ -92,4 +92,7 @@ Route::get('/finance-report', [FinanceReportController::class, 'index'])
 Route::post('/inventory/daily', [InventoryItemController::class, 'storeDailyInventory'])
     ->name('inventory.daily.store');
 
+Route::get('/inventory/daily-history', [InventoryItemController::class, 'dailyHistory'])
+    ->name('inventory.daily-history');
+
 require __DIR__ . '/auth.php';

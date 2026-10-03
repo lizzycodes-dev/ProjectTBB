@@ -1003,7 +1003,8 @@
                             <input
                                 type="date"
                                 id="preppedStockDate"
-                                value="{{ now()->toDateString() }}">
+                                value="{{ $stockDate }}"
+                                max="{{ now()->toDateString() }}">
 
                         </div>
 
@@ -1164,8 +1165,9 @@
 
                             <input
                                 type="date"
-                                id="nonCountableStockDate"
-                                value="{{ now()->toDateString() }}">
+                                id="preppedStockDate"
+                                value="{{ $stockDate }}"
+                                max="{{ now()->toDateString() }}">
 
                         </div>
 
@@ -1203,7 +1205,7 @@
 
                                 <tbody>
 
-                                    @foreach ($physicalItems ?? [] as $item)
+                                    @foreach ($nonCountableItems ?? [] as $item)
 
                                     <tr>
 
@@ -1290,8 +1292,9 @@
 
                             <input
                                 type="date"
-                                id="salesStockDate"
-                                value="{{ now()->toDateString() }}">
+                                id="preppedStockDate"
+                                value="{{ $stockDate }}"
+                                max="{{ now()->toDateString() }}">
 
                         </div>
 
@@ -1488,9 +1491,49 @@
             const dailyStockDate =
                 document.getElementById('dailyStockDate');
 
+            const preppedStockDate = document.getElementById('preppedStockDate');
+            const preppedDailyFields = document.getElementById('preppedDailyFields');
 
-            const preppedStockDate =
-                document.getElementById('preppedStockDate');
+            if (preppedStockDate) {
+                preppedStockDate.addEventListener('change', async function() {
+                    const selectedDate = this.value;
+
+                    if (!selectedDate) {
+                        return;
+                    }
+
+                    const today = new Date().toISOString().split('T')[0];
+
+                    // Prevent future dates
+                    if (selectedDate > today) {
+                        this.value = today;
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch(
+                            `{{ route('inventory.daily-history') }}?date=${selectedDate}`, {
+                                headers: {
+                                    'Accept': 'application/json',
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                }
+                            }
+                        );
+
+                        if (!response.ok) {
+                            throw new Error('Failed to load inventory history.');
+                        }
+
+                        const result = await response.json();
+
+                        updatePreppedInventoryTable(result);
+
+                    } catch (error) {
+                        console.error(error);
+                        alert('Unable to load inventory history.');
+                    }
+                });
+            }
 
             const nonCountableStockDate =
                 document.getElementById('nonCountableStockDate');
@@ -1515,7 +1558,92 @@
 
             }
 
+            function updatePreppedInventoryTable(result) {
+                const tableBody = document.querySelector(
+                    '#preppedDailyFields .daily-inventory-table tbody'
+                );
 
+                if (!tableBody) {
+                    return;
+                }
+
+                tableBody.innerHTML = '';
+
+                result.items.forEach(item => {
+                    const beginning = Number(item.beginning || 0);
+                    const inputNew = Number(item.input_new || 0);
+                    const sold = Number(item.sold || 0);
+                    const ending = Number(item.ending || 0);
+
+                    const row = document.createElement('tr');
+
+                    row.innerHTML = `
+            <td>
+                <strong>${item.name}</strong>
+            </td>
+
+            <td>
+                <span class="system-value">
+                    ${beginning.toLocaleString()}
+                </span>
+            </td>
+
+            <td>
+                <span class="system-value">
+                    ${inputNew.toLocaleString()}
+                </span>
+            </td>
+
+            <td>
+                <span class="system-value">
+                    ${sold.toLocaleString()}
+                </span>
+            </td>
+
+            <td class="add-stock-column">
+                <input
+                    type="number"
+                    name="input_new[${item.id}]"
+                    class="daily-input prepped-input-new"
+                    data-beginning="${beginning}"
+                    data-sold="${sold}"
+                    data-input-new="${inputNew}"
+                    min="0"
+                    step="1"
+                    value="0"
+                    placeholder="0">
+            </td>
+
+            <td>
+                <span class="ending-value">
+                    ${ending.toLocaleString()}
+                </span>
+            </td>
+        `;
+
+                    tableBody.appendChild(row);
+                });
+
+                updateAddStockVisibility(result.is_today);
+            }
+
+            function updateAddStockVisibility(isToday) {
+                const addStockColumns = document.querySelectorAll(
+                    '#preppedDailyFields .add-stock-column'
+                );
+
+                const addStockButton = document.querySelector(
+                    '#dailyInventoryForm .modal-primary-button'
+                );
+
+                addStockColumns.forEach(column => {
+                    column.style.display = isToday ? '' : 'none';
+                });
+
+                if (addStockButton) {
+                    addStockButton.style.display = isToday ? '' : 'none';
+                }
+            }
 
             /* =====================================================
                SYNC DATE
@@ -1917,6 +2045,84 @@
                     );
 
                 });
+
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+
+            const editModal = document.getElementById('editItemModal');
+            const editForm = document.getElementById('editItemForm');
+
+            document.querySelectorAll('.edit-inventory-button').forEach(button => {
+                button.addEventListener('click', function() {
+
+                    const id = this.dataset.id;
+
+                    // Fill the form fields
+                    document.getElementById('edit_name').value =
+                        this.dataset.name || '';
+
+                    document.getElementById('edit_category_id').value =
+                        this.dataset.category || '';
+
+                    document.getElementById('edit_inventory_location_id').value =
+                        this.dataset.location || '';
+
+                    document.getElementById('edit_unit_id').value =
+                        this.dataset.unit || '';
+
+                    document.getElementById('edit_inventory_type').value =
+                        this.dataset.type || '';
+
+                    document.getElementById('edit_price').value =
+                        this.dataset.price || '';
+
+                    document.getElementById('edit_description').value =
+                        this.dataset.description || '';
+
+                    // Set the PUT route for this specific item
+                    editForm.action = `/inventory/${id}`;
+
+                    // Open modal
+                    editModal.classList.add('is-open');
+                    editModal.setAttribute('aria-hidden', 'false');
+                });
+            });
+
+            // Close modal
+            document.querySelectorAll('[data-close-edit-modal]').forEach(button => {
+                button.addEventListener('click', function() {
+                    editModal.classList.remove('is-open');
+                    editModal.setAttribute('aria-hidden', 'true');
+                });
+            });
+
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+
+            const createModal = document.getElementById('createItemModal');
+            const openCreateModal = document.getElementById('openCreateModal');
+
+            if (openCreateModal && createModal) {
+
+                // Open New Item modal
+                openCreateModal.addEventListener('click', function() {
+                    createModal.classList.add('is-open');
+                    createModal.setAttribute('aria-hidden', 'false');
+                });
+
+                // Close New Item modal
+                document.querySelectorAll('[data-close-create-modal]').forEach(button => {
+                    button.addEventListener('click', function() {
+                        createModal.classList.remove('is-open');
+                        createModal.setAttribute('aria-hidden', 'true');
+                    });
+                });
+
+            }
 
         });
     </script>
