@@ -37,7 +37,16 @@
     </div>
 
 
+<<<<<<< HEAD
+        <div class="sidebar-username">
+            {{ Auth::user()?->name ?? 'Guest' }}
+        </div>
+    </div>
+
+    {{-- Navigation --}}
+=======
     {{-- Navigation Links --}}
+>>>>>>> origin/Updating-nav-bar
     <div class="sidebar-links">
 
         {{-- Dashboard --}}
