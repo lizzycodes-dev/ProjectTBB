@@ -2,123 +2,500 @@
 
 namespace Database\Seeders;
 
-use App\Models\Inventory_Item;
-use App\Models\Unit;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use App\Models\Inventory_Item;
 
 class InventoryItemSeeder extends Seeder
 {
     public function run(): void
     {
-        $bottle = Unit::where('abbreviation', 'btl')->first();
-        $sack = Unit::where('abbreviation', 'sack')->first();
-        $kg = Unit::where('abbreviation', 'kg')->first();
-        $liter = Unit::where('abbreviation', 'L')->first();
-        $piece = Unit::where('abbreviation', 'pc')->first();
+        $categoryIds = DB::table('categories')
+            ->pluck('id', 'name');
 
-        // Kitchen Area - Prepped Food  [name => cost per unit]
-        $kitchenItems = [
-            'Pork Sisig' => 45,
-            'Chicken Sisig' => 42,
-            'Pork Sisig NS' => 45,
-            'Chicken Sisig NS' => 42,
-            'Binagoongan' => 50,
-            'C-Teriyaki' => 40,
-            'Fish Fillet' => 35,
-            'Bangus' => 40,
-            'Pork Adobo' => 45,
-            'Chicken Adobo' => 40,
-            'Chicken Franks' => 12,
-            'Pork/Chicken Tocino' => 30,
-            'Corn Beef' => 28,
-            'Pork/Chicken Ham' => 20,
-            'Egg' => 8,
-            'Baked Mac' => 45,
-            'Mozzarella' => 15,
-            'Fries' => 20,
-            'Burger Patty' => 22,
-            'Pork Chop' => 45,
-            'Bihon' => 25,
-            'C/K for Bihon' => 25,
-            'Mixed Vegetables' => 12,
-            'Pasta' => 18,
-            'Chicken Carbonara' => 35,
-            'Carbonara/Spaghetti Sauce' => 18,
-            'Nachos Chips/Beef' => 30,
-            'Cheese/Quickmelt' => 15,
-            'Gravy' => 8,
-            'Teriyaki/PorkChop Sauce' => 8,
-            'Coke/Royal/Sprite' => 22,
-        ];
+        $locationIds = DB::table('inventory_locations')
+            ->pluck('id', 'name');
 
-        foreach ($kitchenItems as $name => $cost) {
-            Inventory_Item::updateOrCreate(
-                ['name' => $name],
+        $getCategoryId = function (string $name) use ($categoryIds): int {
+            if (!isset($categoryIds[$name])) {
+                throw new \RuntimeException("Category not found: {$name}");
+            }
+
+            return $categoryIds[$name];
+        };
+
+        $getLocationId = function (string $name) use ($locationIds): int {
+            if (!isset($locationIds[$name])) {
+                throw new \RuntimeException("Inventory location not found: {$name}");
+            }
+
+            return $locationIds[$name];
+        };
+
+        $seedItems = function (
+            array $items,
+            string $category,
+            string $location,
+            string $inventoryType
+        ) use ($getCategoryId, $getLocationId): void {
+
+            $categoryId = $getCategoryId($category);
+            $locationId = $getLocationId($location);
+
+            foreach ($items as $item) {
+                Inventory_Item::updateOrCreate(
+                    [
+                        'name' => $item['name'],
+                        'inventory_location_id' => $locationId,
+                    ],
+                    [
+                        'category_id' => $categoryId,
+                        'price' => $item['price'] ?? 0,
+                        'description' => $item['description'] ?? '',
+                        'inventory_type' => $inventoryType,
+                        'is_active' => true,
+                    ]
+                );
+            }
+        };
+
+        DB::transaction(function () use ($seedItems): void {
+
+            /*
+            |--------------------------------------------------------------------------
+            | KITCHEN AREA — PREPPED FOOD STOCK
+            |--------------------------------------------------------------------------
+            */
+
+            $seedItems([
+                ['name' => 'Pork Sisig'],
+                ['name' => 'Chicken Sisig'],
+                ['name' => 'Pork Sisig NS'],
+                ['name' => 'Chicken Sisig NS'],
+                ['name' => 'Binagoongan'],
+                ['name' => 'C-Teriyaki'],
+                ['name' => 'Fish Fillet'],
+                ['name' => 'Bangus'],
+                ['name' => 'Pork Adobo'],
+                ['name' => 'Chicken Adobo'],
+                ['name' => 'Chicken Franks'],
+                ['name' => 'Pork/Chicken Tocino'],
+                ['name' => 'Corn Beef'],
+                ['name' => 'Pork/Chicken Ham'],
+                ['name' => 'Egg'],
+                ['name' => 'Baked Mac'],
+                ['name' => 'Mozzarella'],
+                ['name' => 'Fries'],
+                ['name' => 'Burger Patty'],
+                ['name' => 'Pork Chop'],
+                ['name' => 'Bihon'],
+                ['name' => 'C/K for Bihon'],
+                ['name' => 'Mixed Vegetables'],
+                ['name' => 'Pasta'],
+                ['name' => 'Chicken Carbonara'],
+                ['name' => 'Carbonara/Spaghetti Sauce'],
+                ['name' => 'Nachos Chips/Beef'],
+                ['name' => 'Cheese/Quickmelt'],
+                ['name' => 'Gravy'],
+                ['name' => 'Teriyaki/PorkChop Sauce'],
+                ['name' => 'Coke/Royal/Sprite'],
+            ], 'Food', 'Kitchen Area', 'prepped');
+
+            /*
+            |--------------------------------------------------------------------------
+            | BAR AREA — INGREDIENTS
+            |--------------------------------------------------------------------------
+            */
+
+            $seedItems([
+                ['name' => 'Vanilla'],
+                ['name' => 'Caramel'],
+                ['name' => 'Dark Chocolate Sauce'],
+                ['name' => 'Matcha'],
+                ['name' => 'Graham'],
+                ['name' => 'Crushed Oreo'],
+                ['name' => 'Cookies & Cream'],
+                ['name' => 'Strawberry'],
+                ['name' => 'Mango'],
+                ['name' => 'Ube'],
+                ['name' => 'Red Velvet'],
+                ['name' => 'Lemon Ice Tea'],
+            ], 'Ingredient', 'Bar Area', 'physical');
+
+            /*
+            |--------------------------------------------------------------------------
+            | BAR AREA — SAUCES
+            |--------------------------------------------------------------------------
+            */
+
+            $seedItems([
+                ['name' => 'Sauce - Caramel'],
+                ['name' => 'Sauce - Chocolate'],
+                ['name' => 'Sauce - Condensed Milk'],
+            ], 'Sauce', 'Bar Area', 'physical');
+
+            /*
+            |--------------------------------------------------------------------------
+            | BAR AREA — PUREES
+            |--------------------------------------------------------------------------
+            */
+
+            $seedItems([
+                ['name' => 'Puree - Strawberry'],
+                ['name' => 'Puree - Blueberry'],
+                ['name' => 'Puree - Mango'],
+            ], 'Puree', 'Bar Area', 'physical');
+
+            /*
+            |--------------------------------------------------------------------------
+            | BAR AREA — SELLABLE COFFEE MENU
+            |--------------------------------------------------------------------------
+            */
+
+            $seedItems([
                 [
-                    'unit_id' => null,
-                    'inventory_type' => 'Prepped Food',
-                    'sheet_group' => 'Prepped Food',
-                    'cost_per_unit' => $cost,
-                    'is_active' => true,
-                ]
-            );
-        }
-
-        // Bar Area - Ingredients and beverage supplies for The Brewing Bar menu
-        // [name, sheet group, unit, cost per unit]
-        $barItems = [
-            // Powders (Frappe, Smoothies, Oreo Milk, Boba, Matcha, Lemon Ice Tea ...)
-            ['Vanilla', 'Powder', $sack, 350],
-            ['Caramel', 'Powder', $sack, 350],
-            ['Dark Chocolate', 'Powder', $sack, 380],
-            ['Matcha', 'Powder', $sack, 650],
-            ['Graham', 'Powder', $sack, 220],
-            ['Crushed Oreo', 'Powder', $sack, 300],
-            ['Cookies & Cream', 'Powder', $sack, 320],
-            ['Strawberry', 'Powder', $sack, 350],
-            ['Mango', 'Powder', $sack, 350],
-            ['Ube', 'Powder', $sack, 380],
-            ['Red Velvet', 'Powder', $sack, 360],
-            ['Lemon Ice Tea', 'Powder', $sack, 280],
-
-            // Sauces
-            ['Sauce - Caramel', 'Sauce', $bottle, 180],
-            ['Sauce - Chocolate', 'Sauce', $bottle, 180],
-            ['Sauce - Condensed Milk', 'Sauce', $bottle, 150],
-
-            // Purees
-            ['Puree - Strawberry', 'Puree', $bottle, 260],
-            ['Puree - Blueberry', 'Puree', $bottle, 260],
-            ['Puree - Mango', 'Puree', $bottle, 260],
-
-            // Syrups (Fizzy Coolers, Soda Fruit Jelly, Fruit Juice Pitchers)
-            ['Syrup - Lychee', 'Syrup', $bottle, 240],
-            ['Syrup - Peach', 'Syrup', $bottle, 240],
-            ['Syrup - Cucumber', 'Syrup', $bottle, 240],
-            ['Syrup - Blue Lemonade', 'Syrup', $bottle, 240],
-            ['Syrup - Orange', 'Syrup', $bottle, 240],
-
-            // Coffee and dairy (The Brewing Bar coffee / non-coffee list)
-            ['Coffee Beans', 'Other', $kg, 650],
-            ['Fresh Milk', 'Other', $liter, 95],
-            ['Ice Cream', 'Other', $liter, 180],
-            ['Popping Boba - Mango', 'Other', $kg, 260],
-            ['Popping Boba - Strawberry', 'Other', $kg, 260],
-            ['Coffee Jelly', 'Other', $kg, 140],
-            ['Soda Water', 'Other', $piece, 25],
-        ];
-
-        foreach ($barItems as [$name, $group, $unit, $cost]) {
-            Inventory_Item::updateOrCreate(
-                ['name' => $name],
+                    'name' => 'Americano',
+                    'price' => 60,
+                    'description' => 'Hot or iced coffee.'
+                ],
                 [
-                    'unit_id' => $unit?->id,
-                    'inventory_type' => 'Ingredient',
-                    'sheet_group' => $group,
-                    'cost_per_unit' => $cost,
-                    'is_active' => true,
-                ]
-            );
-        }
+                    'name' => 'Cafe Latte',
+                    'price' => 75,
+                    'description' => 'Hot or iced coffee.'
+                ],
+                [
+                    'name' => 'Cappuccino',
+                    'price' => 75,
+                    'description' => 'Hot or iced coffee.'
+                ],
+                [
+                    'name' => 'Mochaccino',
+                    'price' => 85,
+                    'description' => 'Hot or iced coffee.'
+                ],
+                [
+                    'name' => 'Spanish Latte',
+                    'price' => 85,
+                    'description' => 'Hot or iced coffee.'
+                ],
+                [
+                    'name' => 'Matcha Espresso',
+                    'price' => 89,
+                    'description' => 'Coffee beverage with matcha.'
+                ],
+                [
+                    'name' => 'Caramel Macchiato',
+                    'price' => 85,
+                    'description' => 'Coffee beverage with caramel.'
+                ],
+                [
+                    'name' => 'Hazelnut Latte',
+                    'price' => 85,
+                    'description' => 'Coffee beverage with hazelnut.'
+                ],
+                [
+                    'name' => 'Coffee Jelly',
+                    'price' => 99,
+                    'description' => 'Iced coffee beverage.'
+                ],
+                [
+                    'name' => 'Choco Almond Toffee',
+                    'price' => 95,
+                    'description' => 'Iced coffee beverage.'
+                ],
+            ], 'Coffee', 'Bar Area', 'physical');
+
+            /*
+            |--------------------------------------------------------------------------
+            | BAR AREA — SELLABLE NON-COFFEE MENU
+            |--------------------------------------------------------------------------
+            */
+
+            $seedItems([
+                [
+                    'name' => 'Dark Chocolate',
+                    'price' => 75,
+                    'description' => 'Hot or iced chocolate beverage.'
+                ],
+                [
+                    'name' => 'Matcha Latte',
+                    'price' => 85,
+                    'description' => 'Hot or iced matcha beverage.'
+                ],
+                [
+                    'name' => 'Strawberry Latte',
+                    'price' => 89,
+                    'description' => 'Iced strawberry beverage.'
+                ],
+                [
+                    'name' => 'Affogato',
+                    'price' => 99,
+                    'description' => 'Cold dessert beverage.'
+                ],
+                [
+                    'name' => 'Cookies & Cream Frappe',
+                    'price' => 120,
+                    'description' => 'Frappe with ice cream on top.'
+                ],
+                [
+                    'name' => 'Nutty Caramel Frappe',
+                    'price' => 120,
+                    'description' => 'Frappe with ice cream on top.'
+                ],
+                [
+                    'name' => 'Choco Java Chips Frappe',
+                    'price' => 120,
+                    'description' => 'Frappe with ice cream on top.'
+                ],
+                [
+                    'name' => 'Red Velvet Frappe',
+                    'price' => 120,
+                    'description' => 'Frappe with ice cream on top.'
+                ],
+                [
+                    'name' => 'Mango Graham Smoothie',
+                    'price' => 120,
+                    'description' => 'Smoothie with ice cream on top.'
+                ],
+                [
+                    'name' => 'Strawberry Smoothie',
+                    'price' => 120,
+                    'description' => 'Smoothie with ice cream on top.'
+                ],
+                [
+                    'name' => 'Blueberry Smoothie',
+                    'price' => 120,
+                    'description' => 'Smoothie with ice cream on top.'
+                ],
+                [
+                    'name' => 'Ube/Taro Smoothie',
+                    'price' => 120,
+                    'description' => 'Smoothie with ice cream on top.'
+                ],
+                [
+                    'name' => 'Mango Boba',
+                    'price' => 69,
+                    'description' => 'Boba beverage.'
+                ],
+                [
+                    'name' => 'Strawberry Boba',
+                    'price' => 69,
+                    'description' => 'Boba beverage.'
+                ],
+                [
+                    'name' => 'Choco Boba',
+                    'price' => 69,
+                    'description' => 'Boba beverage.'
+                ],
+                [
+                    'name' => 'Matcha Boba',
+                    'price' => 69,
+                    'description' => 'Boba beverage.'
+                ],
+                [
+                    'name' => 'Matchaberry Boba',
+                    'price' => 79,
+                    'description' => 'Boba beverage.'
+                ],
+                [
+                    'name' => 'Chocoberry Boba',
+                    'price' => 79,
+                    'description' => 'Boba beverage.'
+                ],
+                [
+                    'name' => 'Oreo Matcha',
+                    'price' => 109,
+                    'description' => 'Large size.'
+                ],
+                [
+                    'name' => 'Oreo Berry',
+                    'price' => 109,
+                    'description' => 'Large size.'
+                ],
+                [
+                    'name' => 'Oreo Choco',
+                    'price' => 109,
+                    'description' => 'Large size.'
+                ],
+                [
+                    'name' => 'Oreo Ube/Taro',
+                    'price' => 109,
+                    'description' => 'Large size.'
+                ],
+            ], 'Non Coffee', 'Bar Area', 'physical');
+
+            /*
+            |--------------------------------------------------------------------------
+            | BAR AREA — SELLABLE JUICE / FIZZ MENU
+            |--------------------------------------------------------------------------
+            */
+
+            $seedItems([
+                [
+                    'name' => 'Berry Fizz',
+                    'price' => 109,
+                    'description' => 'Large size; price to confirm.'
+                ],
+                [
+                    'name' => 'Cucumber Fizz',
+                    'price' => 109,
+                    'description' => 'Large size; price to confirm.'
+                ],
+                [
+                    'name' => 'Lychee Fizz',
+                    'price' => 109,
+                    'description' => 'Large size; price to confirm.'
+                ],
+                [
+                    'name' => 'Peach Fizz',
+                    'price' => 109,
+                    'description' => 'Large size; price to confirm.'
+                ],
+            ], 'Juice', 'Bar Area', 'physical');
+
+            /*
+            |--------------------------------------------------------------------------
+            | KITCHEN AREA — SELLABLE FOOD MENU
+            |--------------------------------------------------------------------------
+            */
+
+            $seedItems([
+                [
+                    'name' => 'Porkchop with Sauce',
+                    'price' => 110,
+                    'description' => 'Rice meal.'
+                ],
+                [
+                    'name' => 'Chicken Teriyaki',
+                    'price' => 99,
+                    'description' => 'Rice meal.'
+                ],
+                [
+                    'name' => 'Chicken Ala King',
+                    'price' => 99,
+                    'description' => 'Rice meal.'
+                ],
+                [
+                    'name' => '2 pcs Burger Steak',
+                    'price' => 99,
+                    'description' => 'Rice meal.'
+                ],
+                [
+                    'name' => 'Tocino with Egg',
+                    'price' => 89,
+                    'description' => 'Rice meal.'
+                ],
+                [
+                    'name' => 'Chorizo with Egg',
+                    'price' => 89,
+                    'description' => 'Rice meal.'
+                ],
+                [
+                    'name' => 'Cornbeef with Egg',
+                    'price' => 75,
+                    'description' => 'Rice meal.'
+                ],
+                [
+                    'name' => 'Fish Fillet',
+                    'price' => 75,
+                    'description' => 'Rice meal.'
+                ],
+                [
+                    'name' => 'Deep Fried Bangus',
+                    'price' => 85,
+                    'description' => 'Rice meal.'
+                ],
+                [
+                    'name' => 'Ham and Egg',
+                    'price' => 65,
+                    'description' => 'Rice meal.'
+                ],
+                [
+                    'name' => 'Chicken Hotdog with Egg',
+                    'price' => 65,
+                    'description' => 'Rice meal.'
+                ],
+                [
+                    'name' => 'Pork Sisig',
+                    'price' => 75,
+                    'description' => 'Spicy or non-spicy; choose variation at checkout.'
+                ],
+                [
+                    'name' => 'Chicken Sisig',
+                    'price' => 75,
+                    'description' => 'Spicy or non-spicy; choose variation at checkout.'
+                ],
+                [
+                    'name' => 'Fried Siomai with Egg',
+                    'price' => 70,
+                    'description' => 'Rice topping.'
+                ],
+                [
+                    'name' => 'Chicken Adobo',
+                    'price' => 75,
+                    'description' => 'Rice topping.'
+                ],
+                [
+                    'name' => 'Pork Adobo',
+                    'price' => 75,
+                    'description' => 'Rice topping.'
+                ],
+                [
+                    'name' => 'Clubhouse Sandwich',
+                    'price' => 130,
+                    'description' => 'Pork or chicken ham.'
+                ],
+                [
+                    'name' => 'Beef Cheese Burger with Fries',
+                    'price' => 129,
+                    'description' => 'Snack meal.'
+                ],
+                [
+                    'name' => 'Double Patty Chicken Cheese Burger with Fries',
+                    'price' => 109,
+                    'description' => 'Snack meal.'
+                ],
+                [
+                    'name' => 'Chicken Hotdog Sandwich',
+                    'price' => 59,
+                    'description' => 'Snack meal.'
+                ],
+                [
+                    'name' => 'Chicken Carbonara with Coke',
+                    'price' => 99,
+                    'description' => 'Snack meal.'
+                ],
+                [
+                    'name' => 'Ham Carbonara with Coke',
+                    'price' => 99,
+                    'description' => 'Snack meal.'
+                ],
+                [
+                    'name' => 'Bihon Guisado',
+                    'price' => 95,
+                    'description' => 'Snack meal.'
+                ],
+                [
+                    'name' => 'Bake Mac',
+                    'price' => 99,
+                    'description' => 'Snack meal.'
+                ],
+                [
+                    'name' => 'Beef Cheese Nachos',
+                    'price' => 99,
+                    'description' => 'Snack meal.'
+                ],
+                [
+                    'name' => 'Mozzarella Cheese Stick',
+                    'price' => 79,
+                    'description' => 'Snack meal.'
+                ],
+                [
+                    'name' => 'French Fries',
+                    'price' => 65,
+                    'description' => 'Snack meal.'
+                ],
+            ], 'Food', 'Kitchen Area', 'prepped');
+        });
     }
 }

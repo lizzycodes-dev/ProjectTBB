@@ -24,10 +24,10 @@ class Option_Groups extends Model
         );
     }
 
-    public function menuItems(): BelongsToMany
+    public function InventoryItems(): BelongsToMany
     {
         return $this->belongsToMany(
-            Item::class,
+            Inventory_Item::class,
             'menu_item_option_groups',
             'option_group_id',
             'menu_item_id'

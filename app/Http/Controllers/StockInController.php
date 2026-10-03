@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Supplier;
+use App\Models\StockIn;
 use Illuminate\Http\Request;
 
-class SupplierController extends Controller
+class StockInController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -34,7 +34,7 @@ class SupplierController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Supplier $supplier)
+    public function show(StockIn $stockIn)
     {
         //
     }
@@ -42,7 +42,7 @@ class SupplierController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Supplier $supplier)
+    public function edit(StockIn $stockIn)
     {
         //
     }
@@ -50,7 +50,7 @@ class SupplierController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Supplier $supplier)
+    public function update(Request $request, StockIn $stockIn)
     {
         //
     }
@@ -58,7 +58,7 @@ class SupplierController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Supplier $supplier)
+    public function destroy(StockIn $stockIn)
     {
         //
     }

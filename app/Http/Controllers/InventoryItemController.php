@@ -2,208 +2,294 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Daily_Inventory_Sheet;
 use App\Models\Inventory_Item;
 use App\Models\Inventory_Locations;
-use App\Models\Inventory_Spoilage;
-use App\Models\Inventory_Stock;
-use App\Models\Inventory_Transactions;
-use App\Models\Supplier;
-use App\Models\Supplier_Delivery;
-use App\Models\Unit;
-use App\Services\StockMovementService;
+use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+use App\Models\Unit;
 
 class InventoryItemController extends Controller
 {
-    public const TABS = ['sheet', 'stock', 'spoilage', 'suppliers'];
-
-    /** Sections shown on the Daily Sheet, per area, in display order. */
-    public const SHEET_LAYOUT = [
-        'Bar Area' => ['Powder', 'Sauce', 'Puree', 'Syrup', 'Other'],
-        'Kitchen Area' => ['Prepped Food'],
-    ];
-
-    public function __construct(private StockMovementService $stockMovement)
-    {
-    }
-
     public function index(Request $request)
     {
-        $isManager = $this->isManager();
+        $search = trim($request->query('search', ''));
+        $categoryId = $request->query('category_id');
+        $locationId = $request->query('location_id');
 
-        $tab = $request->query('tab', 'sheet');
-        if (! in_array($tab, self::TABS, true) || ($tab === 'suppliers' && ! $isManager)) {
-            $tab = 'sheet';
+        /*
+    |--------------------------------------------------------------------------
+    | PREPPED FOOD / COUNTABLE
+    |--------------------------------------------------------------------------
+    */
+
+        $preppedQuery = Inventory_Item::with([
+            'category',
+            'inventoryLocation',
+            'unit',
+        ])
+            ->withSum('stockIns as total_stock_in', 'quantity')
+            ->withSum('stockOuts as total_stock_out', 'quantity')
+            ->where('inventory_type', 'prepped');
+
+        /*
+    |--------------------------------------------------------------------------
+    | NON-COUNTABLE
+    | Ingredient / Puree / Sauce / Powder
+    |--------------------------------------------------------------------------
+    */
+
+        $nonCountableQuery = Inventory_Item::with([
+            'category',
+            'inventoryLocation',
+            'unit',
+        ])
+            ->where('inventory_type', 'physical')
+            ->whereHas('category', function ($query) {
+                $query->whereIn('name', [
+                    'Ingredient',
+                    'Puree',
+                    'Sauce',
+                    'Powder',
+                ]);
+            });
+
+        /*
+    |--------------------------------------------------------------------------
+    | SEARCH
+    |--------------------------------------------------------------------------
+    */
+
+        if ($search !== '') {
+
+            $preppedQuery->where(
+                'name',
+                'like',
+                "%{$search}%"
+            );
+
+            $nonCountableQuery->where(
+                'name',
+                'like',
+                "%{$search}%"
+            );
         }
 
-        // Every stock record for real stock items (menu products are not stock).
-        $stocks = Inventory_Stock::with(['inventoryItem.unit', 'location'])
-            ->whereHas('inventoryItem', fn ($q) => $q->stockable())
-            ->get()
-            ->sortBy(fn ($s) => [
-                $s->inventoryItem->is_active ? 0 : 1,
-                strtolower($s->inventoryItem->name),
-            ])
-            ->values();
+        /*
+    |--------------------------------------------------------------------------
+    | CATEGORY FILTER
+    |--------------------------------------------------------------------------
+    */
 
-        $lowStocks = $stocks->filter(
-            fn ($s) => $s->inventoryItem->is_active
-                && (float) $s->current_quantity <= (float) $s->reorder_level
-        )->values();
+        if ($categoryId !== null && $categoryId !== '') {
 
-        $data = [
-            'tab' => $tab,
-            'isManager' => $isManager,
-            'lowStocks' => $lowStocks,
-            'units' => Unit::orderBy('name')->get(),
-            'locations' => Inventory_Locations::where('is_active', true)->orderBy('name')->get(),
-            'activeItemCount' => $stocks->filter(fn ($s) => $s->inventoryItem->is_active)->count(),
-            'lowStockCount' => $lowStocks->count(),
-        ];
+            $preppedQuery->where(
+                'category_id',
+                $categoryId
+            );
 
-        return view('inventory.index', $data + match ($tab) {
-            'stock' => $this->stockData($stocks),
-            'spoilage' => $this->spoilageData(),
-            'suppliers' => $this->supplierData($request),
-            default => $this->sheetData($request),
-        });
-    }
-
-    // ── Tab data ──────────────────────────────────────────────────────────────
-
-    private function stockData($stocks): array
-    {
-        $restocked = Inventory_Transactions::whereIn('transaction_type', ['Stock In', 'Delivery'])
-            ->whereIn('inventory_stock_id', $stocks->pluck('id'))
-            ->select('inventory_stock_id', DB::raw('MAX(transaction_date) as last_date'))
-            ->groupBy('inventory_stock_id')
-            ->pluck('last_date', 'inventory_stock_id');
-
-        return [
-            'stocks' => $stocks,
-            'lastRestocked' => $restocked,
-        ];
-    }
-
-    private function sheetData(Request $request): array
-    {
-        $viewing = null;
-
-        if ($request->filled('sheet')) {
-            $viewing = Daily_Inventory_Sheet::where('status', Daily_Inventory_Sheet::CLOSED)
-                ->find($request->query('sheet'));
+            $nonCountableQuery->where(
+                'category_id',
+                $categoryId
+            );
         }
 
-        $sheet = $viewing ?? Daily_Inventory_Sheet::current();
-        $readOnly = (bool) $viewing;
+        /*
+    |--------------------------------------------------------------------------
+    | LOCATION FILTER
+    |--------------------------------------------------------------------------
+    */
 
-        $entries = $sheet->entries()
-            ->with(['inventoryItem.unit', 'inventoryItem.inventoryStocks.location'])
-            ->get()
-            ->filter(fn ($e) => $e->inventoryItem && ($readOnly || $e->inventoryItem->is_active))
-            ->sortBy(fn ($e) => strtolower($e->inventoryItem->name));
+        if ($locationId !== null && $locationId !== '') {
 
-        // area => group => entries
-        $areas = [];
-        foreach (self::SHEET_LAYOUT as $area => $groups) {
-            foreach ($groups as $group) {
-                $rows = $entries->filter(
-                    fn ($e) => $e->inventoryItem->areaName() === $area
-                        && ($e->inventoryItem->sheet_group ?? 'Prepped Food') === $group
-                )->values();
+            $preppedQuery->where(
+                'inventory_location_id',
+                $locationId
+            );
 
-                if ($rows->isNotEmpty()) {
-                    $areas[$area][$group] = $rows;
+            $nonCountableQuery->where(
+                'inventory_location_id',
+                $locationId
+            );
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | PAGINATION
+    |--------------------------------------------------------------------------
+    */
+
+        $preppedItems = $preppedQuery
+            ->orderByDesc('is_active')
+            ->orderBy('name')
+            ->paginate(10, ['*'], 'prepped_page')
+            ->withQueryString();
+
+        $nonCountableItems = $nonCountableQuery
+            ->orderByDesc('is_active')
+            ->orderBy('name')
+            ->paginate(10, ['*'], 'non_countable_page')
+            ->withQueryString();
+
+
+
+        /*
+    |--------------------------------------------------------------------------
+    | SUMMARY
+    |--------------------------------------------------------------------------
+    */
+
+        $activeItemCount = Inventory_Item::where('is_active', true)
+            ->when(
+                $locationId !== null && $locationId !== '',
+                function ($query) use ($locationId) {
+                    $query->where(
+                        'inventory_location_id',
+                        $locationId
+                    );
                 }
-            }
+            )
+            ->count();
+
+        $categories = Category::orderBy('name')->get();
+
+        $locations = Inventory_Locations::orderBy('name')->get();
+
+        $units = Unit::orderBy('name')->get();
+
+        $juiceItems = Inventory_Item::with([
+            'category',
+            'inventoryLocation',
+            'unit',
+        ])
+            ->where('inventory_type', 'physical')
+            ->whereHas('category', function ($query) {
+                $query->where('name', 'Juice');
+            })
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where('name', 'like', "%{$search}%");
+            })
+            ->when($categoryId !== null && $categoryId !== '', function ($query) use ($categoryId) {
+                $query->where('category_id', $categoryId);
+            })
+            ->when($locationId !== null && $locationId !== '', function ($query) use ($locationId) {
+                $query->where('inventory_location_id', $locationId);
+            })
+            ->orderByDesc('is_active')
+            ->orderBy('name')
+            ->paginate(10, ['*'], 'juice_page')
+            ->withQueryString();
+
+
+        $coffeeItems = Inventory_Item::with([
+            'category',
+            'inventoryLocation',
+            'unit',
+        ])
+            ->where('inventory_type', 'physical')
+            ->whereHas('category', function ($query) {
+                $query->where('name', 'Coffee');
+            })
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where('name', 'like', "%{$search}%");
+            })
+            ->when($categoryId !== null && $categoryId !== '', function ($query) use ($categoryId) {
+                $query->where('category_id', $categoryId);
+            })
+            ->when($locationId !== null && $locationId !== '', function ($query) use ($locationId) {
+                $query->where('inventory_location_id', $locationId);
+            })
+            ->orderByDesc('is_active')
+            ->orderBy('name')
+            ->paginate(10, ['*'], 'coffee_page')
+            ->withQueryString();
+        /*
+        |--------------------------------------------------------------------------
+        | MODAL STOCK VALUES
+        |--------------------------------------------------------------------------
+        */
+
+        $stockDate = $request->query('stock_date', now()->toDateString());
+
+        $today = now()->toDateString();
+
+        if ($stockDate > $today) {
+            $stockDate = $today;
         }
 
-        $history = Daily_Inventory_Sheet::where('status', Daily_Inventory_Sheet::CLOSED)
-            ->orderByDesc('closed_at')
-            ->limit(12)
-            ->get();
+        $modalItems = $preppedItems->getCollection()
+            ->concat($nonCountableItems->getCollection());
 
-        return [
-            'sheet' => $sheet,
-            'sheetReadOnly' => $readOnly,
-            'sheetAreas' => $areas,
-            'sheetHistory' => $history,
-            'sheetTotal' => $entries->count(),
-            'sheetFilled' => $entries->filter(fn ($e) => $e->beginning !== null || $e->ending !== null)->count(),
-            'sheetBeginningCount' => $entries->filter(fn ($e) => $e->beginning !== null)->count(),
-            'sheetTotalOut' => $entries->sum(fn ($e) => $e->out() ?? 0),
-        ];
+        $beginningQuantities = [];
+
+        foreach ($modalItems as $item) {
+            $stockInBefore = DB::table('stock_ins')
+                ->where('inventory_item_id', $item->id)
+                ->where('recorded_at', '<', $stockDate . ' 00:00:00')
+                ->sum('quantity');
+
+            $stockOutBefore = DB::table('stock_outs')
+                ->where('inventory_item_id', $item->id)
+                ->where('recorded_at', '<', $stockDate . ' 00:00:00')
+                ->sum('quantity');
+
+            $beginningQuantities[$item->id] =
+                (float) $stockInBefore - (float) $stockOutBefore;
+        }
+        $inputNewQuantities = DB::table('stock_ins')
+            ->whereDate('recorded_at', $stockDate)
+            ->whereIn(
+                'inventory_item_id',
+                $preppedItems->getCollection()->pluck('id')
+            )
+            ->select(
+                'inventory_item_id',
+                DB::raw('SUM(quantity) as total_input_new')
+            )
+            ->groupBy('inventory_item_id')
+            ->pluck('total_input_new', 'inventory_item_id');
+
+        $soldQuantities = DB::table('stock_outs')
+            ->whereDate('recorded_at', $stockDate)
+            ->whereIn(
+                'inventory_item_id',
+                $preppedItems->getCollection()->pluck('id')
+            )
+            ->select(
+                'inventory_item_id',
+                DB::raw('SUM(quantity) as total_sold')
+            )
+            ->groupBy('inventory_item_id')
+            ->pluck('total_sold', 'inventory_item_id');
+        return view('inventory.index', compact(
+            'preppedItems',
+            'nonCountableItems',
+            'activeItemCount',
+            'categories',
+            'locations',
+            'units',
+            'search',
+            'categoryId',
+            'locationId',
+            'juiceItems',
+            'coffeeItems',
+            'coffeeItems',
+            'juiceItems',
+            'beginningQuantities',
+            'inputNewQuantities',
+            'soldQuantities',
+            'stockDate',
+        ));
     }
-
-    private function spoilageData(): array
-    {
-        $items = Inventory_Item::stockable()
-            ->where('is_active', true)
-            ->with(['unit', 'inventoryStocks'])
-            ->orderBy('name')
-            ->get();
-
-        $records = Inventory_Spoilage::with(['inventoryItem.unit', 'recordedBy'])
-            ->orderByDesc('spoiled_at')
-            ->limit(100)
-            ->get();
-
-        return [
-            'spoilItems' => $items,
-            'spoilRecords' => $records,
-        ];
-    }
-
-    private function supplierData(Request $request): array
-    {
-        $view = in_array($request->query('sv'), ['list', 'delivery', 'new'], true)
-            ? $request->query('sv')
-            : 'list';
-
-        $suppliers = Supplier::with('inventoryItems')
-            ->withCount('deliveries')
-            ->orderBy('name')
-            ->get();
-
-        $selected = $request->filled('supplier')
-            ? $suppliers->firstWhere('id', (int) $request->query('supplier'))
-            : null;
-
-        $selectedDeliveries = $selected
-            ? Supplier_Delivery::with('items.inventoryItem.unit')
-                ->where('supplier_id', $selected->id)
-                ->orderByDesc('delivery_date')
-                ->orderByDesc('id')
-                ->limit(10)
-                ->get()
-            : collect();
-
-        return [
-            'sv' => $view,
-            'suppliers' => $suppliers,
-            'selectedSupplier' => $selected,
-            'selectedDeliveries' => $selectedDeliveries,
-            'supplyItems' => Inventory_Item::stockable()
-                ->where('is_active', true)
-                ->with('unit')
-                ->orderBy('name')
-                ->get(),
-        ];
-    }
-
-    // ── Item settings ─────────────────────────────────────────────────────────
 
     public function toggleActive(Inventory_Item $inventoryItem)
     {
-        DB::transaction(function () use ($inventoryItem) {
-            $inventoryItem->is_active = ! $inventoryItem->is_active;
-            $inventoryItem->save();
-        });
+        $inventoryItem->is_active = ! $inventoryItem->is_active;
+        $inventoryItem->save();
 
         return redirect()
-            ->route('inventory.index', ['tab' => 'stock'])
+            ->route('inventory.index')
             ->with(
                 'success',
                 $inventoryItem->is_active
@@ -212,142 +298,494 @@ class InventoryItemController extends Controller
             );
     }
 
-    public function updateUnit(Request $request, Inventory_Item $inventoryItem)
-    {
-        $validated = $request->validate([
-            'unit_id' => ['nullable', 'exists:units,id'],
-        ]);
-
-        $inventoryItem->unit_id = $validated['unit_id'] ?? null;
-        $inventoryItem->save();
-
-        return redirect()
-            ->route('inventory.index', ['tab' => 'stock'])
-            ->with('success', 'Inventory item unit updated.');
-    }
-
-    /** Unit, cost per unit and reorder level, edited from the item modal. */
-    public function updateDetails(Request $request, Inventory_Item $inventoryItem)
-    {
-        $validated = $request->validate([
-            'unit_id' => ['nullable', 'exists:units,id'],
-            'cost_per_unit' => ['nullable', 'numeric', 'min:0'],
-            'reorder_level' => ['nullable', 'numeric', 'min:0'],
-        ]);
-
-        DB::transaction(function () use ($validated, $inventoryItem) {
-            $inventoryItem->unit_id = $validated['unit_id'] ?? null;
-            $inventoryItem->cost_per_unit = $validated['cost_per_unit'] ?? 0;
-            $inventoryItem->save();
-
-            if (isset($validated['reorder_level'])) {
-                $inventoryItem->inventoryStocks()->update([
-                    'reorder_level' => $validated['reorder_level'],
-                ]);
-            }
-        });
-
-        return redirect()
-            ->route('inventory.index', ['tab' => 'stock'])
-            ->with('success', 'Inventory item updated.');
-    }
-
-    // ── Stock in / manual correction ──────────────────────────────────────────
 
     public function createStockIn()
     {
-        return redirect()->route('inventory.index', ['tab' => 'stock']);
+        $items = Inventory_Item::with('inventoryLocation')
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        return view('inventory.stock-in', compact('items'));
     }
 
     public function storeStockIn(Request $request)
     {
         $validated = $request->validate([
-            'inventory_item_id' => ['required', 'integer', 'exists:inventory_items,id'],
-            'location_id' => ['required', 'integer', 'exists:inventory_locations,id'],
+            'inventory_item_id' => [
+                'required',
+                'integer',
+                'exists:inventory_items,id',
+            ],
             'quantity' => ['required', 'numeric', 'gt:0'],
-            'unit_cost' => ['nullable', 'numeric', 'min:0'],
-            'reason' => ['nullable', 'string', 'max:255'],
+            'supplier_id' => ['nullable', 'integer', 'exists:suppliers,id'],
+            'remarks' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $item = Inventory_Item::stockable()
-            ->where('id', $validated['inventory_item_id'])
+        $item = Inventory_Item::whereKey($validated['inventory_item_id'])
             ->where('is_active', true)
             ->first();
 
         if (! $item) {
-            return back()
-                ->withErrors(['inventory_item_id' => 'Please select an active inventory item.'])
-                ->withInput();
+            throw ValidationException::withMessages([
+                'inventory_item_id' => 'Please select an active inventory item.',
+            ]);
         }
 
-        if (! $item->unit_id) {
-            return back()
-                ->withErrors(['inventory_item_id' => 'Please assign a unit to this item before adding stock.'])
-                ->withInput();
-        }
-
-        $location = Inventory_Locations::where('id', $validated['location_id'])
-            ->where('is_active', true)
-            ->first();
-
-        if (! $location) {
-            return back()
-                ->withErrors(['location_id' => 'Please select an active inventory location.'])
-                ->withInput();
-        }
-
-        DB::transaction(function () use ($validated, $item) {
-            $stock = Inventory_Stock::firstOrCreate(
-                [
-                    'inventory_item_id' => $item->id,
-                    'location_id' => $validated['location_id'],
-                ],
-                ['current_quantity' => 0, 'reorder_level' => 0]
-            );
-
-            $this->stockMovement->move(
-                $stock,
-                (float) $validated['quantity'],
-                'Stock In',
-                $validated['reason'] ?? 'Incoming stock',
-                isset($validated['unit_cost']) ? (float) $validated['unit_cost'] : null,
-            );
-
-            if (isset($validated['unit_cost'])) {
-                $item->cost_per_unit = $validated['unit_cost'];
-                $item->save();
-            }
-        });
+        DB::table('stock_ins')->insert([
+            'inventory_item_id' => $item->id,
+            'quantity' => $validated['quantity'],
+            'supplier_id' => $validated['supplier_id'] ?? null,
+            'recorded_by' => auth()->id(),
+            'recorded_at' => now(),
+            'remarks' => $validated['remarks'] ?? 'Incoming stock',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         return redirect()
-            ->route('inventory.index', ['tab' => 'stock'])
+            ->route('inventory.index')
             ->with('success', 'Stock added successfully.');
     }
 
-    public function updateStockQuantity(Request $request, Inventory_Stock $stock)
+
+
+    public function create()
+    {
+        $categories = Category::where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        $locations = Inventory_Locations::orderBy('name')->get();
+
+        $units = Unit::orderBy('name')->get();
+
+        return view('inventory.create', compact(
+            'categories',
+            'locations',
+            'units'
+        ));
+    }
+
+    public function store(Request $request)
     {
         $validated = $request->validate([
-            'current_quantity' => ['required', 'numeric', 'min:0'],
+            'name' => ['required', 'string', 'max:255'],
+            'category_id' => [
+                'required',
+                'integer',
+                'exists:categories,id',
+            ],
+            'inventory_location_id' => [
+                'required',
+                'integer',
+                'exists:inventory_locations,id',
+            ],
+            'unit_id' => [
+                'nullable',
+                'integer',
+                'exists:units,id',
+            ],
+            'inventory_type' => [
+                'nullable',
+                'in:prepped,physical',
+            ],
+            'price' => [
+                'required',
+                'numeric',
+                'min:0',
+            ],
+            'description' => [
+                'required',
+                'string',
+            ],
         ]);
 
-        DB::transaction(function () use ($validated, $stock) {
-            $locked = Inventory_Stock::whereKey($stock->id)->lockForUpdate()->firstOrFail();
-            $difference = round((float) $validated['current_quantity'] - (float) $locked->current_quantity, 3);
-
-            if ($difference == 0.0) {
-                return;
-            }
-
-            $this->stockMovement->move(
-                $locked,
-                $difference,
-                'Adjustment',
-                'Manual stock quantity adjustment',
-            );
-        });
+        Inventory_Item::create([
+            'name' => $validated['name'],
+            'category_id' => $validated['category_id'],
+            'inventory_location_id' => $validated['inventory_location_id'],
+            'unit_id' => $validated['unit_id'] ?? null,
+            'inventory_type' => $validated['inventory_type'] ?? null,
+            'price' => $validated['price'],
+            'description' => $validated['description'],
+            'is_active' => true,
+        ]);
 
         return redirect()
-            ->route('inventory.index', ['tab' => 'stock'])
-            ->with('success', 'Stock quantity updated.');
+            ->route('inventory.index')
+            ->with('success', 'Inventory item added successfully.');
+    }
+
+    public function edit(Inventory_Item $inventoryItem)
+    {
+        $categories = Category::where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        $locations = Inventory_Locations::orderBy('name')->get();
+
+        $units = Unit::orderBy('name')->get();
+
+        return view('inventory.edit', compact(
+            'inventoryItem',
+            'categories',
+            'locations',
+            'units'
+        ));
+    }
+
+    public function update(Request $request, Inventory_Item $inventoryItem)
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'category_id' => [
+                'required',
+                'integer',
+                'exists:categories,id',
+            ],
+            'inventory_location_id' => [
+                'required',
+                'integer',
+                'exists:inventory_locations,id',
+            ],
+            'unit_id' => [
+                'nullable',
+                'integer',
+                'exists:units,id',
+            ],
+            'inventory_type' => [
+                'nullable',
+                'in:prepped,physical',
+            ],
+            'price' => [
+                'required',
+                'numeric',
+                'min:0',
+            ],
+            'description' => [
+                'required',
+                'string',
+            ],
+        ]);
+
+        $inventoryItem->update([
+            'name' => $validated['name'],
+            'category_id' => $validated['category_id'],
+            'inventory_location_id' => $validated['inventory_location_id'],
+            'unit_id' => $validated['unit_id'] ?? null,
+            'inventory_type' => $validated['inventory_type'] ?? null,
+            'price' => $validated['price'],
+            'description' => $validated['description'],
+        ]);
+
+        return redirect()
+            ->route('inventory.index')
+            ->with('success', 'Inventory item updated successfully.');
+    }
+    public function storeDailyInventory(Request $request)
+    {
+        $validated = $request->validate([
+            'inventory_type' => [
+                'required',
+                'string',
+                'in:prepped,non-countable,coffee,juice',
+            ],
+            'stock_date' => ['required', 'date'],
+            'input_new' => ['nullable', 'array'],
+            'input_new.*' => ['nullable', 'numeric', 'min:0'],
+            'actual_quantity' => ['nullable', 'array'],
+            'actual_quantity.*' => ['nullable', 'numeric', 'min:0'],
+            'physical_notes' => ['nullable', 'array'],
+            'physical_notes.*' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $type = $validated['inventory_type'];
+        $stockDate = \Carbon\Carbon::parse($validated['stock_date'])->toDateString();
+        $today = now()->toDateString();
+
+        /*
+    |--------------------------------------------------------------------------
+    | Only today's date can receive new stock
+    |--------------------------------------------------------------------------
+    */
+        if ($stockDate !== $today) {
+            return back()->withErrors([
+                'stock_date' => 'Stock can only be added for today.',
+            ]);
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | PREPPED FOOD
+    |--------------------------------------------------------------------------
+    */
+        if ($type === 'prepped') {
+            $items = Inventory_Item::where('is_active', true)
+                ->where('inventory_type', 'prepped')
+                ->orderBy('name')
+                ->get();
+
+            DB::transaction(function () use ($items, $validated, $stockDate) {
+                foreach ($items as $item) {
+                    $inputNew = (float) ($validated['input_new'][$item->id] ?? 0);
+
+                    if ($inputNew <= 0) {
+                        continue;
+                    }
+
+                    DB::table('stock_ins')->insert([
+                        'inventory_item_id' => $item->id,
+                        'quantity' => $inputNew,
+                        'supplier_id' => null,
+                        'recorded_by' => auth()->id(),
+                        'recorded_at' => $stockDate . ' 00:00:00',
+                        'remarks' => 'Added through prepped food inventory',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            });
+
+            return back()->with(
+                'success',
+                'Prepped food stock added successfully.'
+            );
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | NON-COUNTABLE
+    |--------------------------------------------------------------------------
+    */
+        if ($type === 'non-countable') {
+            $items = Inventory_Item::where('is_active', true)
+                ->where('inventory_type', 'physical')
+                ->whereHas('category', function ($query) {
+                    $query->whereIn('name', [
+                        'Ingredient',
+                        'Puree',
+                        'Sauce',
+                        'Powder',
+                    ]);
+                })
+                ->orderBy('name')
+                ->get();
+
+            DB::transaction(function () use ($items, $validated, $stockDate) {
+                foreach ($items as $item) {
+                    $actualQuantity =
+                        $validated['actual_quantity'][$item->id] ?? null;
+
+                    if ($actualQuantity === null || $actualQuantity === '') {
+                        continue;
+                    }
+
+                    DB::table('stock_ins')->insert([
+                        'inventory_item_id' => $item->id,
+                        'quantity' => $actualQuantity,
+                        'supplier_id' => null,
+                        'recorded_by' => auth()->id(),
+                        'recorded_at' => $stockDate . ' 00:00:00',
+                        'remarks' =>
+                        $validated['physical_notes'][$item->id]
+                            ?? 'Manual physical count',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            });
+
+            return back()->with(
+                'success',
+                'Non-countable inventory updated successfully.'
+            );
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | COFFEE / JUICE
+    |--------------------------------------------------------------------------
+    */
+        if (in_array($type, ['coffee', 'juice'])) {
+            return back()->with(
+                'success',
+                ucfirst($type) . ' sales are automatically tracked from POS.'
+            );
+        }
+
+        return back()->withErrors([
+            'inventory_type' => 'Invalid inventory type.',
+        ]);
+    }
+
+    public function dailyHistory(Request $request)
+    {
+        $request->validate([
+            'date' => ['required', 'date'],
+        ]);
+
+        $stockDate = \Carbon\Carbon::parse($request->date)->toDateString();
+        $today = now()->toDateString();
+
+        // Do not allow future dates
+        if ($stockDate > $today) {
+            return response()->json([
+                'message' => 'Future dates are not allowed.',
+            ], 422);
+        }
+
+        $items = Inventory_Item::with([
+            'category',
+            'inventoryLocation',
+            'unit',
+        ])
+            ->where('is_active', true)
+            ->where('inventory_type', 'prepped')
+            ->orderBy('name')
+            ->get();
+
+        $data = [];
+
+        foreach ($items as $item) {
+
+            // Stock received before selected date
+            $stockInBefore = DB::table('stock_ins')
+                ->where('inventory_item_id', $item->id)
+                ->where(
+                    'recorded_at',
+                    '<',
+                    $stockDate . ' 00:00:00'
+                )
+                ->sum('quantity');
+
+            // Stock sold before selected date
+            $stockOutBefore = DB::table('stock_outs')
+                ->where('inventory_item_id', $item->id)
+                ->where(
+                    'recorded_at',
+                    '<',
+                    $stockDate . ' 00:00:00'
+                )
+                ->sum('quantity');
+
+            $beginning =
+                (float) $stockInBefore -
+                (float) $stockOutBefore;
+
+            // New stock added on selected date
+            $inputNew = DB::table('stock_ins')
+                ->where('inventory_item_id', $item->id)
+                ->whereDate('recorded_at', $stockDate)
+                ->sum('quantity');
+
+            // Stock sold on selected date
+            $sold = DB::table('stock_outs')
+                ->where('inventory_item_id', $item->id)
+                ->whereDate('recorded_at', $stockDate)
+                ->sum('quantity');
+
+            $ending =
+                $beginning +
+                (float) $inputNew -
+                (float) $sold;
+
+            $data[] = [
+                'id' => $item->id,
+                'name' => $item->name,
+                'beginning' => $beginning,
+                'input_new' => (float) $inputNew,
+                'sold' => (float) $sold,
+                'ending' => $ending,
+            ];
+        }
+
+        return response()->json([
+            'date' => $stockDate,
+            'is_today' => $stockDate === $today,
+            'items' => $data,
+        ]);
+    }
+
+    public function nonCountableHistory(Request $request)
+    {
+        $request->validate([
+            'date' => ['required', 'date'],
+        ]);
+
+        $stockDate = \Carbon\Carbon::parse($request->date)->toDateString();
+        $today = now()->toDateString();
+
+        if ($stockDate > $today) {
+            return response()->json([
+                'message' => 'Future dates are not allowed.',
+            ], 422);
+        }
+
+        $items = Inventory_Item::with([
+            'category',
+            'inventoryLocation',
+            'unit',
+        ])
+            ->where('is_active', true)
+            ->where('inventory_type', 'physical')
+            ->whereHas('category', function ($query) {
+                $query->whereIn('name', [
+                    'Ingredient',
+                    'Puree',
+                    'Sauce',
+                    'Powder',
+                ]);
+            })
+            ->orderBy('name')
+            ->get();
+
+        $data = [];
+
+        foreach ($items as $item) {
+
+            $stockInBefore = DB::table('stock_ins')
+                ->where('inventory_item_id', $item->id)
+                ->where('recorded_at', '<', $stockDate . ' 00:00:00')
+                ->sum('quantity');
+
+            $stockOutBefore = DB::table('stock_outs')
+                ->where('inventory_item_id', $item->id)
+                ->where('recorded_at', '<', $stockDate . ' 00:00:00')
+                ->sum('quantity');
+
+            $beginning =
+                (float) $stockInBefore -
+                (float) $stockOutBefore;
+
+            $record = DB::table('stock_ins')
+                ->where('inventory_item_id', $item->id)
+                ->whereDate('recorded_at', $stockDate)
+                ->orderByDesc('id')
+                ->first();
+
+            $actualQuantity = $record
+                ? (float) $record->quantity
+                : null;
+
+            $notes = $record
+                ? $record->remarks
+                : '';
+
+            $data[] = [
+                'id' => $item->id,
+                'name' => $item->name,
+                'beginning' => $beginning,
+                'unit' => $item->unit?->abbreviation ?? '—',
+                'actual_quantity' => $actualQuantity,
+                'notes' => $notes,
+            ];
+        }
+
+        return response()->json([
+            'date' => $stockDate,
+            'is_today' => $stockDate === $today,
+            'items' => $data,
+        ]);
     }
 }

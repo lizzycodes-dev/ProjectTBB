@@ -15,7 +15,7 @@ class OrderItemSeeder extends Seeder
         $porkSisig = Inventory_Item::where('name', 'Pork Sisig')->first();
 
         if ($order && $porkSisig) {
-            $unitPrice = $porkSisig->base_price ?? 150.00;
+            $unitPrice = $porkSisig->base_price ?? 75.00;
 
             Order_Item::create([
                 'order_id' => $order->id,
