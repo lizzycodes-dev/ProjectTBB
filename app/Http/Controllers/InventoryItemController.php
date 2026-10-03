@@ -19,51 +19,203 @@ class InventoryItemController extends Controller
         $categoryId = $request->query('category_id');
         $locationId = $request->query('location_id');
 
-        $itemsQuery = Inventory_Item::with([
+        /*
+    |--------------------------------------------------------------------------
+    | PREPPED FOOD / COUNTABLE
+    |--------------------------------------------------------------------------
+    */
+
+        $preppedQuery = Inventory_Item::with([
             'category',
             'inventoryLocation',
             'unit',
         ])
             ->withSum('stockIns as total_stock_in', 'quantity')
-            ->withSum('stockOuts as total_stock_out', 'quantity');
+            ->withSum('stockOuts as total_stock_out', 'quantity')
+            ->where('inventory_type', 'prepped');
+
+        /*
+    |--------------------------------------------------------------------------
+    | NON-COUNTABLE
+    | Ingredient / Puree / Sauce / Powder
+    |--------------------------------------------------------------------------
+    */
+
+        $nonCountableQuery = Inventory_Item::with([
+            'category',
+            'inventoryLocation',
+            'unit',
+        ])
+            ->where('inventory_type', 'physical')
+            ->whereHas('category', function ($query) {
+                $query->whereIn('name', [
+                    'Ingredient',
+                    'Puree',
+                    'Sauce',
+                    'Powder',
+                ]);
+            });
+
+        /*
+    |--------------------------------------------------------------------------
+    | SEARCH
+    |--------------------------------------------------------------------------
+    */
 
         if ($search !== '') {
-            $itemsQuery->where('name', 'like', "%{$search}%");
+
+            $preppedQuery->where(
+                'name',
+                'like',
+                "%{$search}%"
+            );
+
+            $nonCountableQuery->where(
+                'name',
+                'like',
+                "%{$search}%"
+            );
         }
+
+        /*
+    |--------------------------------------------------------------------------
+    | CATEGORY FILTER
+    |--------------------------------------------------------------------------
+    */
 
         if ($categoryId !== null && $categoryId !== '') {
-            $itemsQuery->where('category_id', $categoryId);
+
+            $preppedQuery->where(
+                'category_id',
+                $categoryId
+            );
+
+            $nonCountableQuery->where(
+                'category_id',
+                $categoryId
+            );
         }
+
+        /*
+    |--------------------------------------------------------------------------
+    | LOCATION FILTER
+    |--------------------------------------------------------------------------
+    */
 
         if ($locationId !== null && $locationId !== '') {
-            $itemsQuery->where('inventory_location_id', $locationId);
+
+            $preppedQuery->where(
+                'inventory_location_id',
+                $locationId
+            );
+
+            $nonCountableQuery->where(
+                'inventory_location_id',
+                $locationId
+            );
         }
 
-        $items = $itemsQuery
+        /*
+    |--------------------------------------------------------------------------
+    | PAGINATION
+    |--------------------------------------------------------------------------
+    */
+
+        $preppedItems = $preppedQuery
             ->orderByDesc('is_active')
             ->orderBy('name')
-            ->paginate(10)
+            ->paginate(10, ['*'], 'prepped_page')
             ->withQueryString();
 
+        $nonCountableItems = $nonCountableQuery
+            ->orderByDesc('is_active')
+            ->orderBy('name')
+            ->paginate(10, ['*'], 'non_countable_page')
+            ->withQueryString();
+
+        /*
+    |--------------------------------------------------------------------------
+    | SUMMARY
+    |--------------------------------------------------------------------------
+    */
+
         $activeItemCount = Inventory_Item::where('is_active', true)
-            ->when($locationId !== null && $locationId !== '', function ($query) use ($locationId) {
-                $query->where('inventory_location_id', $locationId);
-            })
+            ->when(
+                $locationId !== null && $locationId !== '',
+                function ($query) use ($locationId) {
+                    $query->where(
+                        'inventory_location_id',
+                        $locationId
+                    );
+                }
+            )
             ->count();
 
         $categories = Category::orderBy('name')->get();
+
         $locations = Inventory_Locations::orderBy('name')->get();
+
         $units = Unit::orderBy('name')->get();
 
+        $juiceItems = Inventory_Item::with([
+            'category',
+            'inventoryLocation',
+            'unit',
+        ])
+            ->where('inventory_type', 'physical')
+            ->whereHas('category', function ($query) {
+                $query->where('name', 'Juice');
+            })
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where('name', 'like', "%{$search}%");
+            })
+            ->when($categoryId !== null && $categoryId !== '', function ($query) use ($categoryId) {
+                $query->where('category_id', $categoryId);
+            })
+            ->when($locationId !== null && $locationId !== '', function ($query) use ($locationId) {
+                $query->where('inventory_location_id', $locationId);
+            })
+            ->orderByDesc('is_active')
+            ->orderBy('name')
+            ->paginate(10, ['*'], 'juice_page')
+            ->withQueryString();
+
+
+        $coffeeItems = Inventory_Item::with([
+            'category',
+            'inventoryLocation',
+            'unit',
+        ])
+            ->where('inventory_type', 'physical')
+            ->whereHas('category', function ($query) {
+                $query->where('name', 'Coffee');
+            })
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where('name', 'like', "%{$search}%");
+            })
+            ->when($categoryId !== null && $categoryId !== '', function ($query) use ($categoryId) {
+                $query->where('category_id', $categoryId);
+            })
+            ->when($locationId !== null && $locationId !== '', function ($query) use ($locationId) {
+                $query->where('inventory_location_id', $locationId);
+            })
+            ->orderByDesc('is_active')
+            ->orderBy('name')
+            ->paginate(10, ['*'], 'coffee_page')
+            ->withQueryString();
+
         return view('inventory.index', compact(
-            'items',
+            'preppedItems',
+            'nonCountableItems',
             'activeItemCount',
             'categories',
             'locations',
             'units',
             'search',
             'categoryId',
-            'locationId'
+            'locationId',
+            'juiceItems',
+            'coffeeItems',
         ));
     }
 
