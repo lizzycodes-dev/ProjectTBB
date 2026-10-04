@@ -40,6 +40,7 @@
     {{-- Navigation Links --}}
     <div class="sidebar-links">
 
+                @unless (Auth::user()->role_id === 3)
         {{-- Dashboard --}}
         <a
             href="{{ route('dashboard') }}"
@@ -75,6 +76,8 @@
             </span>
         </a>
 
+
+                @endunless
 
         {{-- Kitchen --}}
         <a
@@ -129,6 +132,8 @@
                 Purchase Management
             </span>
         </a>
+
+                @unless (Auth::user()->role_id === 3)
         {{-- Finance Report --}}
         <a
             href="{{ route('finance-report.index') }}"
@@ -145,6 +150,8 @@
             </span>
         </a>
 
+
+                @endunless
 
         {{-- Users (managers only) --}}
         @if (strtolower(Auth::user()->role->name ?? '') === 'manager')

@@ -1,25 +1,13 @@
 <x-app-layout>
 
-    <x-slot name="header">
-        <div>
-            <h2 style="
-                margin: 0;
-                color: #6b4328;
-                font-size: 24px;
-                font-weight: bold;
-            ">
-                Point of Sale
-            </h2>
+        <div class="kitchen-page">
 
-            <p style="
-                margin: 5px 0 0;
-                color: #76543c;
-                font-size: 14px;
-            ">
-                Create and process customer orders
-            </p>
+    <div class="kitchen-header">
+        <div>
+            <h1>Point of Sale</h1>
+            <p>Create and process customer orders</p>
         </div>
-    </x-slot>
+    </div>
 
     <div class="pos-container">
 
@@ -238,6 +226,7 @@
         </section>
     </div>
 
+    </div>
     <!-- OPTIONS MODAL -->
     <div id="optionModal" class="option-modal">
         <div class="option-modal-content">

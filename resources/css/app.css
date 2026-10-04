@@ -5922,3 +5922,126 @@
         width: 100%;
     }
 }
+
+/* =========================================================
+   TABLET RESPONSIVE (769px - 1100px)
+========================================================= */
+
+@media (min-width: 769px) and (max-width: 1100px) {
+
+    /* POS: keep menu and cart side by side on tablets */
+    .pos-container {
+        flex-direction: row;
+        height: calc(100dvh - 70px);
+    }
+
+    .menu-section {
+        width: 60%;
+        padding: 14px;
+    }
+
+    .cart-section {
+        width: 40%;
+        min-height: 0;
+    }
+
+    .menu-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    /* Kitchen: 2 columns instead of 3 */
+    .kitchen-board {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .kitchen-page,
+    .finance-page,
+    .inventory-page {
+        padding: 20px;
+    }
+}
+
+/* Finance Report: fix the 7-column row (Total no longer wraps) */
+.finance-page .sales-header,
+.finance-page .sales-row {
+    grid-template-columns: 1.3fr 1fr 0.6fr 0.9fr 1fr 0.9fr 1.1fr;
+}
+
+/* Finance Report: scroll sideways instead of squeezing on small screens */
+@media (max-width: 1100px) {
+    .finance-page .sales-panel {
+        overflow-x: auto;
+    }
+
+    .finance-page .sales-header,
+    .finance-page .sales-row {
+        min-width: 760px;
+    }
+}
+
+/* Touch screens: bigger tap targets */
+@media (pointer: coarse) {
+    .sidebar-link,
+    .inventory-tab {
+        min-height: 44px;
+    }
+}
+
+/* =========================================================
+   POS - KITCHEN-STYLE PAGE LAYOUT
+========================================================= */
+
+.kitchen-page .pos-container {
+    height: auto;
+    overflow: visible;
+    gap: 18px;
+    align-items: flex-start;
+    background: transparent;
+}
+
+.kitchen-page .menu-section {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+    padding: 0;
+    overflow: visible;
+    background: transparent;
+}
+
+.kitchen-page .cart-section {
+    flex: 0 0 340px;
+    width: 340px;
+    position: sticky;
+    top: 16px;
+    max-height: calc(100dvh - 32px);
+
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06);
+}
+
+@media (min-width: 769px) and (max-width: 1100px) {
+    .kitchen-page .cart-section {
+        flex-basis: 300px;
+        width: 300px;
+    }
+}
+
+/* Phones: stack the cart under the menu */
+@media (max-width: 768px) {
+    .kitchen-page .pos-container {
+        flex-direction: column;
+    }
+
+    .kitchen-page .menu-section,
+    .kitchen-page .cart-section {
+        flex: none;
+        width: 100%;
+    }
+
+    .kitchen-page .cart-section {
+        position: static;
+        max-height: none;
+    }
+}
