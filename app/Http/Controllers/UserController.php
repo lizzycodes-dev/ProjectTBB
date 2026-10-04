@@ -109,8 +109,12 @@ class UserController extends Controller
     {
         // Because we added SoftDeletes to the model, this won't actually erase them!
         // It will just stamp the 'deleted_at' column and hide them from the app.
-        $user->delete();
+        if ($user->id === auth()->id()) {
+    return redirect()->route('users.index')
+        ->withErrors('You cannot archive your own account.');
+}
 
+        $user->delete();
         return redirect()->route('users.index')->with('success', 'User archived successfully.');
     }
 
