@@ -8,6 +8,8 @@ use App\Http\Controllers\POSController;
 use App\Http\Controllers\InventoryItemController;
 use App\Http\Controllers\FinanceReportController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\PurchaseController;
+use App\Http\Controllers\SupplierController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -99,4 +101,25 @@ Route::get('/inventory/daily-history', [InventoryItemController::class, 'dailyHi
 
 Route::get('/inventory/non-countable-history', [InventoryItemController::class, 'nonCountableHistory'])
     ->name('inventory.non-countable-history');
+
+Route::middleware('auth')->group(function () {
+    Route::get('/purchases', [PurchaseController::class, 'index'])
+        ->name('purchases.index');
+
+    Route::post('/purchases', [PurchaseController::class, 'store'])
+        ->name('purchases.store');
+});
+
+Route::get('/suppliers', [SupplierController::class, 'index'])
+    ->name('suppliers.index');
+
+Route::post('/suppliers', [SupplierController::class, 'store'])
+    ->name('suppliers.store');
+
+Route::put('/suppliers/{supplier}', [SupplierController::class, 'update'])
+    ->name('suppliers.update');
+
+Route::post('/suppliers/{supplier}/toggle-active', [SupplierController::class, 'toggleActive'])
+    ->name('suppliers.toggle-active');
+
 require __DIR__ . '/auth.php';

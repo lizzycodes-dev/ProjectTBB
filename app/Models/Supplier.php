@@ -4,12 +4,20 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Models\Inventory_Transactions;
 
 class Supplier extends Model
 {
-    public function inventoryTransactions(): HasMany
+    protected $fillable = [
+        'name',
+        'contact_person',
+        'phone',
+        'email',
+        'address',
+        'is_active',
+    ];
+
+    public function stockIns(): HasMany
     {
-        return $this->hasMany(Inventory_Item::class);
+        return $this->hasMany(StockIn::class, 'supplier_id');
     }
 }

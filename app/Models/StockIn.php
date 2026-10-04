@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use App\Models\PurchaseItem;
 
 class StockIn extends Model
 {
@@ -30,5 +32,10 @@ class StockIn extends Model
     public function recordedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'recorded_by');
+    }
+
+    public function purchaseItem(): HasOne
+    {
+        return $this->hasOne(PurchaseItem::class, 'stock_in_id');
     }
 }
