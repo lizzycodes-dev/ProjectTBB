@@ -40,6 +40,7 @@
     {{-- Navigation Links --}}
     <div class="sidebar-links">
 
+                @unless (Auth::user()->role_id === 3)
         {{-- Dashboard --}}
         <a
             href="{{ route('dashboard') }}"
@@ -76,6 +77,8 @@
         </a>
 
 
+                @endunless
+
         {{-- Kitchen --}}
         <a
             href="/kitchen"
@@ -111,7 +114,26 @@
             </span>
         </a>
 
+        {{-- Purchase --}}
+        <a
+            href="{{ route('purchases.index') }}"
+            class="sidebar-link {{ request()->is('purchases*') ? 'active' : '' }}"
+            title="Purchase Management">
 
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 3h12v18H6z" />
+                <path d="M9 7h6" />
+                <path d="M9 11h6" />
+                <path d="M9 15h4" />
+                <path d="M9 19h6" />
+            </svg>
+
+            <span class="sidebar-link-text">
+                Purchase Management
+            </span>
+        </a>
+
+                @unless (Auth::user()->role_id === 3)
         {{-- Finance Report --}}
         <a
             href="{{ route('finance-report.index') }}"
@@ -128,6 +150,8 @@
             </span>
         </a>
 
+
+                @endunless
 
         {{-- Users (managers only) --}}
         @if (strtolower(Auth::user()->role->name ?? '') === 'manager')
