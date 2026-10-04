@@ -186,7 +186,7 @@
                             </div>
 
 
-                            @if ($kitchenOrder->orderItem->options->count())
+                            @if ($kitchenOrder->orderItem->options?->count())
 
                             <div class="item-options">
 
@@ -314,7 +314,7 @@
                             </div>
 
 
-                            @if ($kitchenOrder->orderItem->options->count())
+                            @if ($kitchenOrder->orderItem->options?->count())
 
                             <div class="item-options">
 

@@ -25,10 +25,13 @@ class DatabaseSeeder extends Seeder
             InventoryItemSeeder::class,
             InventoryItemOptionGroupsSeeder::class,
             UserSeeder::class,
-            #OrderSeeder::class,
-            #OrderItemSeeder::class,
-            #KitchenOrderItemSeeder::class,
-            #PaymentSeeder::class,
+            SupplierSeeder::class,
+            StockInSeeder::class,
+            OrderSeeder::class,
+            OrderItemSeeder::class,
+            PaymentSeeder::class,
+            KitchenOrderItemSeeder::class,
+            StockOutSeeder::class,
         ]);
     }
 }
