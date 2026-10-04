@@ -9,19 +9,32 @@ use Illuminate\Database\Seeder;
 
 class KitchenOrderItemSeeder extends Seeder
 {
+    /**
+     * Kitchen tickets for today's orders only (the live kitchen board).
+     */
     public function run(): void
     {
-        $order = Order::where('order_number', 'ORD-0001')->first();
-        $orderItem = $order->orderItems()->first();
-
         $cook = User::where('email', 'cook@thebrewingbar.test')->first();
 
-        Kitchen_Order_Item::create([
-            'order_item_id' => $orderItem->id,
-            'prepared_by' => $cook->id,
-            'status' => 'Pending',
-            'started_at' => null,
-            'completed_at' => null,
-        ]);
+        $orders = Order::with('orderItems')
+            ->whereDate('ordered_at', today())
+            ->orderBy('ordered_at')
+            ->get();
+
+        foreach ($orders as $order) {
+            $isPending = $order->status === 'Pending';
+
+            foreach ($order->orderItems as $orderItem) {
+                Kitchen_Order_Item::updateOrCreate(
+                    ['order_item_id' => $orderItem->id],
+                    [
+                        'prepared_by' => $isPending ? null : $cook?->id,
+                        'status' => $isPending ? 'Pending' : 'Ready',
+                        'started_at' => $isPending ? null : $order->ordered_at->copy()->addMinutes(2),
+                        'completed_at' => $isPending ? null : $order->ordered_at->copy()->addMinutes(8),
+                    ]
+                );
+            }
+        }
     }
 }

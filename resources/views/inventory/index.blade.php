@@ -5,7 +5,6 @@
         {{-- ========================================================= --}}
         {{-- HEADER --}}
         {{-- ========================================================= --}}
-
         <div class="inventory-header">
 
             <div>
@@ -13,13 +12,27 @@
                 <p>Manage inventory items and monitor their stock classification.</p>
             </div>
 
-            <button
-                type="button"
-                class="inventory-new-button"
-                id="openCreateModal">
-                <span class="new-button-icon">+</span>
-                <span>New Item</span>
-            </button>
+            <div class="inventory-header-actions">
+
+                {{-- Archive --}}
+                <button
+                    type="button"
+                    class="inventory-archive-button"
+                    id="openArchiveModal">
+                    <span class="archive-button-icon">▣</span>
+                    <span>Archive</span>
+                </button>
+
+                {{-- New Item --}}
+                <button
+                    type="button"
+                    class="inventory-new-button"
+                    id="openCreateModal">
+                    <span class="new-button-icon">+</span>
+                    <span>New Item</span>
+                </button>
+
+            </div>
 
         </div>
 
@@ -202,8 +215,11 @@
                                         <th>Item Name</th>
                                         <th>Category</th>
                                         <th>Location</th>
-                                        <th>Unit</th>
+                                        <th class="unit-column">Unit</th>
+                                        <th>Type</th>
+                                        <th>Selling Price</th>
                                         <th>Current Stock</th>
+                                        <th>Description</th>
                                         <th>Item Status</th>
                                         <th>Actions</th>
                                     </tr>
@@ -221,7 +237,7 @@
                                         </td>
                                         <td>{{ $item->category?->name ?? '—' }}</td>
                                         <td>{{ $item->inventoryLocation?->name ?? '—' }}</td>
-                                        <td>
+                                        <td class="unit-column">
                                             @if ($item->unit)
                                             <span class="unit-badge">{{ $item->unit->abbreviation }}</span>
                                             @else
@@ -229,7 +245,16 @@
                                             @endif
                                         </td>
                                         <td>
+                                            <strong class="price-value">{{ $item->inventory_type }}</strong>
+                                        </td>
+                                        <td>
+                                            <strong class="price-value">₱{{ number_format($item->price, 2) }}</strong>
+                                        </td>
+                                        <td>
                                             <strong class="stock-number">{{ number_format($currentStock, 3) }}</strong>
+                                        </td>
+                                        <td>
+                                            <strong class="price-value">{{ $item->description }}</strong>
                                         </td>
                                         <td>
                                             @if ($item->is_active)
@@ -337,6 +362,7 @@
                                         <th>Location</th>
                                         <th>Selling Price</th>
                                         <th>Stock Monitoring</th>
+                                        <th>Description</th>
                                         <th>Item Status</th>
                                         <th>Actions</th>
                                     </tr>
@@ -356,6 +382,9 @@
                                         </td>
                                         <td>
                                             <span class="manual-stock-badge">Made to Order</span>
+                                        </td>
+                                        <td>
+                                            <strong class="price-value">{{ $item->description }}</strong>
                                         </td>
                                         <td>
                                             @if ($item->is_active)
@@ -463,6 +492,7 @@
                                         <th>Location</th>
                                         <th>Selling Price</th>
                                         <th>Stock Monitoring</th>
+                                        <th>Description</th>
                                         <th>Item Status</th>
                                         <th>Actions</th>
                                     </tr>
@@ -482,6 +512,9 @@
                                         </td>
                                         <td>
                                             <span class="manual-stock-badge">Made to Order</span>
+                                        </td>
+                                        <td>
+                                            <strong class="price-value">{{ $item->description }}</strong>
                                         </td>
                                         <td>
                                             @if ($item->is_active)
@@ -592,8 +625,9 @@
                                         <th>Item Name</th>
                                         <th>Category</th>
                                         <th>Location</th>
-                                        <th>Unit</th>
+                                        <th class="unit-column">Unit</th>
                                         <th>Stock Monitoring</th>
+                                        <th>Description</th>
                                         <th>Item Status</th>
                                         <th>Actions</th>
                                     </tr>
@@ -608,7 +642,7 @@
                                             <span class="category-badge">{{ $item->category?->name ?? '—' }}</span>
                                         </td>
                                         <td>{{ $item->inventoryLocation?->name ?? '—' }}</td>
-                                        <td>
+                                        <td class="unit-column">
                                             @if ($item->unit)
                                             <span class="unit-badge">{{ $item->unit->abbreviation }}</span>
                                             @else
@@ -617,6 +651,9 @@
                                         </td>
                                         <td>
                                             <span class="manual-stock-badge">Manual Monitoring</span>
+                                        </td>
+                                        <td>
+                                            <strong class="item-name">{{ $item->description }}</strong>
                                         </td>
                                         <td>
                                             @if ($item->is_active)
@@ -1390,6 +1427,7 @@
 
                     <button
                         type="submit"
+                        id="dailyInventorySaveButton"
                         class="modal-primary-button">
                         Add Stock
                     </button>
@@ -1884,7 +1922,14 @@
 
                                 nonCountableFields.hidden =
                                     false;
+                                // Load today's non-countable inventory immediately
+                                if (nonCountableStockDate) {
 
+                                    loadNonCountableInventoryHistory(
+                                        nonCountableStockDate.value
+                                    );
+
+                                }
                             }
 
 
@@ -2151,57 +2196,178 @@
         });
     </script>
     <script>
+        // ============================================================
+        // NON-COUNTABLE INVENTORY HISTORY
+        // ============================================================
+
         const nonCountableStockDate =
             document.getElementById('nonCountableStockDate');
 
+        async function loadNonCountableInventoryHistory(selectedDate) {
+
+            if (!selectedDate) return;
+
+            try {
+
+                const response = await fetch(
+                    `{{ route('inventory.non-countable-history') }}?date=${selectedDate}`, {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error(
+                        'Failed to load non-countable inventory history.'
+                    );
+                }
+
+                const result = await response.json();
+
+                updateNonCountableInventoryTable(result);
+
+            } catch (error) {
+
+                console.error(error);
+
+                alert(
+                    'Unable to load non-countable inventory history.'
+                );
+            }
+        }
+
+
         if (nonCountableStockDate) {
 
-            nonCountableStockDate.addEventListener('change', async function() {
+            nonCountableStockDate.addEventListener(
+                'change',
+                function() {
 
-                const selectedDate = this.value;
+                    const selectedDate = this.value;
 
-                if (!selectedDate) return;
+                    if (!selectedDate) return;
 
-                const today = new Date()
-                    .toISOString()
-                    .split('T')[0];
+                    const today = new Date()
+                        .toISOString()
+                        .split('T')[0];
 
-                if (selectedDate > today) {
-                    this.value = today;
-                    return;
-                }
+                    if (selectedDate > today) {
 
-                try {
+                        this.value = today;
 
-                    const response = await fetch(
-                        `{{ route('inventory.non-countable-history') }}?date=${selectedDate}`, {
-                            headers: {
-                                'Accept': 'application/json',
-                                'X-Requested-With': 'XMLHttpRequest'
-                            }
-                        }
-                    );
+                        loadNonCountableInventoryHistory(today);
 
-                    if (!response.ok) {
-                        throw new Error(
-                            'Failed to load non-countable inventory history.'
-                        );
+                        return;
                     }
 
-                    const result = await response.json();
+                    loadNonCountableInventoryHistory(selectedDate);
 
-                    updateNonCountableInventoryTable(result);
-
-                } catch (error) {
-
-                    console.error(error);
-
-                    alert(
-                        'Unable to load non-countable inventory history.'
-                    );
                 }
+            );
+
+        }
+
+
+        function updateNonCountableInventoryTable(result) {
+
+            const tableBody = document.getElementById(
+                'nonCountableDailyTableBody'
+            );
+
+            if (!tableBody) return;
+
+            tableBody.innerHTML = '';
+
+            result.items.forEach(item => {
+
+                const beginning =
+                    Number(item.beginning || 0);
+
+                const actualQuantity =
+                    item.actual_quantity !== null ?
+                    Number(item.actual_quantity) :
+                    '';
+
+                const row =
+                    document.createElement('tr');
+
+                row.innerHTML = `
+            <td>
+                <strong>${item.name}</strong>
+            </td>
+
+            <td>
+                <span class="system-value">
+                    ${beginning.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    })}
+                </span>
+            </td>
+
+            <td>
+                <span class="unit-badge">
+                    ${item.unit || '—'}
+                </span>
+            </td>
+
+            <td>
+                <input
+                    type="number"
+                    name="actual_quantity[${item.id}]"
+                    class="daily-input"
+                    min="0"
+                    step="0.01"
+                    value="${actualQuantity}"
+                    placeholder="Enter quantity">
+            </td>
+
+            <td>
+                <input
+                    type="text"
+                    name="physical_notes[${item.id}]"
+                    class="daily-input daily-notes"
+                    maxlength="255"
+                    value="${item.notes || ''}"
+                    placeholder="Optional note">
+            </td>
+        `;
+
+                tableBody.appendChild(row);
 
             });
+
+            updateNonCountableEditability(
+                result.is_today
+            );
+        }
+
+
+        function updateNonCountableEditability(isToday) {
+
+            const inputs = document.querySelectorAll(
+                '#nonCountableDailyFields .daily-input'
+            );
+
+            const saveButton =
+                document.getElementById(
+                    'dailyInventorySaveButton'
+                );
+
+            inputs.forEach(input => {
+
+                input.disabled = !isToday;
+
+            });
+
+            if (saveButton) {
+
+                saveButton.style.display =
+                    isToday ? '' : 'none';
+
+            }
 
         }
 
@@ -2292,5 +2458,41 @@
                 saveButton.style.display = isToday ? '' : 'none';
             }
         }
+        // ============================================================
+        // ARCHIVE MODAL
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', function() {
+
+            const archiveModal = document.getElementById('archiveModal');
+            const openArchiveButton = document.getElementById('openArchiveModal');
+            const closeArchiveButton = document.getElementById('closeArchiveModal');
+
+            // Open Archive Modal
+            if (openArchiveButton && archiveModal) {
+                openArchiveButton.addEventListener('click', function() {
+                    archiveModal.classList.add('is-open');
+                });
+            }
+
+            // Close Archive Modal
+            if (closeArchiveButton && archiveModal) {
+                closeArchiveButton.addEventListener('click', function() {
+                    archiveModal.classList.remove('is-open');
+                });
+            }
+
+            // Close when clicking outside the modal content
+            if (archiveModal) {
+                archiveModal.addEventListener('click', function(event) {
+
+                    if (event.target === archiveModal) {
+                        archiveModal.classList.remove('is-open');
+                    }
+
+                });
+            }
+
+        });
     </script>
+    @include('inventory.partials.archive-modal')
 </x-app-layout>
