@@ -17,6 +17,9 @@ class POSController extends Controller
             ->withSum('stockOuts as total_stock_out', 'quantity')
             ->where('is_active', true)
             ->whereIn('inventory_type', ['prepped', 'physical'])
+            ->whereHas('category', function ($query) {
+                $query->whereIn('name', ['Food', 'Coffee', 'Non Coffee', 'Juice']);
+            })
             ->orderBy('name')
             ->get();
 

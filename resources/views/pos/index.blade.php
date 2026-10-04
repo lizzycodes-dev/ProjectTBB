@@ -54,7 +54,8 @@
             </div>
             <div class="menu-grid">
                 @foreach ($menuItems as $menuItem)
-                <div class="menu-card"
+                <!-- #made the menu-card not clickable if its out of stock -->
+                <div class="menu-card {{ $menuItem->stock_status === 'out' ? 'out-of-stock' : '' }}"
                     data-search="{{ strtolower($menuItem->name) }}"
                     data-category="{{ $menuItem->category->name ?? 'Menu Item' }}">
 
@@ -74,7 +75,7 @@
                     </div>
 
                     <div class="menu-stock-status">
-                        @if (in_array($menuItem->category->name, ['Coffee', 'Juice']))
+                        @if (in_array($menuItem->category->name, ['Coffee', 'Non Coffee', 'Juice']))
 
                         {{-- Invisible badge to keep alignment --}}
                         <span class="stock-badge stock-placeholder">
@@ -102,11 +103,12 @@
                         @endif
                     </div>
                     <button type="button"
-                        class="add-to-cart"
+                        class="add-to-cart {{ $menuItem->stock_status === 'out' ? 'disabled' : '' }}"
                         data-id="{{ $menuItem->id }}"
                         data-name="{{ $menuItem->name }}"
                         data-price="{{ $menuItem->price }}"
-                        data-options='@json($menuItem->optionGroups)'>
+                        data-options='@json($menuItem->optionGroups)'
+                        @if ($menuItem->stock_status === 'out') disabled @endif>
                         {{ $menuItem->stock_status === 'out' ? 'Out of Stock' : 'Add to Order' }}
                     </button>
 
@@ -905,6 +907,55 @@
                     payment: paymentMethod,
                     received: amountTendered
                 });
+
+                /*
+                 * Update POS stock display after successful order
+                 */
+                if (result.stock_updates) {
+                    result.stock_updates.forEach(update => {
+                        const button = document.querySelector(
+                            `.add-to-cart[data-id="${update.menu_item_id}"]`
+                        );
+
+                        if (!button) {
+                            return;
+                        }
+
+                        const card = button.closest('.menu-card');
+
+                        if (!card) {
+                            return;
+                        }
+
+                        const stockStatus = card.querySelector('.menu-stock-status');
+
+                        if (update.stock <= 0) {
+                            // Out of stock
+                            card.classList.add('out-of-stock');
+
+                            if (stockStatus) {
+                                stockStatus.innerHTML = `
+                    <span class="stock-badge stock-out">
+                        Out of Stock
+                    </span>
+                `;
+                            }
+
+                            button.textContent = 'Out of Stock';
+                            button.disabled = true;
+                            button.classList.add('disabled');
+                        } else {
+                            // Still has stock
+                            if (stockStatus) {
+                                stockStatus.innerHTML = `
+                    <span class="stock-badge stock-in">
+                        In Stock · ${Number(update.stock).toLocaleString()} left
+                    </span>
+                `;
+                            }
+                        }
+                    });
+                }
 
                 cart = [];
 

@@ -3803,3 +3803,30 @@
     stroke-linecap: round;
     stroke-linejoin: round;
 }
+/* OUT OF STOCK CARD */
+.menu-card.out-of-stock {
+    opacity: 0.55;
+    filter: grayscale(100%);
+    cursor: not-allowed;
+}
+
+/* Prevent hover effects */
+.menu-card.out-of-stock:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+/* Out of stock button */
+.menu-card.out-of-stock .add-to-cart,
+.add-to-cart.disabled {
+    background: #555;
+    color: #aaa;
+    border-color: #555;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Prevent image from looking clickable */
+.menu-card.out-of-stock img {
+    filter: grayscale(100%);
+}

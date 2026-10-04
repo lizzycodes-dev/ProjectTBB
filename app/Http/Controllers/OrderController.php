@@ -241,6 +241,7 @@ class OrderController extends Controller
                 'total_amount' => $totalAmount,
                 'notes' => $validated['notes'] ?? null,
             ]);
+            $stockUpdates = [];
 
             /*
          * Save order lines and their selected options.
@@ -257,7 +258,7 @@ class OrderController extends Controller
                     ->get();
 
                 $optionTotal = (float) $selectedOptions->sum('price_adjustment');
-                $unitPrice = (float) $menuItem->price + $optionTotal;
+                $unitPrice = (float) $inventoryItem->price + $optionTotal;
                 $lineTotal = $unitPrice * $quantity;
 
                 $orderItem = \App\Models\Order_Item::create([
@@ -326,6 +327,13 @@ class OrderController extends Controller
                         'recorded_at' => now(),
                         'remarks' => 'Order item: ' . $menuItem->name,
                     ]);
+
+                    $remainingStock = $availableStock - $quantity;
+
+                    $stockUpdates[] = [
+                        'menu_item_id' => $menuItem->id,
+                        'stock' => $remainingStock,
+                    ];
                 }
 
                 /*
@@ -361,6 +369,7 @@ class OrderController extends Controller
             return response()->json([
                 'message' => 'Order placed successfully.',
                 'order_id' => $order->id,
+                'stock_updates' => $stockUpdates,
             ], 201);
         });
     }
