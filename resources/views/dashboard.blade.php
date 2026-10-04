@@ -26,7 +26,7 @@
                 </div>
 
                 <div class="card-value">
-                    ₱0,000.00
+                    ₱{{ number_format($dailyRevenue, 2) }}
                 </div>
 
             </div>
@@ -39,7 +39,7 @@
                 </div>
 
                 <div class="card-value">
-                    ₱0,000.00
+                    ₱{{ number_format($cashSales, 2) }}
                 </div>
 
             </div>
@@ -52,7 +52,7 @@
                 </div>
 
                 <div class="card-value">
-                    ₱0,000.00
+                    ₱{{ number_format($gcashSales, 2) }}
                 </div>
 
             </div>
@@ -65,7 +65,7 @@
                 </div>
 
                 <div class="card-value">
-                    ₱0,000.00
+                    ₱{{ number_format($discountsGiven, 2) }}
                 </div>
 
             </div>
@@ -78,7 +78,7 @@
                 </div>
 
                 <div class="card-value">
-                    ₱0,000.00
+                    ₱{{ number_format($avgOrderValue, 2) }}
                 </div>
 
             </div>
@@ -87,38 +87,39 @@
             <div class="dashboard-panel low-stock-panel">
 
                 <div class="panel-title">
-                    Low-Stock Alerts (2)
+                    Low-Stock Alerts ({{ $lowStockItems->count() }})
                 </div>
 
-                <div class="low-stock-item">
+                @forelse ($lowStockItems->take(2) as $item)
 
-                    <strong>Product Name</strong>
+                    <div class="low-stock-item">
 
-                    <span>0 g</span>
+                        <strong>{{ $item->name }}</strong>
 
-                    <small>
-                        Threshold: 0 g
-                    </small>
+                        <span>{{ $item->current_stock + 0 }} {{ $item->unit->abbreviation ?? 'pcs' }}</span>
 
-                </div>
+                        <small>
+                            Threshold: {{ $lowStockThreshold }} {{ $item->unit->abbreviation ?? 'pcs' }}
+                        </small>
+
+                    </div>
+
+                @empty
+
+                    <div class="low-stock-item">
+
+                        <strong>All items are well stocked.</strong>
+
+                    </div>
+
+                @endforelse
 
 
-                <div class="low-stock-item">
-
-                    <strong>Product Name</strong>
-
-                    <span>0 g</span>
-
-                    <small>
-                        Threshold: 0 g
-                    </small>
-
-                </div>
-
-
-                <div class="low-stock-more">
-                    ...
-                </div>
+                @if ($lowStockItems->count() > 2)
+                    <div class="low-stock-more">
+                        ...
+                    </div>
+                @endif
 
             </div>
 
@@ -139,126 +140,111 @@
                 </div>
 
 
-                @for ($i = 1; $i <= 5; $i++)
+                @forelse ($bestSellers as $bestSeller)
 
                     <div class="table-row">
 
-                    <span>#</span>
+                        <span>{{ $loop->iteration }}</span>
 
-                    <span>
-                        Product Name
-                    </span>
+                        <span>
+                            {{ $bestSeller->InventoryItem->name ?? 'Unknown item' }}
+                        </span>
 
-                    <span>
-                        0 sold
-                    </span>
+                        <span>
+                            {{ (int) $bestSeller->total_sold }} sold
+                        </span>
+
+                    </div>
+
+                @empty
+
+                    <div class="empty-row">No sales yet.</div>
+
+                @endforelse
 
             </div>
 
-            @endfor
 
-        </div>
+            {{-- Current Inventory --}}
+            <div class="dashboard-panel g-c2-r3">
 
-
-        {{-- Current Inventory --}}
-        <div class="dashboard-panel g-c2-r3">
-
-            <div class="panel-title">
-                Current Inventory
-            </div>
-
-
-            @for ($i = 1; $i <= 5; $i++)
-
-                <div class="inventory-row">
-
-                <div>
-                    <strong>
-                        Product Name
-                    </strong>
+                <div class="panel-title">
+                    Current Inventory
                 </div>
 
-                <span>
-                    0 g
-                </span>
 
-        </div>
+                @forelse ($currentInventory as $item)
 
-        @endfor
+                    <div class="inventory-row">
 
-    </div>
+                        <div>
+                            <strong>
+                                {{ $item->name }}
+                            </strong>
+                        </div>
 
-    </div>
+                        <span>
+                            {{ $item->current_stock + 0 }} {{ $item->unit->abbreviation ?? 'pcs' }}
+                        </span>
 
+                    </div>
 
-    {{-- Daily Sales --}}
-    <div class="dashboard-panel sales-panel">
+                @empty
 
-        <div class="panel-title">
-            Daily Sales Log
-        </div>
+                    <div class="empty-row">No inventory items yet.</div>
 
-        <div class="sales-header">
+                @endforelse
 
-            <span>Queue</span>
-            <span>Order</span>
-            <span>Items</span>
-            <span>Payment</span>
-            <span>Discount</span>
-            <span>Total</span>
+            </div>
 
         </div>
 
 
-        @for ($i = 1; $i <= 4; $i++)
+        {{-- Daily Sales --}}
+        <div class="dashboard-panel sales-panel">
 
-            <div class="sales-row">
+            <div class="panel-title">
+                Daily Sales Log
+            </div>
 
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
+            <div class="sales-header">
+
+                <span>Queue</span>
+                <span>Order</span>
+                <span>Items</span>
+                <span>Payment</span>
+                <span>Discount</span>
+                <span>Total</span>
+
+            </div>
+
+
+            @forelse ($orders as $order)
+
+                <div class="sales-row {{ $order->status !== 'Completed' ? 'muted-row' : '' }}">
+
+                    <span>{{ substr($order->order_number, -4) }}</span>
+                    <span>{{ $order->order_number }}</span>
+                    <span>{{ $order->orderItems->sum('quantity') }}</span>
+                    <span>{{ $order->payment->payment_method ?? '—' }}</span>
+                    <span>₱{{ number_format($order->discount_amount, 2) }}</span>
+                    <span>₱{{ number_format($order->total_amount, 2) }}</span>
+
+                </div>
+
+            @empty
+
+                <div class="empty-row">No orders yet today.</div>
+
+            @endforelse
+
+
+            <div class="pagination-wrap">
+                {{ $orders->links() }}
+            </div>
+
+        </div>
 
     </div>
-
-    @endfor
-
-
-    <div class="pagination">
-
-        <span class="disabled">
-            ← Previous
-        </span>
-
-        <span class="page active">
-            1
-        </span>
-
-        <span class="page">
-            2
-        </span>
-
-        <span class="page">
-            3
-        </span>
-
-        <span>
-            ...
-        </span>
-
-        <span>
-            Next →
-        </span>
-
-    </div>
-
-    </div>
-
-    </div>
-
-
-
 
 </x-app-layout>
