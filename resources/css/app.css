@@ -3830,3 +3830,99 @@
 .menu-card.out-of-stock img {
     filter: grayscale(100%);
 }
+
+.inventory-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.inventory-archive-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #fff;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.inventory-archive-button:hover {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+}
+
+.archive-button-icon {
+    font-size: 15px;
+}
+
+.archive-modal {
+    max-width: 900px;
+}
+
+/* ============================================================
+   ARCHIVE TABLE
+   ============================================================ */
+
+.archive-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.archive-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.archive-table th {
+    padding: 10px 8px;
+    background: var(--cream);
+    border: 1px solid var(--border);
+    color: var(--coffee-dark);
+    font-size: 11px;
+    font-weight: 700;
+    text-align: left;
+}
+
+.archive-table td {
+    padding: 10px 8px;
+    border: 1px solid var(--border);
+    color: var(--foreground);
+    vertical-align: middle;
+}
+
+.archive-table tbody tr:hover {
+    background: var(--cream);
+}
+
+/* Restore button */
+
+.archive-restore-button {
+    padding: 6px 10px;
+    border: 1px solid var(--primary);
+    border-radius: 6px;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.archive-restore-button:hover {
+    background: var(--coffee-dark);
+    border-color: var(--coffee-dark);
+}
+.unit-column {
+    width: 80px;
+    min-width: 80px;
+    max-width: 80px;
+    white-space: nowrap;
+}

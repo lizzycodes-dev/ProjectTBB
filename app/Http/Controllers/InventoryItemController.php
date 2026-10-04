@@ -31,7 +31,8 @@ class InventoryItemController extends Controller
         ])
             ->withSum('stockIns as total_stock_in', 'quantity')
             ->withSum('stockOuts as total_stock_out', 'quantity')
-            ->where('inventory_type', 'prepped');
+            ->where('inventory_type', 'prepped')
+            ->where('is_active', true);
 
         /*
     |--------------------------------------------------------------------------
@@ -46,6 +47,7 @@ class InventoryItemController extends Controller
             'unit',
         ])
             ->where('inventory_type', 'physical')
+            ->where('is_active', true)
             ->whereHas('category', function ($query) {
                 $query->whereIn('name', [
                     'Ingredient',
@@ -164,6 +166,7 @@ class InventoryItemController extends Controller
             'unit',
         ])
             ->where('inventory_type', 'physical')
+            ->where('is_active', true)
             ->whereHas('category', function ($query) {
                 $query->where('name', 'Juice');
             })
@@ -188,6 +191,7 @@ class InventoryItemController extends Controller
             'unit',
         ])
             ->where('inventory_type', 'physical')
+            ->where('is_active', true)
             ->whereHas('category', function ($query) {
                 $query->where('name', 'Coffee');
             })
@@ -262,6 +266,17 @@ class InventoryItemController extends Controller
             )
             ->groupBy('inventory_item_id')
             ->pluck('total_sold', 'inventory_item_id');
+
+
+        $archivedItems = Inventory_Item::with([
+            'category',
+            'inventoryLocation',
+            'unit',
+        ])
+            ->where('is_active', false)
+            ->orderBy('name')
+            ->get();
+
         return view('inventory.index', compact(
             'preppedItems',
             'nonCountableItems',
@@ -272,14 +287,13 @@ class InventoryItemController extends Controller
             'search',
             'categoryId',
             'locationId',
-            'juiceItems',
-            'coffeeItems',
             'coffeeItems',
             'juiceItems',
             'beginningQuantities',
             'inputNewQuantities',
             'soldQuantities',
             'stockDate',
+            'archivedItems',
         ));
     }
 
