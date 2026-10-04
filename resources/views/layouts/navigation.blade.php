@@ -210,14 +210,14 @@
             sidebar.classList.toggle('expanded');
         });
 
-        // Optional: close when clicking a link
+        // Close when clicking a link
         sidebar.querySelectorAll('.sidebar-link').forEach(link => {
             link.addEventListener('click', () => {
                 sidebar.classList.remove('expanded');
             });
         });
 
-        // Optional: close when clicking outside
+        // Close when clicking outside
         document.addEventListener('click', function(e) {
             if (
                 sidebar.classList.contains('expanded') &&

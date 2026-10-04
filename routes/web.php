@@ -30,6 +30,8 @@ Route::get('/test-order', function () {
 
 Route::resource('users', UserController::class);
 
+Route::put('/users/{id}/restore', [UserController::class, 'restore'])->name('users.restore');
+
 Route::get('/kitchen', [KitchenOrderItemController::class, 'index'])->middleware('auth');
 
 Route::post(
