@@ -32,6 +32,9 @@ class DatabaseSeeder extends Seeder
             PaymentSeeder::class,
             KitchenOrderItemSeeder::class,
             StockOutSeeder::class,
+            PurchaseSeeder::class,
+            PurchaseItemSeeder::class,
+            ExpenseSeeder::class,
         ]);
     }
 }

@@ -7,17 +7,25 @@
 
             <h1>Finances Report</h1>
 
-            <a
-                href="{{ route('finance-report.index', array_merge(request()->query(), ['export' => 'excel'])) }}"
-                class="export-btn">
-                Download to Excel
-            </a>
+            <div class="export-actions">
+                <a
+                    href="{{ route('finance-report.index', array_merge(request()->query(), ['export' => 'excel'])) }}"
+                    class="export-btn">
+                    Download to Excel
+                </a>
+
+                <a
+                    href="{{ route('finance-report.index', array_merge(request()->query(), ['export' => 'pdf'])) }}"
+                    class="export-btn">
+                    Download to PDF
+                </a>
+            </div>
 
         </div>
 
                 @php
             $cardUrl = fn ($key) => route('finance-report.index', array_merge(
-                request()->except(['card', 'page']),
+                                request()->except(['card', 'page', 'expense_page']),
                 $key ? ['card' => $key] : []
             ));
         @endphp
@@ -27,7 +35,10 @@
 
             <a href="{{ $cardUrl(null) }}" class="summary-card">
                 <div class="card-title">Total Revenue</div>
-                <div class="card-value">₱{{ number_format($totalRevenue, 2) }}</div>
+                <div class="card-value">{{ $netRevenue < 0 ? '-' : '' }}₱{{ number_format(abs($netRevenue), 2) }}</div>
+                <div class="card-sub">
+                    Sales ₱{{ number_format($totalRevenue, 2) }} − Expenses ₱{{ number_format($totalExpenses, 2) }}
+                </div>
             </a>
 
             <a href="{{ $cardUrl($card === 'cash' ? null : 'cash') }}"
@@ -139,8 +150,52 @@
 
             @endforelse
 
-            <div class="pagination-wrap">
+                        <div class="pagination-wrap">
                 {{ $orders->links() }}
+            </div>
+
+        </div>
+
+        {{-- Expense Report --}}
+        <div class="dashboard-panel expense-panel">
+
+            <div class="panel-title">
+                <span>Expense Report</span>
+                <span class="expense-total">Total: ₱{{ number_format($totalExpenses, 2) }}</span>
+            </div>
+
+            <div class="expense-header">
+                <span>Date</span>
+                <span>Description</span>
+                <span>Category</span>
+                <span>Source</span>
+                <span>Amount</span>
+            </div>
+
+            @forelse ($expenses as $expense)
+
+            <div class="expense-row">
+                <span>{{ \Carbon\Carbon::parse($expense->expense_date)->format('m/d/Y') }}</span>
+                <span>{{ $expense->description }}</span>
+                <span>{{ $expense->category ?? '—' }}</span>
+                <span>
+                    @if ($expense->purchase)
+                        Purchase{{ $expense->purchase->reference_number ? ' · ' . $expense->purchase->reference_number : '' }}
+                    @else
+                        —
+                    @endif
+                </span>
+                <span>₱{{ number_format($expense->amount, 2) }}</span>
+            </div>
+
+            @empty
+
+            <div class="empty-row">No expenses found for this filter.</div>
+
+            @endforelse
+
+            <div class="pagination-wrap">
+                {{ $expenses->links() }}
             </div>
 
         </div>

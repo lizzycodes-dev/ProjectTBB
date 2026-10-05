@@ -65,6 +65,7 @@ class OrderController extends Controller
                 'in:Cash,GCash',
             ],
             'amount_tendered' => ['nullable', 'numeric', 'min:0'],
+            'reference_number' => ['required_if:payment_method,GCash', 'nullable', 'string', 'max:50'],
         ]);
 
         /*
@@ -357,12 +358,14 @@ class OrderController extends Controller
                 'payment_method' => $validated['payment_method'],
                 'amount' => $totalAmount,
                 'received_by' => auth()->id(),
-                'amount_tendered' => $validated['amount_tendered'] ?? $totalAmount,
-                'change' => max(
+                'amount_received' => $validated['amount_tendered'] ?? $totalAmount,
+                'change_amount' => max(
                     0,
                     (float) ($validated['amount_tendered'] ?? $totalAmount) - $totalAmount
                 ),
-                'status' => 'Paid',
+                'reference_number' => $validated['payment_method'] === 'GCash'
+                    ? ($validated['reference_number'] ?? null)
+                    : null,
                 'paid_at' => now(),
             ]);
 
