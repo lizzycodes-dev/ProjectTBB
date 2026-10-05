@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use Illuminate\Support\Facades\DB;
 use App\Models\Inventory_Item;
 use App\Models\Order;
 use App\Models\Order_Item;
@@ -99,11 +100,15 @@ class OrderItemSeeder extends Seeder
                 ? round($subtotal * 0.20, 2)
                 : 0;
 
-            $order->update([
-                'subtotal' => $subtotal,
-                'discount_amount' => $discountAmount,
-                'total_amount' => max(0, $subtotal - $discountAmount),
-            ]);
+            // Set ordered_at explicitly so MySQL/MariaDB doesn't reset it to now().
+            DB::table('orders')
+                ->where('id', $order->id)
+                ->update([
+                    'subtotal' => $subtotal,
+                    'discount_amount' => $discountAmount,
+                    'total_amount' => max(0, $subtotal - $discountAmount),
+                    'ordered_at' => $order->ordered_at->toDateTimeString(),
+                ]);
         }
     }
 }

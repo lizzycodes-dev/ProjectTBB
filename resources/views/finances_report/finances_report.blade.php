@@ -15,34 +15,48 @@
 
         </div>
 
+                @php
+            $cardUrl = fn ($key) => route('finance-report.index', array_merge(
+                request()->except(['card', 'page']),
+                $key ? ['card' => $key] : []
+            ));
+        @endphp
+
         {{-- Summary Strip --}}
         <div class="summary-grid">
 
-            <div class="summary-card">
+            <a href="{{ $cardUrl(null) }}" class="summary-card">
                 <div class="card-title">Total Revenue</div>
                 <div class="card-value">₱{{ number_format($totalRevenue, 2) }}</div>
-            </div>
+            </a>
 
-            <div class="summary-card">
+            <a href="{{ $cardUrl($card === 'cash' ? null : 'cash') }}"
+                class="summary-card {{ $card === 'cash' ? 'active' : '' }}">
                 <div class="card-title">Cash Sales</div>
                 <div class="card-value">₱{{ number_format($cashSales, 2) }}</div>
-            </div>
+            </a>
 
-            <div class="summary-card">
+            <a href="{{ $cardUrl($card === 'gcash' ? null : 'gcash') }}"
+                class="summary-card {{ $card === 'gcash' ? 'active' : '' }}">
                 <div class="card-title">GCash Sales</div>
                 <div class="card-value">₱{{ number_format($gcashSales, 2) }}</div>
-            </div>
+            </a>
 
-            <div class="summary-card">
+            <a href="{{ $cardUrl($card === 'discounts' ? null : 'discounts') }}"
+                class="summary-card {{ $card === 'discounts' ? 'active' : '' }}">
                 <div class="card-title">Discounts Given</div>
                 <div class="card-value">₱{{ number_format($totalDiscounts, 2) }}</div>
-            </div>
+            </a>
 
         </div>
 
-        {{-- Filters --}}
+        {{-- Filters --}}       
         <form method="GET" action="{{ route('finance-report.index') }}" class="filters-row">
 
+            @if ($card)
+            <input type="hidden" name="card" value="{{ $card }}">
+            @endif
+            
             <div class="filter-group">
                 <select name="year" onchange="this.form.submit()">
                     <option value="">Select Year</option>
@@ -84,7 +98,7 @@
                 <input type="date" name="date_to" value="{{ request('date_to') }}" onchange="this.form.submit()">
             </div>
 
-            @if (request()->anyFilled(['year', 'month', 'status', 'date_from', 'date_to']))
+            @if (request()->anyFilled(['year', 'month', 'status', 'date_from', 'date_to', 'card']))
             <a href="{{ route('finance-report.index') }}" class="clear-filters">Clear</a>
             @endif
 

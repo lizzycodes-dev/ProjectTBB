@@ -6045,3 +6045,18 @@
         max-height: none;
     }
 }
+
+/* Finance Report: clickable summary cards */
+.summary-grid a.summary-card {
+    display: block;
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.summary-grid a.summary-card.active {
+    border-color: var(--primary);
+    box-shadow:
+        0 0 0 2px var(--primary),
+        0 4px 12px rgba(91, 70, 53, 0.12);
+}

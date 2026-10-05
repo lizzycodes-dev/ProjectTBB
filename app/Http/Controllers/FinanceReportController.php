@@ -46,9 +46,28 @@ class FinanceReportController extends Controller
             ->filter(fn ($order) => $order->payment?->payment_method === 'GCash')
             ->sum('total_amount');
 
-        // --- Table rows (all statuses, most recent first) ---
-        $orders = $query->orderByDesc('ordered_at')->paginate(10)->withQueryString();
+        // --- Card filter (clicking a summary card filters the table only) ---
+        $card = $request->input('card');
+        $card = in_array($card, ['cash', 'gcash', 'discounts'], true) ? $card : null;
 
+        $tableQuery = clone $query;
+
+        if ($card !== null) {
+            if (! $request->filled('status')) {
+                $tableQuery->where('status', 'Completed');
+            }
+
+            if ($card === 'cash') {
+                $tableQuery->whereHas('payment', fn ($q) => $q->where('payment_method', 'Cash'));
+            } elseif ($card === 'gcash') {
+                $tableQuery->whereHas('payment', fn ($q) => $q->where('payment_method', 'GCash'));
+            } else {
+                $tableQuery->where('discount_amount', '>', 0);
+            }
+        }
+
+        // --- Table rows (all statuses unless a card filter is active, most recent first) ---
+        $orders = $tableQuery->orderByDesc('ordered_at')->paginate(10)->withQueryString();
         $years = Order::selectRaw('DISTINCT YEAR(ordered_at) as year')
             ->orderByDesc('year')
             ->pluck('year');
@@ -59,7 +78,8 @@ class FinanceReportController extends Controller
             'totalDiscounts',
             'cashSales',
             'gcashSales',
-            'years'
+            'years',
+            'card'
         ));
     }
 }
