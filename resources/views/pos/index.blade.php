@@ -212,7 +212,14 @@
                     id="gcashPaymentFields"
                     class="payment-fields"
                     style="display: none;">
-                    <p>Payment method: GCash</p>
+                    <label for="referenceNumber">GCash Reference Number</label>
+                    <input
+                        type="text"
+                        id="referenceNumber"
+                        maxlength="50"
+                        inputmode="numeric"
+                        autocomplete="off"
+                        placeholder="e.g. 1234 567 890 123">
                 </div>
 
                 <button
@@ -825,18 +832,28 @@
                 }
             }
 
+                        let referenceNumber = null;
+
+            if (paymentMethod === 'GCash') {
+                referenceNumber = document.getElementById('referenceNumber')
+                    .value.replace(/\s+/g, '');
+
+                if (referenceNumber === '') {
+                    alert('Please enter the GCash reference number.');
+                    return;
+                }
+            }
+
             const receiptItems = cart.map(item => ({
                 name: item.name,
-                quantity: item.quantity,
                 price: item.price,
-                options: (item.options || [])
-                    .map(option => option.name)
-                    .join(' • ')
+                quantity: item.quantity,
+                options: (item.options || []).map(option => option.name).join(' • ')
             }));
 
             const data = {
                 order_type: orderType,
-
+                reference_number: referenceNumber,
                 items: cart.map(item => ({
                     inventory_item_id: item.id,
                     quantity: item.quantity,
@@ -846,6 +863,7 @@
 
                 discount_type: discountType,
                 payment_method: paymentMethod,
+                reference_number: referenceNumber,
                 amount_tendered: amountTendered
             };
 
@@ -949,6 +967,7 @@
                 cart = [];
 
                 document.getElementById('amountReceived').value = '';
+                document.getElementById('referenceNumber').value = '';
 
                 renderCart();
             } catch (error) {

@@ -6060,3 +6060,108 @@
         0 0 0 2px var(--primary),
         0 4px 12px rgba(91, 70, 53, 0.12);
 }
+
+/* Finance Report: expense report + net revenue card */
+.card-sub {
+    padding: 0 18px 14px 20px;
+    color: var(--muted-foreground);
+    font-size: 11px;
+}
+
+.expense-panel {
+    margin-top: 18px;
+}
+
+.expense-panel .panel-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.expense-total {
+    font-family: inherit;
+    font-size: 13px;
+    font-style: normal;
+}
+
+.expense-header,
+.expense-row {
+    display: grid;
+    grid-template-columns: 0.8fr 1.6fr 1fr 1.2fr 0.9fr;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 16px;
+    font-size: 12px;
+}
+
+.expense-header {
+    background: var(--secondary);
+    color: var(--secondary-foreground);
+    font-weight: 700;
+}
+
+.expense-row {
+    border-top: 1px solid var(--border);
+    color: var(--foreground);
+}
+
+@media (max-width: 1100px) {
+    .expense-panel {
+        overflow-x: auto;
+    }
+
+    .expense-header,
+    .expense-row {
+        min-width: 700px;
+    }
+}
+
+/* =========================================================
+   POS - WIDER CURRENT ORDER PANEL
+========================================================= */
+
+/* Desktop: about a third of the page, never too small or too big */
+.kitchen-page .cart-section {
+    flex: 0 0 34%;
+    width: 34%;
+    min-width: 340px;
+    max-width: 460px;
+}
+
+/* Tablet: give the cart more room, and fewer, bigger item cards */
+@media (min-width: 769px) and (max-width: 1100px) {
+    .kitchen-page .cart-section {
+        flex: 0 0 42%;
+        width: 42%;
+        min-width: 320px;
+        max-width: none;
+    }
+
+    .kitchen-page .menu-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* Tablet landscape (iPad 1024 wide): 3 item columns fit */
+@media (min-width: 901px) and (max-width: 1100px) {
+    .kitchen-page .menu-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+/* Phones: cart goes under the menu at full width */
+@media (max-width: 768px) {
+    .kitchen-page .cart-section {
+        flex: none;
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+    }
+}
+
+/* Finance Report: export buttons */
+.export-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
