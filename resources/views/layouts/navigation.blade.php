@@ -15,7 +15,7 @@
         </button>
 
         {{-- Brand --}}
-        <a href="{{ route('dashboard') }}" class="sidebar-brand">
+        <a href="{{ Auth::user()->role_id === 3 ? '/kitchen' : route('dashboard') }}" class="sidebar-brand">
 
             <img
                 src="{{ asset('images/logo/brewing-bar-logo.png') }}"
@@ -114,7 +114,8 @@
             </span>
         </a>
 
-        {{-- Purchase --}}
+                {{-- Purchase --}}
+        @unless (Auth::user()->role_id === 3)
         <a
             href="{{ route('purchases.index') }}"
             class="sidebar-link {{ request()->is('purchases*') ? 'active' : '' }}"
@@ -132,8 +133,9 @@
                 Purchase Management
             </span>
         </a>
+        @endunless
 
-                @unless (Auth::user()->role_id === 3)
+        @unless (Auth::user()->role_id === 3)
         {{-- Finance Report --}}
         <a
             href="{{ route('finance-report.index') }}"
