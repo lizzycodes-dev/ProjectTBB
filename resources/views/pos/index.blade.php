@@ -1,5 +1,42 @@
 <x-app-layout>
 
+    <style>
+        /* Trash icon button in the Current Order rows */
+        .cart-item .remove-item {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            border: 1px solid #e5dccf;
+            border-radius: 8px;
+            background: #ffffff;
+            color: #b4473b;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: background-color 0.15s, color 0.15s;
+        }
+
+        .cart-item .remove-item {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            background: #b4473b;
+            color: #ffffff;
+        }
+
+        .cart-item .remove-item svg {
+            width: 18px;
+            height: 18px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+    </style>
+
         <div class="kitchen-page">
 
     <div class="kitchen-header">
@@ -486,8 +523,15 @@
                 <button
                     type="button"
                     class="remove-item"
+                    title="Remove item"
+                    aria-label="Remove ${esc(item.name)}"
                     onclick="removeCartItem(${index})">
-                    Remove
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M4 7h16" />
+                        <path d="M10 11v6M14 11v6" />
+                        <path d="M6 7l1 13h10l1-13" />
+                        <path d="M9 7V4h6v3" />
+                    </svg>
                 </button>
 
                 <div class="cart-item-total">

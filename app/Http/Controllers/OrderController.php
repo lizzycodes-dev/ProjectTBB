@@ -369,9 +369,20 @@ class OrderController extends Controller
                 'paid_at' => now(),
             ]);
 
+            /*
+             * Queue number = today's running count (the last 4 digits of the
+             * order number, e.g. ORD-20261006-0002 -> 2). It restarts every day.
+             */
+            $queueNumber = (int) substr($order->order_number, -4);
+
             return response()->json([
                 'message' => 'Order placed successfully.',
                 'order_id' => $order->id,
+                'order' => [
+                    'id' => $order->id,
+                    'order_number' => $order->order_number,
+                ],
+                'queue_number' => $queueNumber,
                 'stock_updates' => $stockUpdates,
             ], 201);
         });
