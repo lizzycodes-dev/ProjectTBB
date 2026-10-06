@@ -90,7 +90,7 @@
                     Low-Stock Alerts ({{ $lowStockItems->count() }})
                 </div>
 
-                @forelse ($lowStockItems->take(2) as $item)
+                @forelse ($lowStockPaginator as $item)
 
                     <div class="low-stock-item">
 
@@ -115,9 +115,9 @@
                 @endforelse
 
 
-                @if ($lowStockItems->count() > 2)
-                    <div class="low-stock-more">
-                        ...
+                @if ($lowStockPaginator->hasPages())
+                    <div class="pagination-wrap low-stock-pagination">
+                        {{ $lowStockPaginator->links() }}
                     </div>
                 @endif
 
@@ -223,7 +223,7 @@
 
                 <div class="sales-row {{ $order->status !== 'Completed' ? 'muted-row' : '' }}">
 
-                    <span>{{ substr($order->order_number, -4) }}</span>
+                    <span>{{ $order->queue_label }}</span>
                     <span>{{ $order->order_number }}</span>
                     <span>{{ $order->orderItems->sum('quantity') }}</span>
                     <span>{{ $order->payment->payment_method ?? '—' }}</span>

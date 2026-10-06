@@ -58,6 +58,8 @@ class OrderSeeder extends Seeder
                 $order = new Order([
                     'cashier_id' => $cashier?->id ?? 1,
                     'order_number' => $orderNumber,
+                    'queue_date' => $date->toDateString(),
+                    'queue_number' => $i,
                     'order_type' => $orderTypes[mt_rand(0, 1)],
                     'status' => $status,
                     'subtotal' => 0,

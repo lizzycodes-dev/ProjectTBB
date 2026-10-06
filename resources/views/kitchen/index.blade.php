@@ -61,8 +61,8 @@
 
                         <div class="order-top">
 
-                            <strong>
-                                {{ $order->order_number }}
+                            <strong class="queue-badge" title="{{ $order->order_number }}">
+                                Queue {{ $order->queue_label }}
                             </strong>
 
                             <span>
@@ -94,7 +94,7 @@
                             @endif
 
 
-                            @if (Auth::user()->role_id === 3)
+                            @if (in_array(Auth::user()->role_id, [1, 3]))
 
                             <form
                                 method="POST"
@@ -163,8 +163,8 @@
 
                         <div class="order-top">
 
-                            <strong>
-                                {{ $order->order_number }}
+                            <strong class="queue-badge" title="{{ $order->order_number }}">
+                                Queue {{ $order->queue_label }}
                             </strong>
 
                             <span>
@@ -224,7 +224,7 @@
                             @endif
 
 
-                            @if (Auth::user()->role_id === 3)
+                            @if (in_array(Auth::user()->role_id, [1, 3]))
 
                             <form
                                 method="POST"
@@ -293,8 +293,8 @@
 
                         <div class="order-top">
 
-                            <strong>
-                                {{ $order->order_number }}
+                            <strong class="queue-badge" title="{{ $order->order_number }}">
+                                Queue {{ $order->queue_label }}
                             </strong>
 
                             <span>
@@ -337,7 +337,7 @@
                         @endforeach
 
 
-                        @if (Auth::user()->role_id === 3)
+                        @if (in_array(Auth::user()->role_id, [1, 3]))
 
                         <form
                             method="POST"
@@ -375,7 +375,7 @@
              COMPLETED ORDERS
         ========================= --}}
 
-        <div class="completed-section">
+        <div class="completed-section" id="completed">
 
             <div class="completed-header">
                 Completed Orders
@@ -393,8 +393,8 @@
                 <div class="completed-card">
 
                     <div>
-                        <strong>
-                            {{ $order->order_number }}
+                        <strong title="{{ $order->order_number }}">
+                            Queue {{ $order->queue_label }}
                         </strong>
 
                         <span>
@@ -437,6 +437,12 @@
                 @endforelse
 
             </div>
+
+            @if ($completedOrders->hasPages())
+            <div class="pagination-wrap">
+                {{ $completedOrders->fragment('completed')->links() }}
+            </div>
+            @endif
 
         </div>
 
