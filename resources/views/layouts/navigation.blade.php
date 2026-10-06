@@ -15,7 +15,7 @@
         </button>
 
         {{-- Brand --}}
-        <a href="{{ Auth::user()->role_id === 3 ? '/kitchen' : route('dashboard') }}" class="sidebar-brand">
+        <a href="{{ Auth::user()->role_id === 3 ? '/kitchen' : (Auth::user()->role_id === 2 ? '/pos' : route('dashboard')) }}" class="sidebar-brand">
 
             <img
                 src="{{ asset('images/logo/brewing-bar-logo.png') }}"
@@ -40,7 +40,8 @@
     {{-- Navigation Links --}}
     <div class="sidebar-links">
 
-                @unless (Auth::user()->role_id === 3)
+        {{-- Dashboard (manager only) --}}
+        @unless (in_array(Auth::user()->role_id, [2, 3]))
         {{-- Dashboard --}}
         <a
             href="{{ route('dashboard') }}"
@@ -56,9 +57,11 @@
                 Dashboard
             </span>
         </a>
+        @endunless
 
 
-        {{-- POS --}}
+        {{-- POS (manager + cashier) --}}
+        @unless (Auth::user()->role_id === 3)
         <a
             href="/pos"
             class="sidebar-link {{ request()->is('pos') ? 'active' : '' }}"
@@ -97,7 +100,8 @@
         </a>
 
 
-        {{-- Inventory --}}
+        {{-- Inventory (cook + manager) --}}
+        @unless (Auth::user()->role_id === 2)
         <a
             href="/inventory"
             class="sidebar-link {{ request()->is('inventory*') ? 'active' : '' }}"
@@ -113,9 +117,10 @@
                 Inventory
             </span>
         </a>
+        @endunless
 
                 {{-- Purchase --}}
-        @unless (Auth::user()->role_id === 3)
+        @unless (in_array(Auth::user()->role_id, [2, 3]))
         <a
             href="{{ route('purchases.index') }}"
             class="sidebar-link {{ request()->is('purchases*') ? 'active' : '' }}"
@@ -135,7 +140,7 @@
         </a>
         @endunless
 
-        @unless (Auth::user()->role_id === 3)
+        @unless (in_array(Auth::user()->role_id, [2, 3]))
         {{-- Finance Report --}}
         <a
             href="{{ route('finance-report.index') }}"

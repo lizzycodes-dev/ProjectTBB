@@ -225,15 +225,22 @@ class OrderController extends Controller
          * If your orders table uses different column names, keep those
          * existing names from your current Order model/migration.
          */
+            /*
+             * Queue number = today's running number, restarts every day.
+             * Assigned inside the transaction with a row lock, and backed by
+             * a unique (queue_date, queue_number) index, so two orders can
+             * never get the same number.
+             */
+            $queueNumber = ((int) \App\Models\Order::whereDate('queue_date', today())
+                ->lockForUpdate()
+                ->max('queue_number')) + 1;
+
             $order = \App\Models\Order::create([
                 'cashier_id' => $validated['cashier_id'] ?? auth()->id(),
                 'order_number' => 'ORD-' . now()->format('Ymd') . '-' .
-                    str_pad(
-                        ((int) \App\Models\Order::whereDate('created_at', today())->count()) + 1,
-                        4,
-                        '0',
-                        STR_PAD_LEFT
-                    ),
+                    str_pad($queueNumber, 4, '0', STR_PAD_LEFT),
+                'queue_date' => today(),
+                'queue_number' => $queueNumber,
                 'order_type' => $validated['order_type'],
                 'status' => 'Pending',
                 'subtotal' => $subtotal,
@@ -368,12 +375,6 @@ class OrderController extends Controller
                     : null,
                 'paid_at' => now(),
             ]);
-
-            /*
-             * Queue number = today's running count (the last 4 digits of the
-             * order number, e.g. ORD-20261006-0002 -> 2). It restarts every day.
-             */
-            $queueNumber = (int) substr($order->order_number, -4);
 
             return response()->json([
                 'message' => 'Order placed successfully.',

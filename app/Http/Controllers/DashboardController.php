@@ -6,6 +6,7 @@ use App\Models\Inventory_Item;
 use App\Models\Order;
 use App\Models\Order_Item;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class DashboardController extends Controller
 {
@@ -56,6 +57,22 @@ class DashboardController extends Controller
             ->sortBy('current_stock')
             ->values();
 
+        // Low-stock list: 5 per page. Page links only render when there
+        // are more than 5 items (hasPages()).
+        $lowStockPerPage = 5;
+        $lowStockPage = LengthAwarePaginator::resolveCurrentPage('low_stock_page');
+
+        $lowStockPaginator = (new LengthAwarePaginator(
+            $lowStockItems->forPage($lowStockPage, $lowStockPerPage)->values(),
+            $lowStockItems->count(),
+            $lowStockPerPage,
+            $lowStockPage,
+            [
+                'path' => $request->url(),
+                'pageName' => 'low_stock_page',
+            ]
+        ))->withQueryString();
+
         $currentInventory = $stockItems->take(5);
 
         $bestSellers = Order_Item::query()
@@ -77,6 +94,7 @@ class DashboardController extends Controller
             'orders',
             'lowStockThreshold',
             'lowStockItems',
+            'lowStockPaginator',
             'currentInventory',
             'bestSellers'
         ));

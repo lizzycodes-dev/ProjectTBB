@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Kitchen_Order_Item;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 
 class KitchenOrderItemController extends Controller
@@ -42,6 +43,21 @@ class KitchenOrderItemController extends Controller
             ->groupBy(
                 fn($kitchenOrder) => $kitchenOrder->orderItem->order_id
             );
+
+        // Paginate completed orders: 4 columns x 4 rows = 16 cards per page
+        $perPage = 16;
+        $page = LengthAwarePaginator::resolveCurrentPage('completed_page');
+
+        $completedOrders = new LengthAwarePaginator(
+            $completedOrders->forPage($page, $perPage),
+            $completedOrders->count(),
+            $perPage,
+            $page,
+            [
+                'path' => request()->url(),
+                'pageName' => 'completed_page',
+            ]
+        );
 
         return view(
             'kitchen.index',
