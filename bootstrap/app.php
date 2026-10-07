@@ -13,6 +13,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
     $middleware->alias([
         'no.cook' => \App\Http\Middleware\BlockCooks::class,
+        'no.cashier' => \App\Http\Middleware\BlockCashiers::class,
     ]);
 })
     ->withExceptions(function (Exceptions $exceptions): void {

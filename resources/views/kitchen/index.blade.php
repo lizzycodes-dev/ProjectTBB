@@ -381,6 +381,15 @@
                 Completed Orders
             </div>
 
+            <form method="GET" action="/kitchen#completed" class="completed-filter">
+                <a href="/kitchen?date={{ today()->toDateString() }}#completed"
+                    class="filter-chip {{ $completedDate->isToday() ? 'active' : '' }}">Today</a>
+                <a href="/kitchen?date={{ today()->subDay()->toDateString() }}#completed"
+                    class="filter-chip {{ $completedDate->isSameDay(today()->subDay()) ? 'active' : '' }}">Yesterday</a>
+                <input type="date" name="date" value="{{ $completedDate->toDateString() }}"
+                    max="{{ today()->toDateString() }}" onchange="this.form.submit()">
+            </form>
+
             <div class="completed-orders">
 
                 @forelse ($completedOrders as $orderItems)
@@ -431,7 +440,7 @@
                 @empty
 
                 <div class="empty-completed">
-                    No completed orders.
+                    No completed orders on {{ $completedDate->format('M j, Y') }}.
                 </div>
 
                 @endforelse

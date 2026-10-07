@@ -66,6 +66,15 @@
         @endif
 
 
+        @if (session('error'))
+
+        <div class="user-error-message">
+            {{ session('error') }}
+        </div>
+
+        @endif
+
+
         {{-- =====================================================
          VALIDATION ERRORS
          ===================================================== --}}
@@ -113,7 +122,7 @@
                     class="user-filter-select">
 
                     <option value="">
-                        All Roles / Active
+                        All Roles
                     </option>
 
                     <option
@@ -131,7 +140,7 @@
                     <option
                         value="Cook"
                         @selected(request('filter')=='Cook' )>
-                        Cook / Kitchen
+                        Cook
                     </option>
 
                     <option
@@ -254,7 +263,11 @@
                                     <form
                                         action="{{ route('users.restore', $user->id) }}"
                                         method="POST"
-                                        onsubmit="return confirm('Are you sure you want to reactivate this user account?');">
+                                        class="js-confirm-form"
+                                        data-confirm-title="Reactivate account?"
+                                        data-confirm-message="{{ $user->name }} will be able to log in again."
+                                        data-confirm-button="Reactivate"
+                                        data-confirm-tone="success">
 
                                         @csrf
                                         @method('PUT')
@@ -293,7 +306,11 @@
                                     <form
                                         action="{{ route('users.destroy', $user->id) }}"
                                         method="POST"
-                                        onsubmit="return confirm('Are you sure you want to archive this user?');">
+                                        class="js-confirm-form"
+                                        data-confirm-title="Archive account?"
+                                        data-confirm-message="{{ $user->name }} will no longer be able to log in. You can reactivate the account later."
+                                        data-confirm-button="Archive"
+                                        data-confirm-tone="danger">
 
                                         @csrf
                                         @method('DELETE')
@@ -545,6 +562,71 @@
 
                 });
 
+        });
+    </script>
+
+    {{-- =====================================================
+     CONFIRM DIALOG (replaces the browser's default pop-up)
+     ===================================================== --}}
+    <div class="user-confirm-overlay hidden" id="userConfirm" role="dialog" aria-modal="true" aria-labelledby="userConfirmTitle">
+        <div class="user-confirm-box">
+            <h3 id="userConfirmTitle"></h3>
+            <p id="userConfirmMessage"></p>
+            <div class="user-confirm-actions">
+                <button type="button" class="user-confirm-cancel" id="userConfirmCancel">Cancel</button>
+                <button type="button" class="user-confirm-ok" id="userConfirmOk">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const overlay = document.getElementById('userConfirm');
+            const title = document.getElementById('userConfirmTitle');
+            const message = document.getElementById('userConfirmMessage');
+            const okBtn = document.getElementById('userConfirmOk');
+            const cancelBtn = document.getElementById('userConfirmCancel');
+            let pendingForm = null;
+
+            function close() {
+                overlay.classList.add('hidden');
+                pendingForm = null;
+            }
+
+            document.querySelectorAll('.js-confirm-form').forEach(function(form) {
+                form.addEventListener('submit', function(e) {
+                    if (form.dataset.confirmed === '1') {
+                        return;
+                    }
+
+                    e.preventDefault();
+                    pendingForm = form;
+
+                    title.textContent = form.dataset.confirmTitle || 'Are you sure?';
+                    message.textContent = form.dataset.confirmMessage || '';
+                    okBtn.textContent = form.dataset.confirmButton || 'Confirm';
+                    okBtn.className = 'user-confirm-ok ' + (form.dataset.confirmTone || '');
+
+                    overlay.classList.remove('hidden');
+                    cancelBtn.focus();
+                });
+            });
+
+            okBtn.addEventListener('click', function() {
+                if (!pendingForm) return;
+                pendingForm.dataset.confirmed = '1';
+                pendingForm.submit();
+            });
+
+            cancelBtn.addEventListener('click', close);
+
+            overlay.addEventListener('click', function(e) {
+                if (e.target === overlay) close();
+            });
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && !overlay.classList.contains('hidden')) close();
+            });
         });
     </script>
 

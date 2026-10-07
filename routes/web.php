@@ -26,57 +26,63 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // Kitchen: cooks AND managers
+    // Kitchen: everyone can view it (cashiers view-only)
     Route::get('/kitchen', [KitchenOrderItemController::class, 'index']);
 
-    Route::post('/kitchen/{kitchenOrder}/start', [KitchenOrderItemController::class, 'start']);
-    Route::post('/kitchen/{kitchenOrder}/complete', [KitchenOrderItemController::class, 'complete']);
-    Route::post('/orders/{order}/complete', [OrderController::class, 'completeOrder']);
+    // Kitchen actions: cooks AND managers only
+    Route::post('/kitchen/{kitchenOrder}/start', [KitchenOrderItemController::class, 'start'])
+        ->middleware('no.cashier');
+    Route::post('/kitchen/{kitchenOrder}/complete', [KitchenOrderItemController::class, 'complete'])
+        ->middleware('no.cashier');
+    Route::post('/orders/{order}/complete', [OrderController::class, 'completeOrder'])
+        ->middleware('no.cashier');
 
-    // Inventory: cooks AND managers
-    Route::get('/inventory', [InventoryItemController::class, 'index'])
-        ->name('inventory.index');
+    // Inventory: cooks AND managers (cashiers are sent back to the POS)
+    Route::middleware('no.cashier')->group(function () {
+        Route::get('/inventory', [InventoryItemController::class, 'index'])
+            ->name('inventory.index');
 
-    Route::post('/inventory/{inventoryItem}/toggle-active', [InventoryItemController::class, 'toggleActive'])
-        ->name('inventory.toggle-active');
+        Route::post('/inventory/{inventoryItem}/toggle-active', [InventoryItemController::class, 'toggleActive'])
+            ->name('inventory.toggle-active');
 
-    Route::get('/inventory/create', [InventoryItemController::class, 'create'])
-        ->name('inventory.create');
+        Route::get('/inventory/create', [InventoryItemController::class, 'create'])
+            ->name('inventory.create');
 
-    Route::post('/inventory', [InventoryItemController::class, 'store'])
-        ->name('inventory.store');
+        Route::post('/inventory', [InventoryItemController::class, 'store'])
+            ->name('inventory.store');
 
-    Route::get('/inventory/{inventoryItem}/edit', [InventoryItemController::class, 'edit'])
-        ->name('inventory.edit');
+        Route::get('/inventory/{inventoryItem}/edit', [InventoryItemController::class, 'edit'])
+            ->name('inventory.edit');
 
-    Route::put('/inventory/{inventoryItem}', [InventoryItemController::class, 'update'])
-        ->name('inventory.update');
+        Route::put('/inventory/{inventoryItem}', [InventoryItemController::class, 'update'])
+            ->name('inventory.update');
 
-    Route::get('/inventory/stock-in', [InventoryItemController::class, 'createStockIn'])
-        ->name('inventory.stock-in');
+        Route::get('/inventory/stock-in', [InventoryItemController::class, 'createStockIn'])
+            ->name('inventory.stock-in');
 
-    Route::post('/inventory/stock-in', [InventoryItemController::class, 'storeStockIn'])
-        ->name('inventory.stock-in.store');
+        Route::post('/inventory/stock-in', [InventoryItemController::class, 'storeStockIn'])
+            ->name('inventory.stock-in.store');
 
-    Route::patch('/inventory/stocks/{stock}/quantity', [InventoryItemController::class, 'updateStockQuantity'])
-        ->name('inventory.update-stock-quantity');
+        Route::patch('/inventory/stocks/{stock}/quantity', [InventoryItemController::class, 'updateStockQuantity'])
+            ->name('inventory.update-stock-quantity');
 
-    Route::post('/inventory/daily', [InventoryItemController::class, 'storeDailyInventory'])
-        ->name('inventory.daily.store');
+        Route::post('/inventory/daily', [InventoryItemController::class, 'storeDailyInventory'])
+            ->name('inventory.daily.store');
 
-    Route::get('/inventory/daily-history', [InventoryItemController::class, 'dailyHistory'])
-        ->name('inventory.daily-history');
+        Route::get('/inventory/daily-history', [InventoryItemController::class, 'dailyHistory'])
+            ->name('inventory.daily-history');
 
-    Route::get('/inventory/non-countable-history', [InventoryItemController::class, 'nonCountableHistory'])
-        ->name('inventory.non-countable-history');
+        Route::get('/inventory/non-countable-history', [InventoryItemController::class, 'nonCountableHistory'])
+            ->name('inventory.non-countable-history');
+    });
 });
 
 /*
 |--------------------------------------------------------------------------
-| Blocked for cooks (cashier and manager only)
+| Dashboard: managers only (cooks go to /kitchen, cashiers to /pos)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'verified', 'no.cook'])->group(function () {
+Route::middleware(['auth', 'verified', 'no.cook', 'no.cashier'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->name('dashboard');
 });
@@ -90,7 +96,14 @@ Route::middleware(['auth', 'no.cook'])->group(function () {
 
     Route::get('/pos', [POSController::class, 'index'])
         ->name('pos.index');
+});
 
+/*
+|--------------------------------------------------------------------------
+| Manager only (blocked for cooks and cashiers)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'no.cook', 'no.cashier'])->group(function () {
     Route::get('/finance-report', [FinanceReportController::class, 'index'])
         ->name('finance-report.index');
 
