@@ -70,7 +70,7 @@ class UserController extends Controller
 
         User::create($validated);
 
-        return redirect()->route('users.index')->with('success', 'User created successfully.');
+        return redirect()->route('users.index')->with('success', 'User account created successfully.');
     }
 
     // 4. Show the "Edit User" form
@@ -101,7 +101,7 @@ class UserController extends Controller
 
         $user->update($validated);
 
-        return redirect()->route('users.index')->with('success', 'User updated successfully.');
+        return redirect()->route('users.index')->with('success', 'User account updated successfully.');
     }
 
     // 6. Archive the user (Soft Delete)
@@ -111,11 +111,11 @@ class UserController extends Controller
         // It will just stamp the 'deleted_at' column and hide them from the app.
         if ($user->id === auth()->id()) {
     return redirect()->route('users.index')
-        ->withErrors('You cannot archive your own account.');
+        ->with('error', 'You cannot archive your own account.');
 }
 
         $user->delete();
-        return redirect()->route('users.index')->with('success', 'User archived successfully.');
+        return redirect()->route('users.index')->with('success', 'User account archived successfully.');
     }
 
     public function restore($id)
@@ -123,6 +123,6 @@ class UserController extends Controller
         $user = User::onlyTrashed()->findOrFail($id);
         $user->restore();
 
-        return redirect()->route('users.index')->with('success', 'User account successfully reactivated.');
+        return redirect()->route('users.index')->with('success', 'User account reactivated successfully.');
     }
 }

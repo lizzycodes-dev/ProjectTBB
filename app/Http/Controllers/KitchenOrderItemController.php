@@ -12,8 +12,16 @@ class KitchenOrderItemController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
+        // Completed Orders date filter (defaults to today). Uses the order date
+        // (ordered_at), the same date the Dashboard and Finance Report use.
+        try {
+            $completedDate = \Carbon\Carbon::createFromFormat('Y-m-d', $request->query('date', today()->toDateString()))->startOfDay();
+        } catch (\Throwable $e) {
+            $completedDate = today();
+        }
+
         $kitchenOrders = Kitchen_Order_Item::with([
             'orderItem.order',
             'orderItem.InventoryItem',
@@ -35,8 +43,9 @@ class KitchenOrderItemController extends Controller
             'orderItem.InventoryItem',
             'preparedBy',
         ])
-            ->whereHas('orderItem.order', function ($query) {
-                $query->where('status', 'Completed');
+            ->whereHas('orderItem.order', function ($query) use ($completedDate) {
+                $query->where('status', 'Completed')
+                    ->whereDate('ordered_at', $completedDate);
             })
             ->orderByDesc('updated_at')
             ->get()
@@ -48,7 +57,7 @@ class KitchenOrderItemController extends Controller
         $perPage = 16;
         $page = LengthAwarePaginator::resolveCurrentPage('completed_page');
 
-        $completedOrders = new LengthAwarePaginator(
+        $completedOrders = (new LengthAwarePaginator(
             $completedOrders->forPage($page, $perPage),
             $completedOrders->count(),
             $perPage,
@@ -57,11 +66,11 @@ class KitchenOrderItemController extends Controller
                 'path' => request()->url(),
                 'pageName' => 'completed_page',
             ]
-        );
+        ))->withQueryString();
 
         return view(
             'kitchen.index',
-            compact('orders', 'completedOrders')
+            compact('orders', 'completedOrders', 'completedDate')
         );
     }
 

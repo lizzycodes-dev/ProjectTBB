@@ -10,14 +10,14 @@ use Illuminate\Database\Seeder;
 class KitchenOrderItemSeeder extends Seeder
 {
     /**
-     * Kitchen tickets for today's orders only (the live kitchen board).
+     * Kitchen tickets for every seeded order, so past days also show up under
+     * Completed Orders in the kitchen (same orders the Finance Report counts).
      */
     public function run(): void
     {
         $cook = User::where('email', 'cook@thebrewingbar.test')->first();
 
         $orders = Order::with('orderItems')
-            ->whereDate('ordered_at', today())
             ->orderBy('ordered_at')
             ->get();
 
