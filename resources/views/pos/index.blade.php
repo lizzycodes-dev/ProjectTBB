@@ -37,238 +37,259 @@
         }
     </style>
 
-        <div class="kitchen-page">
+    <div class="kitchen-page">
 
-    <div class="kitchen-header">
-        <div>
-            <h1>Point of Sale</h1>
-            <p>Create and process customer orders</p>
+        <div class="kitchen-header">
+            <div>
+                <h1>Point of Sale</h1>
+                <p>Create and process customer orders</p>
+            </div>
         </div>
-    </div>
 
-    <div class="pos-container">
+        <div class="pos-container">
 
-        <!-- MENU -->
-        <section class="menu-section">
-            <div class="category-tabs">
-                <button
-                    type="button"
-                    class="category-tab active"
-                    data-category="All"
-                    onclick="filterCategory(this.dataset.category, this)">
-                    ALL
-                </button>
-
-                @foreach ($categories as $category)
-                <button
-                    type="button"
-                    class="category-tab"
-                    data-category="{{ $category->name }}"
-                    onclick="filterCategory(this.dataset.category, this)">
-                    {{ strtoupper($category->name) }}
-                </button>
-                @endforeach
-            </div>
-            <div class="pos-search">
-                <input
-                    type="search"
-                    id="posSearch"
-                    placeholder="Search menu items..."
-                    autocomplete="off"
-                    aria-label="Search menu items">
-            </div>
-            <div class="menu-grid">
-                @foreach ($menuItems as $menuItem)
-                <!-- #made the menu-card not clickable if its out of stock -->
-                <div class="menu-card {{ $menuItem->stock_status === 'out' ? 'out-of-stock' : '' }}"
-                    data-search="{{ strtolower($menuItem->name) }}"
-                    data-category="{{ $menuItem->category->name ?? 'Menu Item' }}">
-
-                    <div class="menu-card-photo">
-                        <img src="{{ asset('images/menu/sample.png') }}"
-                            alt="{{ $menuItem->name }}">
-                    </div>
-
-                    <h3>{{ $menuItem->name }}</h3>
-
-                    <div class="menu-card-category">
-                        {{ $menuItem->category->name ?? 'Menu Item' }}
-                    </div>
-
-                    <div class="price">
-                        ₱{{ number_format($menuItem->price, 2) }}
-                    </div>
-
-                    <div class="menu-stock-status">
-                        @if (in_array($menuItem->category->name, ['Coffee', 'Non Coffee', 'Juice']))
-
-                        {{-- Invisible badge to keep alignment --}}
-                        <span class="stock-badge stock-placeholder">
-                            &nbsp;
-                        </span>
-
-                        @elseif ($menuItem->stock_status === 'out')
-
-                        <span class="stock-badge stock-out">
-                            Out of Stock
-                        </span>
-
-                        @elseif ($menuItem->stock_status === 'low')
-
-                        <span class="stock-badge stock-low">
-                            Low Stock · {{ number_format($menuItem->current_stock, 0) }} left
-                        </span>
-
-                        @else
-
-                        <span class="stock-badge stock-in">
-                            In Stock · {{ number_format($menuItem->current_stock, 0) }} left
-                        </span>
-
-                        @endif
-                    </div>
-                    <button type="button"
-                        class="add-to-cart {{ $menuItem->stock_status === 'out' ? 'disabled' : '' }}"
-                        data-id="{{ $menuItem->id }}"
-                        data-name="{{ $menuItem->name }}"
-                        data-price="{{ $menuItem->price }}"
-                        data-options='@json($menuItem->optionGroups)'
-                        @if ($menuItem->stock_status === 'out') disabled @endif>
-                        {{ $menuItem->stock_status === 'out' ? 'Out of Stock' : 'Add to Order' }}
-                    </button>
-
-                </div>
-                @endforeach
-            </div>
-        </section>
-
-        <!-- CART -->
-        <section class="cart-section">
-            <h2>Current Order</h2>
-
-            <div class="discount-buttons">
-                <button
-                    type="button"
-                    id="dineInButton"
-                    class="discount-button active"
-                    onclick="selectOrderType('Dine-in')">
-                    Dine-in
-                </button>
-
-                <button
-                    type="button"
-                    id="takeoutButton"
-                    class="discount-button"
-                    onclick="selectOrderType('Takeout')">
-                    Takeout
-                </button>
-            </div>
-
-            <div class="cart-items" id="cartItems">
-                <div class="empty-cart">
-                    No items added.
-                </div>
-            </div>
-
-            <div class="cart-summary">
-                <div class="summary-row">
-                    <span>Subtotal</span>
-                    <span id="subtotal">₱0.00</span>
-                </div>
-
-                <div class="summary-row">
-                    <span>Discount</span>
-                    <span id="discount">₱0.00</span>
-                </div>
-
-                <div class="discount-buttons">
+            <!-- MENU -->
+            <section class="menu-section">
+                <div class="category-tabs">
                     <button
                         type="button"
-                        id="noDiscountButton"
-                        class="discount-button active"
-                        onclick="selectDiscount('None')">
-                        No Discount
+                        class="category-tab active"
+                        data-category="All"
+                        onclick="filterCategory(this.dataset.category, this)">
+                        ALL
                     </button>
 
+                    @foreach ($categories as $category)
                     <button
                         type="button"
-                        id="seniorButton"
-                        class="discount-button"
-                        onclick="selectDiscount('Senior')">
-                        Senior
+                        class="category-tab"
+                        data-category="{{ $category->name }}"
+                        onclick="filterCategory(this.dataset.category, this)">
+                        {{ strtoupper($category->name) }}
                     </button>
-
-                    <button
-                        type="button"
-                        id="pwdButton"
-                        class="discount-button"
-                        onclick="selectDiscount('PWD')">
-                        PWD
-                    </button>
+                    @endforeach
                 </div>
-
-                <div class="summary-row total">
-                    <span>Total</span>
-                    <span id="total">₱0.00</span>
-                </div>
-
-                <div class="discount-buttons">
-                    <button
-                        type="button"
-                        id="cashButton"
-                        class="discount-button active"
-                        onclick="selectPayment('Cash')">
-                        Cash
-                    </button>
-
-                    <button
-                        type="button"
-                        id="gcashButton"
-                        class="discount-button"
-                        onclick="selectPayment('GCash')">
-                        GCash
-                    </button>
-                </div>
-
-                <div id="cashPaymentFields" class="payment-fields">
-                    <label for="amountReceived">Amount Received</label>
+                <div class="pos-search">
                     <input
-                        type="number"
-                        id="amountReceived"
-                        min="0"
-                        step="0.01"
-                        placeholder="₱0.00">
+                        type="search"
+                        id="posSearch"
+                        placeholder="Search menu items..."
+                        autocomplete="off"
+                        aria-label="Search menu items">
+                </div>
+
+                <div class="menu-grid">
+
+                    @foreach ($menuItems as $menuItem)
+
+                    @php
+                    $categoryName = $menuItem->category->name ?? 'Menu Item';
+
+                    $usesStockStatus = !in_array($categoryName, [
+                    'Coffee',
+                    'Non Coffee',
+                    'Juice',
+                    ]);
+
+                    $isOutOfStock = $usesStockStatus
+                    && $menuItem->stock_status === 'out';
+                    @endphp
+
+                    <div
+                        class="menu-card {{ $isOutOfStock ? 'out-of-stock' : '' }}"
+                        data-search="{{ strtolower($menuItem->name) }}"
+                        data-category="{{ $categoryName }}">
+
+                        <div class="menu-card-photo">
+                            <img
+                                src="{{ asset('images/menu/sample.png') }}"
+                                alt="{{ $menuItem->name }}">
+                        </div>
+
+                        <h3>{{ $menuItem->name }}</h3>
+
+                        <div class="menu-card-category">
+                            {{ $categoryName }}
+                        </div>
+
+                        <div class="price">
+                            ₱{{ number_format($menuItem->price, 2) }}
+                        </div>
+
+                        <div class="menu-stock-status">
+
+                            @if (!$usesStockStatus)
+                            <span class="stock-badge stock-placeholder">
+                                &nbsp;
+                            </span>
+
+                            @elseif ($menuItem->stock_status === 'out')
+                            <span class="stock-badge stock-out">
+                                Out of Stock
+                            </span>
+
+                            @elseif ($menuItem->stock_status === 'low')
+                            <span class="stock-badge stock-low">
+                                Low Stock · {{ number_format($menuItem->current_stock, 0) }} left
+                            </span>
+
+                            @else
+                            <span class="stock-badge stock-in">
+                                In Stock · {{ number_format($menuItem->current_stock, 0) }} left
+                            </span>
+                            @endif
+
+                        </div>
+
+                        <button
+                            type="button"
+                            class="add-to-cart {{ $isOutOfStock ? 'disabled' : '' }}"
+                            data-id="{{ $menuItem->id }}"
+                            data-name="{{ $menuItem->name }}"
+                            data-price="{{ $menuItem->price }}"
+                            data-options='@json($menuItem->optionGroups)'
+                            @if ($isOutOfStock) disabled @endif>
+
+                            {{ $isOutOfStock ? 'Out of Stock' : 'Add to Order' }}
+
+                        </button>
+
+                    </div>
+
+                    @endforeach
+
+                </div>
+
+
+            </section>
+
+            <!-- CART -->
+            <section class="cart-section">
+                <h2>Current Order</h2>
+
+                <div class="discount-buttons">
+                    <button
+                        type="button"
+                        id="dineInButton"
+                        class="discount-button active"
+                        onclick="selectOrderType('Dine-in')">
+                        Dine-in
+                    </button>
+
+                    <button
+                        type="button"
+                        id="takeoutButton"
+                        class="discount-button"
+                        onclick="selectOrderType('Takeout')">
+                        Takeout
+                    </button>
+                </div>
+
+                <div class="cart-items" id="cartItems">
+                    <div class="empty-cart">
+                        No items added.
+                    </div>
+                </div>
+
+                <div class="cart-summary">
+                    <div class="summary-row">
+                        <span>Subtotal</span>
+                        <span id="subtotal">₱0.00</span>
+                    </div>
 
                     <div class="summary-row">
-                        <span>Change</span>
-                        <span id="changeAmount">₱0.00</span>
+                        <span>Discount</span>
+                        <span id="discount">₱0.00</span>
                     </div>
-                </div>
 
-                <div
-                    id="gcashPaymentFields"
-                    class="payment-fields"
-                    style="display: none;">
-                    <label for="referenceNumber">GCash Reference Number</label>
-                    <input
-                        type="text"
-                        id="referenceNumber"
-                        maxlength="50"
-                        inputmode="numeric"
-                        autocomplete="off"
-                        placeholder="e.g. 1234 567 890 123">
-                </div>
+                    <div class="discount-buttons">
+                        <button
+                            type="button"
+                            id="noDiscountButton"
+                            class="discount-button active"
+                            onclick="selectDiscount('None')">
+                            No Discount
+                        </button>
 
-                <button
-                    type="button"
-                    class="checkout-button place-order"
-                    id="placeOrderButton"
-                    onclick="placeOrder()">
-                    Place Order
-                </button>
-            </div>
-        </section>
-    </div>
+                        <button
+                            type="button"
+                            id="seniorButton"
+                            class="discount-button"
+                            onclick="selectDiscount('Senior')">
+                            Senior
+                        </button>
+
+                        <button
+                            type="button"
+                            id="pwdButton"
+                            class="discount-button"
+                            onclick="selectDiscount('PWD')">
+                            PWD
+                        </button>
+                    </div>
+
+                    <div class="summary-row total">
+                        <span>Total</span>
+                        <span id="total">₱0.00</span>
+                    </div>
+
+                    <div class="discount-buttons">
+                        <button
+                            type="button"
+                            id="cashButton"
+                            class="discount-button active"
+                            onclick="selectPayment('Cash')">
+                            Cash
+                        </button>
+
+                        <button
+                            type="button"
+                            id="gcashButton"
+                            class="discount-button"
+                            onclick="selectPayment('GCash')">
+                            GCash
+                        </button>
+                    </div>
+
+                    <div id="cashPaymentFields" class="payment-fields">
+                        <label for="amountReceived">Amount Received</label>
+                        <input
+                            type="number"
+                            id="amountReceived"
+                            min="0"
+                            step="0.01"
+                            placeholder="₱0.00">
+
+                        <div class="summary-row">
+                            <span>Change</span>
+                            <span id="changeAmount">₱0.00</span>
+                        </div>
+                    </div>
+
+                    <div
+                        id="gcashPaymentFields"
+                        class="payment-fields"
+                        style="display: none;">
+                        <label for="referenceNumber">GCash Reference Number</label>
+                        <input
+                            type="text"
+                            id="referenceNumber"
+                            maxlength="50"
+                            inputmode="numeric"
+                            autocomplete="off"
+                            placeholder="e.g. 1234 567 890 123">
+                    </div>
+
+                    <button
+                        type="button"
+                        class="checkout-button place-order"
+                        id="placeOrderButton"
+                        onclick="placeOrder()">
+                        Place Order
+                    </button>
+                </div>
+            </section>
+        </div>
 
     </div>
     <!-- OPTIONS MODAL -->
@@ -876,7 +897,7 @@
                 }
             }
 
-                        let referenceNumber = null;
+            let referenceNumber = null;
 
             if (paymentMethod === 'GCash') {
                 referenceNumber = document.getElementById('referenceNumber')
