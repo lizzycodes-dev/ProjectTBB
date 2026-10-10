@@ -14,14 +14,18 @@ class KitchenOrderItemController extends Controller
      */
     public function index(Request $request)
     {
-        // Completed Orders date filter (defaults to today). Uses the order date
-        // (ordered_at), the same date the Dashboard and Finance Report use.
         try {
-            $completedDate = \Carbon\Carbon::createFromFormat('Y-m-d', $request->query('date', today()->toDateString()))->startOfDay();
+            $completedDate = \Carbon\Carbon::createFromFormat(
+                'Y-m-d',
+                $request->query('date', today()->toDateString())
+            )->startOfDay();
         } catch (\Throwable $e) {
             $completedDate = today();
         }
 
+        // ---------------------------------------------------------
+        // Live board
+        // ---------------------------------------------------------
         $kitchenOrders = Kitchen_Order_Item::with([
             'orderItem.order',
             'orderItem.InventoryItem',
@@ -38,39 +42,52 @@ class KitchenOrderItemController extends Controller
             fn($kitchenOrder) => $kitchenOrder->orderItem->order_id
         );
 
-        $completedOrders = Kitchen_Order_Item::with([
+        // ---------------------------------------------------------
+        // Completed — filter by completed_at (not ordered_at)
+        // ---------------------------------------------------------
+        $completedItems = Kitchen_Order_Item::with([
             'orderItem.order',
             'orderItem.InventoryItem',
             'preparedBy',
         ])
             ->whereHas('orderItem.order', function ($query) use ($completedDate) {
                 $query->where('status', 'Completed')
-                    ->whereDate('ordered_at', $completedDate);
+                    ->whereDate('completed_at', $completedDate);      // ← fixed
             })
             ->orderByDesc('updated_at')
-            ->get()
-            ->groupBy(
-                fn($kitchenOrder) => $kitchenOrder->orderItem->order_id
-            );
+            ->get();
 
-        // Paginate completed orders: 4 columns x 4 rows = 16 cards per page
+        // Group by order_id, sort groups by the order's completed_at
+        $completedOrdersCollection = $completedItems
+            ->groupBy(fn($kitchenOrder) => $kitchenOrder->orderItem->order_id)
+            ->sortByDesc(function ($group) {
+                $order = $group->first()->orderItem->order;
+
+                return optional($order->completed_at)->timestamp ?? 0;
+            })
+            ->values();
+
+        // Tab badge count = number of orders
+        $completedOrdersCount = $completedOrdersCollection->count();
+
+        // Paginate orders: 16 orders per page
         $perPage = 16;
-        $page = LengthAwarePaginator::resolveCurrentPage('completed_page');
+        $page    = LengthAwarePaginator::resolveCurrentPage('completed_page');
 
         $completedOrders = (new LengthAwarePaginator(
-            $completedOrders->forPage($page, $perPage),
-            $completedOrders->count(),
+            $completedOrdersCollection->forPage($page, $perPage),
+            $completedOrdersCount,
             $perPage,
             $page,
             [
-                'path' => request()->url(),
+                'path'     => request()->url(),
                 'pageName' => 'completed_page',
             ]
         ))->withQueryString();
 
         return view(
             'kitchen.index',
-            compact('orders', 'completedOrders', 'completedDate')
+            compact('orders', 'completedOrders', 'completedDate', 'completedOrdersCount')
         );
     }
 

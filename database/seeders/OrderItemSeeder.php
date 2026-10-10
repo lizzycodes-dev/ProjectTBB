@@ -60,11 +60,11 @@ class OrderItemSeeder extends Seeder
             ->get();
 
         foreach ($orders as $order) {
-            $roll = mt_rand(1, 10);
+            $roll      = mt_rand(1, 10);
             $lineCount = $roll <= 4 ? 1 : ($roll <= 8 ? 2 : 3);
             $lineCount = min($lineCount, $menuItems->count());
 
-            $usedIds = [];
+            $usedIds  = [];
             $subtotal = 0;
 
             while (count($usedIds) < $lineCount) {
@@ -76,17 +76,17 @@ class OrderItemSeeder extends Seeder
 
                 $usedIds[] = $menuItem->id;
 
-                $quantity = mt_rand(1, 10) <= 7 ? 1 : 2;
+                $quantity  = mt_rand(1, 10) <= 7 ? 1 : 2;
                 $unitPrice = (float) $menuItem->price;
                 $lineTotal = $unitPrice * $quantity;
 
                 $orderItem = new Order_Item([
-                    'order_id' => $order->id,
+                    'order_id'          => $order->id,
                     'inventory_item_id' => $menuItem->id,
-                    'quantity' => $quantity,
-                    'unit_price' => $unitPrice,
-                    'subtotal' => $lineTotal,
-                    'notes' => null,
+                    'quantity'          => $quantity,
+                    'unit_price'        => $unitPrice,
+                    'subtotal'          => $lineTotal,
+                    'notes'             => null,
                 ]);
 
                 $orderItem->created_at = $order->ordered_at;
@@ -104,10 +104,10 @@ class OrderItemSeeder extends Seeder
             DB::table('orders')
                 ->where('id', $order->id)
                 ->update([
-                    'subtotal' => $subtotal,
+                    'subtotal'        => $subtotal,
                     'discount_amount' => $discountAmount,
-                    'total_amount' => max(0, $subtotal - $discountAmount),
-                    'ordered_at' => $order->ordered_at->toDateTimeString(),
+                    'total_amount'    => max(0, $subtotal - $discountAmount),
+                    'ordered_at'      => $order->ordered_at->toDateTimeString(),
                 ]);
         }
     }

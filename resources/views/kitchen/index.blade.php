@@ -4,387 +4,300 @@
 
         {{-- Header --}}
         <div class="kitchen-header">
-
             <div>
                 <h1>Kitchen / Bar Orders</h1>
                 <p>Manage active orders and preparation status.</p>
             </div>
-
         </div>
 
 
         {{-- Messages --}}
         @if (session('success'))
-        <div class="kitchen-message success">
-            {{ session('success') }}
-        </div>
+        <div class="kitchen-message success">{{ session('success') }}</div>
         @endif
-
         @if (session('error'))
-        <div class="kitchen-message error">
-            {{ session('error') }}
-        </div>
+        <div class="kitchen-message error">{{ session('error') }}</div>
         @endif
 
 
-        {{-- Order Board --}}
-        <div class="kitchen-board">
+        {{-- =========================================================
+             TABS
+             ========================================================= --}}
+        <div class="kitchen-tabs" role="tablist">
 
-            {{-- =========================
-                 PENDING
-            ========================= --}}
-            <div class="kitchen-column">
+            <button
+                type="button"
+                class="kitchen-tab is-active"
+                data-tab="orders"
+                role="tab"
+                aria-selected="true">
+                Orders
+                <span class="kitchen-tab-count">{{ $orders->count() }}</span>
+            </button>
 
-                <div class="column-title pending-title">
-                    Pending
-                </div>
+            <button
+                type="button"
+                class="kitchen-tab"
+                data-tab="completed"
+                role="tab"
+                aria-selected="false">
+                Completed Orders
+                <span class="kitchen-tab-count">{{ $completedOrdersCount }}</span>
+            </button>
 
-                <div class="column-orders">
-
-                    @php
-                    $pendingOrders = $orders->filter(
-                    fn ($orderItems) =>
-                    $orderItems->contains(
-                    fn ($item) => $item->status === 'Pending'
-                    )
-                    );
-                    @endphp
-
-                    @forelse ($pendingOrders as $orderItems)
-
-                    @php
-                    $firstKitchenOrder = $orderItems->first();
-                    $order = $firstKitchenOrder->orderItem->order;
-                    @endphp
-
-                    <div class="kitchen-card">
-
-                        <div class="order-top">
-
-                            <strong class="queue-badge" title="{{ $order->order_number }}">
-                                Queue {{ $order->queue_label }}
-                            </strong>
-
-                            <span>
-                                {{ $order->order_type }}
-                            </span>
-
-                        </div>
+        </div>
 
 
-                        @foreach ($orderItems as $kitchenOrder)
+        {{-- =========================================================
+             TAB: ORDERS (live board)
+             ========================================================= --}}
+        <div class="kitchen-tab-panel is-active" data-panel="orders">
 
-                        @if ($kitchenOrder->status === 'Pending')
+            <div class="kitchen-board">
 
-                        <div class="kitchen-item">
+                {{-- PENDING --}}
+                <div class="kitchen-column">
 
-                            <div class="item-main">
-                                {{ $kitchenOrder->orderItem->quantity }}x
-                                {{ $kitchenOrder->orderItem->InventoryItem->name }}
-                                @foreach ($kitchenOrder->orderItem->selectedOptions as $selectedOption)
-                                @if ($selectedOption->optionValue)
-                                <span class="option-label">
-                                    ({{ $selectedOption->optionValue->name }})
-                                </span>
-                                @endif
-                                @endforeach
+                    <div class="column-title pending-title">Pending</div>
+
+                    <div class="column-orders">
+
+                        @php
+                        $pendingOrders = $orders->filter(
+                        fn ($orderItems) => $orderItems->contains(
+                        fn ($item) => $item->status === 'Pending'
+                        )
+                        );
+                        @endphp
+
+                        @forelse ($pendingOrders as $orderItems)
+
+                        @php
+                        $firstKitchenOrder = $orderItems->first();
+                        $order = $firstKitchenOrder->orderItem->order;
+                        @endphp
+
+                        <div class="kitchen-card">
+
+                            <div class="order-top">
+                                <strong class="queue-badge" title="{{ $order->order_number }}">
+                                    Queue {{ $order->queue_label }}
+                                </strong>
+                                <span>{{ $order->order_type }}</span>
                             </div>
 
 
-                            @if ($kitchenOrder->orderItem->notes)
+                            @foreach ($orderItems as $kitchenOrder)
+                            @if ($kitchenOrder->status === 'Pending')
 
-                            <div class="item-notes">
-                                Note:
-                                {{ $kitchenOrder->orderItem->notes }}
+                            <div class="kitchen-item">
+
+                                <div class="item-main">
+                                    {{ $kitchenOrder->orderItem->quantity }}x
+                                    {{ $kitchenOrder->orderItem->InventoryItem->name }}
+                                    @foreach ($kitchenOrder->orderItem->selectedOptions as $selectedOption)
+                                    @if ($selectedOption->optionValue)
+                                    <span class="option-label">
+                                        ({{ $selectedOption->optionValue->name }})
+                                    </span>
+                                    @endif
+                                    @endforeach
+                                </div>
+
+                                @if ($kitchenOrder->orderItem->notes)
+                                <div class="item-notes">
+                                    Note: {{ $kitchenOrder->orderItem->notes }}
+                                </div>
+                                @endif
+
+                                @if (in_array(Auth::user()->role_id, [1, 3]))
+                                <form method="POST" action="/kitchen/{{ $kitchenOrder->id }}/start">
+                                    @csrf
+                                    <button type="submit" class="kitchen-button">Start Preparing</button>
+                                </form>
+                                @endif
+
                             </div>
 
                             @endif
+                            @endforeach
+
+                        </div>
+
+                        @empty
+                        <div class="empty-column">No pending orders.</div>
+                        @endforelse
+
+                    </div>
+                </div>
+
+
+                {{-- PREPARING --}}
+                <div class="kitchen-column">
+
+                    <div class="column-title preparing-title">Preparing</div>
+
+                    <div class="column-orders">
+
+                        @php
+                        $preparingOrders = $orders->filter(
+                        fn ($orderItems) => $orderItems->contains(
+                        fn ($item) => $item->status === 'Preparing'
+                        )
+                        );
+                        @endphp
+
+                        @forelse ($preparingOrders as $orderItems)
+
+                        @php
+                        $firstKitchenOrder = $orderItems->first();
+                        $order = $firstKitchenOrder->orderItem->order;
+                        @endphp
+
+                        <div class="kitchen-card">
+
+                            <div class="order-top">
+                                <strong class="queue-badge" title="{{ $order->order_number }}">
+                                    Queue {{ $order->queue_label }}
+                                </strong>
+                                <span>{{ $order->order_type }}</span>
+                            </div>
+
+
+                            @foreach ($orderItems as $kitchenOrder)
+                            @if ($kitchenOrder->status === 'Preparing')
+
+                            <div class="kitchen-item">
+
+                                <div class="item-main">
+                                    {{ $kitchenOrder->orderItem->quantity }}x
+                                    {{ $kitchenOrder->orderItem->InventoryItem->name }}
+                                    @foreach ($kitchenOrder->orderItem->selectedOptions as $selectedOption)
+                                    @if ($selectedOption->optionValue)
+                                    <span class="option-label">
+                                        ({{ $selectedOption->optionValue->name }})
+                                    </span>
+                                    @endif
+                                    @endforeach
+                                </div>
+
+                                @if ($kitchenOrder->orderItem->options?->count())
+                                <div class="item-options">
+                                    @foreach ($kitchenOrder->orderItem->options as $option)
+                                    {{ $option->optionValue->name }}@if (!$loop->last) • @endif
+                                    @endforeach
+                                </div>
+                                @endif
+
+                                @if ($kitchenOrder->orderItem->notes)
+                                <div class="item-notes">
+                                    Note: {{ $kitchenOrder->orderItem->notes }}
+                                </div>
+                                @endif
+
+                                @if ($kitchenOrder->preparedBy)
+                                <div class="prepared-by">
+                                    By {{ $kitchenOrder->preparedBy->name }}
+                                </div>
+                                @endif
+
+                                @if (in_array(Auth::user()->role_id, [1, 3]))
+                                <form method="POST" action="/kitchen/{{ $kitchenOrder->id }}/complete">
+                                    @csrf
+                                    <button type="submit" class="kitchen-button">Mark as Ready</button>
+                                </form>
+                                @endif
+
+                            </div>
+
+                            @endif
+                            @endforeach
+
+                        </div>
+
+                        @empty
+                        <div class="empty-column">No orders being prepared.</div>
+                        @endforelse
+
+                    </div>
+                </div>
+
+
+                {{-- READY --}}
+                <div class="kitchen-column">
+
+                    <div class="column-title ready-title">Ready</div>
+
+                    <div class="column-orders">
+
+                        @php
+                        $readyOrders = $orders->filter(
+                        fn ($orderItems) => $orderItems->every(
+                        fn ($item) => $item->status === 'Ready'
+                        )
+                        );
+                        @endphp
+
+                        @forelse ($readyOrders as $orderItems)
+
+                        @php
+                        $firstKitchenOrder = $orderItems->first();
+                        $order = $firstKitchenOrder->orderItem->order;
+                        @endphp
+
+                        <div class="kitchen-card">
+
+                            <div class="order-top">
+                                <strong class="queue-badge" title="{{ $order->order_number }}">
+                                    Queue {{ $order->queue_label }}
+                                </strong>
+                                <span>{{ $order->order_type }}</span>
+                            </div>
+
+
+                            @foreach ($orderItems as $kitchenOrder)
+
+                            <div class="kitchen-item">
+
+                                <div class="item-main">
+                                    {{ $kitchenOrder->orderItem->quantity }}x
+                                    {{ $kitchenOrder->orderItem->InventoryItem->name }}
+                                    @foreach ($kitchenOrder->orderItem->selectedOptions as $selectedOption)
+                                    @if ($selectedOption->optionValue)
+                                    <span class="option-label">
+                                        ({{ $selectedOption->optionValue->name }})
+                                    </span>
+                                    @endif
+                                    @endforeach
+                                </div>
+
+                                @if ($kitchenOrder->orderItem->options?->count())
+                                <div class="item-options">
+                                    @foreach ($kitchenOrder->orderItem->options as $option)
+                                    {{ $option->optionValue->name }}@if (!$loop->last) • @endif
+                                    @endforeach
+                                </div>
+                                @endif
+
+                            </div>
+
+                            @endforeach
 
 
                             @if (in_array(Auth::user()->role_id, [1, 3]))
-
-                            <form
-                                method="POST"
-                                action="/kitchen/{{ $kitchenOrder->id }}/start">
+                            <form method="POST" action="/orders/{{ $order->id }}/complete">
                                 @csrf
-
-                                <button
-                                    type="submit"
-                                    class="kitchen-button">
-                                    Start Preparing
-                                </button>
-
+                                <button type="submit" class="complete-button">Complete Order</button>
                             </form>
-
                             @endif
 
                         </div>
 
-                        @endif
-
-                        @endforeach
-
-                    </div>
-
-                    @empty
-
-                    <div class="empty-column">
-                        No pending orders.
-                    </div>
-
-                    @endforelse
-
-                </div>
-
-            </div>
-
-
-            {{-- =========================
-                 PREPARING
-            ========================= --}}
-            <div class="kitchen-column">
-
-                <div class="column-title preparing-title">
-                    Preparing
-                </div>
-
-                <div class="column-orders">
-
-                    @php
-                    $preparingOrders = $orders->filter(
-                    fn ($orderItems) =>
-                    $orderItems->contains(
-                    fn ($item) => $item->status === 'Preparing'
-                    )
-                    );
-                    @endphp
-
-                    @forelse ($preparingOrders as $orderItems)
-
-                    @php
-                    $firstKitchenOrder = $orderItems->first();
-                    $order = $firstKitchenOrder->orderItem->order;
-                    @endphp
-
-                    <div class="kitchen-card">
-
-                        <div class="order-top">
-
-                            <strong class="queue-badge" title="{{ $order->order_number }}">
-                                Queue {{ $order->queue_label }}
-                            </strong>
-
-                            <span>
-                                {{ $order->order_type }}
-                            </span>
-
-                        </div>
-
-
-                        @foreach ($orderItems as $kitchenOrder)
-
-                        @if ($kitchenOrder->status === 'Preparing')
-
-                        <div class="kitchen-item">
-
-                            <div class="item-main">
-                                {{ $kitchenOrder->orderItem->quantity }}x
-                                {{ $kitchenOrder->orderItem->InventoryItem->name }}
-                                @foreach ($kitchenOrder->orderItem->selectedOptions as $selectedOption)
-                                @if ($selectedOption->optionValue)
-                                <span class="option-label">
-                                    ({{ $selectedOption->optionValue->name }})
-                                </span>
-                                @endif
-                                @endforeach
-                            </div>
-
-
-                            @if ($kitchenOrder->orderItem->options?->count())
-
-                            <div class="item-options">
-
-                                @foreach ($kitchenOrder->orderItem->options as $option)
-
-                                {{ $option->optionValue->name }}
-
-                                @if (!$loop->last)
-                                •
-                                @endif
-
-                                @endforeach
-
-                            </div>
-
-                            @endif
-
-
-                            @if ($kitchenOrder->orderItem->notes)
-
-                            <div class="item-notes">
-                                Note:
-                                {{ $kitchenOrder->orderItem->notes }}
-                            </div>
-
-                            @endif
-
-
-                            @if ($kitchenOrder->preparedBy)
-
-                            <div class="prepared-by">
-                                By {{ $kitchenOrder->preparedBy->name }}
-                            </div>
-
-                            @endif
-
-
-                            @if (in_array(Auth::user()->role_id, [1, 3]))
-
-                            <form
-                                method="POST"
-                                action="/kitchen/{{ $kitchenOrder->id }}/complete">
-                                @csrf
-
-                                <button
-                                    type="submit"
-                                    class="kitchen-button">
-                                    Mark as Ready
-                                </button>
-
-                            </form>
-
-                            @endif
-
-                        </div>
-
-                        @endif
-
-                        @endforeach
+                        @empty
+                        <div class="empty-column">No ready orders.</div>
+                        @endforelse
 
                     </div>
-
-                    @empty
-
-                    <div class="empty-column">
-                        No orders being prepared.
-                    </div>
-
-                    @endforelse
-
-                </div>
-
-            </div>
-
-
-            {{-- =========================
-                 READY
-            ========================= --}}
-            <div class="kitchen-column">
-
-                <div class="column-title ready-title">
-                    Ready
-                </div>
-
-                <div class="column-orders">
-
-                    @php
-                    $readyOrders = $orders->filter(
-                    fn ($orderItems) =>
-                    $orderItems->every(
-                    fn ($item) => $item->status === 'Ready'
-                    )
-                    );
-                    @endphp
-
-                    @forelse ($readyOrders as $orderItems)
-
-                    @php
-                    $firstKitchenOrder = $orderItems->first();
-                    $order = $firstKitchenOrder->orderItem->order;
-                    @endphp
-
-                    <div class="kitchen-card">
-
-                        <div class="order-top">
-
-                            <strong class="queue-badge" title="{{ $order->order_number }}">
-                                Queue {{ $order->queue_label }}
-                            </strong>
-
-                            <span>
-                                {{ $order->order_type }}
-                            </span>
-
-                        </div>
-
-
-                        @foreach ($orderItems as $kitchenOrder)
-
-                        <div class="kitchen-item">
-
-                            <div class="item-main">
-                                {{ $kitchenOrder->orderItem->quantity }}x
-                                {{ $kitchenOrder->orderItem->InventoryItem->name }}
-                                @foreach ($kitchenOrder->orderItem->selectedOptions as $selectedOption)
-                                @if ($selectedOption->optionValue)
-                                <span class="option-label">
-                                    ({{ $selectedOption->optionValue->name }})
-                                </span>
-                                @endif
-                                @endforeach
-                            </div>
-
-
-                            @if ($kitchenOrder->orderItem->options?->count())
-
-                            <div class="item-options">
-
-                                @foreach ($kitchenOrder->orderItem->options as $option)
-
-                                {{ $option->optionValue->name }}
-
-                                @if (!$loop->last)
-                                •
-                                @endif
-
-                                @endforeach
-
-                            </div>
-
-                            @endif
-
-                        </div>
-
-                        @endforeach
-
-
-                        @if (in_array(Auth::user()->role_id, [1, 3]))
-
-                        <form
-                            method="POST"
-                            action="/orders/{{ $order->id }}/complete">
-                            @csrf
-
-                            <button
-                                type="submit"
-                                class="complete-button">
-                                Complete Order
-                            </button>
-
-                        </form>
-
-                        @endif
-
-                    </div>
-
-                    @empty
-
-                    <div class="empty-column">
-                        No ready orders.
-                    </div>
-
-                    @endforelse
-
                 </div>
 
             </div>
@@ -392,100 +305,145 @@
         </div>
 
 
-        {{-- =========================
-             COMPLETED ORDERS
-        ========================= --}}
+        {{-- =========================================================
+             TAB: COMPLETED ORDERS
+             ========================================================= --}}
+        <div class="kitchen-tab-panel" data-panel="completed" hidden>
 
-        <div class="completed-section" id="completed">
+            <div class="completed-section" id="completed">
 
-            <div class="completed-header">
-                Completed Orders
-            </div>
+                <form method="GET" action="/kitchen" class="completed-filter">
+                    <input type="hidden" name="tab" value="completed">
 
-            <form method="GET" action="/kitchen#completed" class="completed-filter">
-                <a href="/kitchen?date={{ today()->toDateString() }}#completed"
-                    class="filter-chip {{ $completedDate->isToday() ? 'active' : '' }}">Today</a>
-                <a href="/kitchen?date={{ today()->subDay()->toDateString() }}#completed"
-                    class="filter-chip {{ $completedDate->isSameDay(today()->subDay()) ? 'active' : '' }}">Yesterday</a>
-                <input type="date" name="date" value="{{ $completedDate->toDateString() }}"
-                    max="{{ today()->toDateString() }}" onchange="this.form.submit()">
-            </form>
+                    <a href="/kitchen?date={{ today()->toDateString() }}&tab=completed#completed"
+                        class="filter-chip {{ $completedDate->isToday() ? 'active' : '' }}">Today</a>
 
-            <div class="completed-orders">
+                    <a href="/kitchen?date={{ today()->subDay()->toDateString() }}&tab=completed#completed"
+                        class="filter-chip {{ $completedDate->isSameDay(today()->subDay()) ? 'active' : '' }}">Yesterday</a>
 
-                @forelse ($completedOrders as $orderItems)
+                    <input type="date" name="date"
+                        value="{{ $completedDate->toDateString() }}"
+                        max="{{ today()->toDateString() }}"
+                        onchange="this.form.submit()">
+                </form>
 
-                @php
-                $firstKitchenOrder = $orderItems->first();
-                $order = $firstKitchenOrder->orderItem->order;
-                @endphp
+                <div class="completed-orders">
 
-                <div class="completed-card">
+                    @forelse ($completedOrders as $orderItems)
 
-                    <div>
-                        <strong title="{{ $order->order_number }}">
-                            Queue {{ $order->queue_label }}
-                        </strong>
+                    @php
+                    $firstKitchenOrder = $orderItems->first();
+                    $order = $firstKitchenOrder->orderItem->order;
+                    @endphp
 
-                        <span>
-                            {{ $order->order_type }}
-                        </span>
+                    <div class="completed-card">
+
+                        <div>
+                            <strong title="{{ $order->order_number }}">
+                                Queue {{ $order->queue_label }}
+                            </strong>
+                            <span>{{ $order->order_type }}</span>
+                        </div>
+
+
+                        <div class="completed-items">
+                            @foreach ($orderItems as $kitchenOrder)
+                            {{ $kitchenOrder->orderItem->quantity }}x
+                            {{ $kitchenOrder->orderItem->InventoryItem->name }}
+                            @foreach ($kitchenOrder->orderItem->selectedOptions as $selectedOption)
+                            @if ($selectedOption->optionValue)
+                            <span class="option-label">
+                                ({{ $selectedOption->optionValue->name }})
+                            </span>
+                            @endif
+                            @endforeach
+                            @if (!$loop->last) • @endif
+                            @endforeach
+                        </div>
+
+
+                        @if ($order->completed_at)
+                        <small>Completed: {{ $order->completed_at }}</small>
+                        @endif
+
                     </div>
 
+                    @empty
 
-                    <div class="completed-items">
-
-                        @foreach ($orderItems as $kitchenOrder)
-
-                        {{ $kitchenOrder->orderItem->quantity }}x
-                        {{ $kitchenOrder->orderItem->InventoryItem->name }}
-
-                        @foreach ($kitchenOrder->orderItem->selectedOptions as $selectedOption)
-                        @if ($selectedOption->optionValue)
-                        <span class="option-label">
-                            ({{ $selectedOption->optionValue->name }})
-                        </span>
-                        @endif
-                        @endforeach
-
-                        @if (!$loop->last)
-                        •
-                        @endif
-
-                        @endforeach
-
+                    <div class="empty-completed">
+                        No completed orders on {{ $completedDate->format('M j, Y') }}.
                     </div>
 
-
-                    @if ($order->completed_at)
-
-                    <small>
-                        Completed:
-                        {{ $order->completed_at }}
-                    </small>
-
-                    @endif
+                    @endforelse
 
                 </div>
 
-                @empty
-
-                <div class="empty-completed">
-                    No completed orders on {{ $completedDate->format('M j, Y') }}.
+                @if ($completedOrders->hasPages())
+                <div class="pagination-wrap">
+                    {{ $completedOrders->fragment('completed')->links() }}
                 </div>
-
-                @endforelse
+                @endif
 
             </div>
-
-            @if ($completedOrders->hasPages())
-            <div class="pagination-wrap">
-                {{ $completedOrders->fragment('completed')->links() }}
-            </div>
-            @endif
 
         </div>
 
     </div>
+
+
+    {{-- =========================================================
+         TAB SCRIPT
+         ========================================================= --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const tabs = document.querySelectorAll('.kitchen-tab');
+            const panels = document.querySelectorAll('.kitchen-tab-panel');
+
+            function activateTab(target, updateUrl) {
+                tabs.forEach(t => {
+                    t.classList.remove('is-active');
+                    t.setAttribute('aria-selected', 'false');
+                });
+                panels.forEach(p => {
+                    p.classList.remove('is-active');
+                    p.hidden = true;
+                });
+
+                const tab = document.querySelector('.kitchen-tab[data-tab="' + target + '"]');
+                if (tab) {
+                    tab.classList.add('is-active');
+                    tab.setAttribute('aria-selected', 'true');
+                }
+
+                const panel = document.querySelector('.kitchen-tab-panel[data-panel="' + target + '"]');
+                if (panel) {
+                    panel.classList.add('is-active');
+                    panel.hidden = false;
+                }
+
+                if (updateUrl) {
+                    const url = new URL(window.location.href);
+                    if (target === 'completed') {
+                        url.searchParams.set('tab', 'completed');
+                    } else {
+                        url.searchParams.delete('tab');
+                    }
+                    url.hash = '';
+                    window.history.replaceState({}, '', url.toString());
+                }
+            }
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    activateTab(this.dataset.tab, true);
+                });
+            });
+
+            // On page load, pick the tab from ?tab=completed, otherwise Orders
+            const params = new URLSearchParams(window.location.search);
+            const initial = params.get('tab') === 'completed' ? 'completed' : 'orders';
+            activateTab(initial, false);
+        });
+    </script>
 
 </x-app-layout>
