@@ -70,58 +70,63 @@ class OrderController extends Controller
 
         /*
      * Kitchen menu items that should deduct from prepared-food stock.
-     * The left side is the sellable POS item name.
-     * The right side is the matching inventory item name in Kitchen Area.
+     * Left side  = sellable POS item name (inventory_items.name for the menu item).
+     * Right side = matching inventory item name in Kitchen Area.
      *
-     * Make sure these names match your inventory_items table exactly.
+     * Drinks (Coffee, Non Coffee, Frappe, Smoothies, Boba, Oreo, Fizzy,
+     * Buy 1 Take 1, Soda Fruit Jelly, Fruit Juice Pitcher) are NOT here
+     * on purpose. Their sale is recorded in order_items only.
      */
         $kitchenStockMap = [
-            'Pork Sisig' => 'Pork Sisig',
-            'Chicken Sisig' => 'Chicken Sisig',
-            'Pork Sisig NS' => 'Pork Sisig NS',
-            'Chicken Sisig NS' => 'Chicken Sisig NS',
-            'Binagoongan' => 'Binagoongan',
-            'Chicken Teriyaki' => 'C-Teriyaki',
-            'Fish Fillet' => 'Fish Fillet',
-            'Deep Fried Bangus' => 'Bangus',
-            'Chicken Adobo' => 'Chicken Adobo',
-            'Pork Adobo' => 'Pork Adobo',
-            'Chicken Franks' => 'Chicken Franks',
-            'Pork/Chicken Tocino' => 'Pork/Chicken Tocino',
-            'Corn Beef' => 'Corn Beef',
-            'Pork/Chicken Ham' => 'Pork/Chicken Ham',
-            'Egg' => 'Egg',
-            'Baked Mac' => 'Baked Mac',
-            'Mozzarella Cheese Stick' => 'Mozzarella',
-            'French Fries' => 'Fries',
-            'Burger' => 'Burger Patty',
-            'Porkchop with Sauce' => 'Pork Chop',
-            'Bihon Guisado' => 'Bihon',
-            'Chicken Carbonara with Coke' => 'Chicken Carbonara',
-            'Nachos' => 'Nachos Chips/Beef',
+            // Rice Meals
+            'Porkchop with Sauce'                           => 'Pork Chop',
+            'Chicken Teriyaki'                              => 'C-Teriyaki',
+            'Chicken Ala King'                              => 'Chicken Ala King',
+            '2 pcs Burger Steak'                            => 'Burger Patty',
+            'Tocino with Egg'                               => 'Pork/Chicken Tocino',
+            'Chorizo with Egg'                              => 'Chicken Franks',
+            'Cornbeef with Egg'                             => 'Corn Beef',
+            'Fish Fillet (Rice Meal)'                       => 'Fish Fillet',
+            'Deep Fried Bangus'                             => 'Bangus',
+            'Ham and Egg'                                   => 'Pork/Chicken Ham',
+            'Chicken Hotdog with Egg'                       => 'Chicken Franks',
+            'Pork Sisig (Rice Meal)'                        => 'Pork Sisig',
+            'Chicken Sisig (Rice Meal)'                     => 'Chicken Sisig',
+
+            // Rice Toppings
+            'Fried Siomai with Egg'                         => 'Fried Siomai',
+            'Pork Binagoongan'                              => 'Binagoongan',
+            'Chicken Adobo'                                 => 'Chicken Adobo',
+            'Pork Adobo'                                    => 'Pork Adobo',
+
+            // Snack Meals
+            'Clubhouse Sandwich'                            => 'Pork/Chicken Ham',
+            'Beef Cheese Burger with Fries'                 => 'Burger Patty',
+            'Double Patty Chicken Cheese Burger with Fries' => 'Burger Patty',
+            'Chicken Hotdog Sandwich'                       => 'Chicken Franks',
+            'Chicken Carbonara with Coke'                   => 'Chicken Carbonara',
+            'Ham Carbonara with Coke'                       => 'Chicken Carbonara',
+            'Bihon Guisado'                                 => 'Bihon',
+            'Bake Mac'                                      => 'Baked Mac',
+            'Beef Cheese Nachos'                            => 'Nachos Chips/Beef',
+            'Mozzarella Cheese Stick'                       => 'Mozzarella',
+            'French Fries'                                  => 'Fries',
         ];
 
-        return \Illuminate\Support\Facades\DB::transaction(function () use (
-            $request,
-            $validated,
-            $kitchenStockMap
-        ) {
+        return DB::transaction(function () use ($request, $validated, $kitchenStockMap) {
+
             /*
          * Load the selected menu items and their option groups.
-         * optionGroups is a hasMany relationship to the pivot model,
-         * then optionGroup is the related option group.
          */
             $menuItemIds = collect($validated['items'])
                 ->pluck('inventory_item_id')
                 ->unique()
                 ->values();
 
-            $menuItems = \App\Models\Inventory_Item::query()
+            $menuItems = Inventory_Item::query()
                 ->whereIn('id', $menuItemIds)
                 ->where('is_active', true)
-                ->with([
-                    'optionGroups.optionValues',
-                ])
+                ->with(['optionGroups.optionValues'])
                 ->get()
                 ->keyBy('id');
 
@@ -132,8 +137,8 @@ class OrderController extends Controller
             foreach ($validated['items'] as $itemData) {
                 $menuItem = $menuItems->get($itemData['inventory_item_id']);
 
-                if (!$menuItem) {
-                    throw \Illuminate\Validation\ValidationException::withMessages([
+                if (! $menuItem) {
+                    throw ValidationException::withMessages([
                         'items' => 'One of the selected menu items is unavailable.',
                     ]);
                 }
@@ -143,22 +148,17 @@ class OrderController extends Controller
                     ->values();
 
                 $allowedOptionIds = $menuItem->optionGroups
-                    ->flatMap(function ($optionGroup) {
-                        return $optionGroup->optionValues->pluck('id');
-                    })
+                    ->flatMap(fn($optionGroup) => $optionGroup->optionValues->pluck('id'))
                     ->map(fn($id) => (int) $id)
                     ->values();
 
                 if ($selectedOptionIds->diff($allowedOptionIds)->isNotEmpty()) {
-                    throw \Illuminate\Validation\ValidationException::withMessages([
+                    throw ValidationException::withMessages([
                         'items' => 'An invalid option was selected for a menu item.',
                     ]);
                 }
 
-                /*
-             * Prevent selecting more than one option from the same group.
-             */
-                $selectedOptions = \App\Models\Option_Values::query()
+                $selectedOptions = Option_Values::query()
                     ->whereIn('id', $selectedOptionIds)
                     ->get();
 
@@ -167,7 +167,7 @@ class OrderController extends Controller
                     ->contains(fn($options) => $options->count() > 1);
 
                 if ($duplicateGroup) {
-                    throw \Illuminate\Validation\ValidationException::withMessages([
+                    throw ValidationException::withMessages([
                         'items' => 'Please select no more than one option from each option group.',
                     ]);
                 }
@@ -175,21 +175,29 @@ class OrderController extends Controller
 
             /*
          * Get the Kitchen Area location once.
-         * No Bar Area ingredient stock is deducted by this order method.
          */
             $kitchenLocation = \App\Models\Inventory_Locations::query()
                 ->where('name', 'Kitchen Area')
                 ->first();
 
-            if (!$kitchenLocation) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
+            if (! $kitchenLocation) {
+                throw ValidationException::withMessages([
                     'items' => 'Kitchen Area was not found in inventory locations.',
                 ]);
             }
 
             /*
-         * Calculate the order subtotal using the current inventory_items.price
-         * field, plus any selected option price adjustments.
+         * Cache the Kitchen Area stock items by name so we don't hit the DB
+         * repeatedly. Only active items in Kitchen Area are considered.
+         */
+            $kitchenStockByName = Inventory_Item::query()
+                ->where('inventory_location_id', $kitchenLocation->id)
+                ->where('is_active', true)
+                ->pluck('id', 'name');
+
+            /*
+         * Calculate the order subtotal using inventory_items.price
+         * plus any selected option price adjustments.
          */
             $subtotal = 0;
 
@@ -197,22 +205,16 @@ class OrderController extends Controller
                 $menuItem = $menuItems->get($itemData['inventory_item_id']);
                 $quantity = (int) $itemData['quantity'];
 
-                $optionTotal = \App\Models\Option_Values::query()
+                $optionTotal = Option_Values::query()
                     ->whereIn('id', $itemData['options'] ?? [])
                     ->sum('price_adjustment');
 
-                $subtotal += (
-                    (float) $menuItem->price + (float) $optionTotal
-                ) * $quantity;
+                $subtotal += ((float) $menuItem->price + (float) $optionTotal) * $quantity;
             }
 
             $discountType = $validated['discount_type'] ?? 'None';
             $discountAmount = 0;
 
-            /*
-         * Keep the discount calculation consistent with your current policy.
-         * This applies 20% for Senior/PWD when selected.
-         */
             if (in_array($discountType, ['Senior', 'PWD'], true)) {
                 $discountAmount = $subtotal * 0.20;
             }
@@ -220,95 +222,80 @@ class OrderController extends Controller
             $totalAmount = max(0, $subtotal - $discountAmount);
 
             /*
-         * Create the order.
-         * If your orders table uses different column names, keep those
-         * existing names from your current Order model/migration.
+         * Queue number = today's running number, restarts every day.
          */
-            /*
-             * Queue number = today's running number, restarts every day.
-             * Assigned inside the transaction with a row lock, and backed by
-             * a unique (queue_date, queue_number) index, so two orders can
-             * never get the same number.
-             */
             $queueNumber = ((int) \App\Models\Order::whereDate('queue_date', today())
                 ->lockForUpdate()
                 ->max('queue_number')) + 1;
 
             $order = \App\Models\Order::create([
-                'cashier_id' => $validated['cashier_id'] ?? auth()->id(),
-                'order_number' => 'ORD-' . now()->format('Ymd') . '-' .
+                'cashier_id'      => $validated['cashier_id'] ?? auth()->id(),
+                'order_number'    => 'ORD-' . now()->format('Ymd') . '-' .
                     str_pad($queueNumber, 4, '0', STR_PAD_LEFT),
-                'queue_date' => today(),
-                'queue_number' => $queueNumber,
-                'order_type' => $validated['order_type'],
-                'status' => 'Pending',
-                'subtotal' => $subtotal,
-                'discount_type' => $discountType,
+                'queue_date'      => today(),
+                'queue_number'    => $queueNumber,
+                'order_type'      => $validated['order_type'],
+                'status'          => 'Pending',
+                'subtotal'        => $subtotal,
+                'discount_type'   => $discountType,
                 'discount_amount' => $discountAmount,
-                'total_amount' => $totalAmount,
-                'notes' => $validated['notes'] ?? null,
+                'total_amount'    => $totalAmount,
+                'notes'           => $validated['notes'] ?? null,
             ]);
+
             $stockUpdates = [];
 
             /*
-         * Save order lines and their selected options.
-         * Deduct only mapped Kitchen Area prepared-food stock.
+         * Save order lines, options, kitchen tickets.
+         * Deduct Kitchen Area prepared-food stock only.
          */
             foreach ($validated['items'] as $itemData) {
-                $inventoryItem = Inventory_Item::findOrFail(
-                    $itemData['inventory_item_id']
-                );
+                $inventoryItem = Inventory_Item::findOrFail($itemData['inventory_item_id']);
                 $quantity = (int) $itemData['quantity'];
 
-                $selectedOptions = \App\Models\Option_Values::query()
+                $selectedOptions = Option_Values::query()
                     ->whereIn('id', $itemData['options'] ?? [])
                     ->get();
 
                 $optionTotal = (float) $selectedOptions->sum('price_adjustment');
-                $unitPrice = (float) $inventoryItem->price + $optionTotal;
-                $lineTotal = $unitPrice * $quantity;
+                $unitPrice   = (float) $inventoryItem->price + $optionTotal;
+                $lineTotal   = $unitPrice * $quantity;
 
-                $orderItem = \App\Models\Order_Item::create([
-                    'order_id' => $order->id,
+                $orderItem = Order_Item::create([
+                    'order_id'          => $order->id,
                     'inventory_item_id' => $inventoryItem->id,
-                    'quantity' => $quantity,
-                    'unit_price' => $unitPrice,
-                    'subtotal' => $lineTotal,
-                    'notes' => $itemData['notes'] ?? null,
+                    'quantity'          => $quantity,
+                    'unit_price'        => $unitPrice,
+                    'subtotal'          => $lineTotal,
+                    'notes'             => $itemData['notes'] ?? null,
                 ]);
 
-                /*
-             * Save option selections if your order_item_options table exists.
-             * Remove this block if your project stores options differently.
-             */
                 foreach ($selectedOptions as $optionValue) {
-                    \Illuminate\Support\Facades\DB::table('order_item_options')->insert([
-                        'order_item_id' => $orderItem->id,
+                    DB::table('order_item_options')->insert([
+                        'order_item_id'   => $orderItem->id,
                         'option_value_id' => $optionValue->id,
-                        'created_at' => now(),
-                        'updated_at' => now(),
+                        'created_at'      => now(),
+                        'updated_at'      => now(),
                     ]);
                 }
 
                 /*
-             * Stock-out: only food items in the mapping are deducted.
-             * The matching inventory record must be active and in Kitchen Area.
+             * Stock-out: only prepped food items in the mapping are deducted.
+             * Drinks (Coffee, Non Coffee, Frappe, etc.) are NOT in the map
+             * and therefore will not create a stock_out row.
              */
-                $stockItemName = $kitchenStockMap[$menuItem->name] ?? null;
+                $stockItemName = $kitchenStockMap[$inventoryItem->name] ?? null;
 
                 if ($stockItemName !== null) {
-                    $stockItem = \App\Models\Inventory_Item::query()
-                        ->where('name', $stockItemName)
-                        ->where('inventory_location_id', $kitchenLocation->id)
-                        ->where('is_active', true)
-                        ->lockForUpdate()
-                        ->first();
+                    $stockItemId = $kitchenStockByName[$stockItemName] ?? null;
 
-                    if (!$stockItem) {
-                        throw \Illuminate\Validation\ValidationException::withMessages([
-                            'items' => "Kitchen stock item '{$stockItemName}' was not found.",
+                    if (! $stockItemId) {
+                        throw ValidationException::withMessages([
+                            'items' => "Kitchen stock item '{$stockItemName}' is missing or inactive.",
                         ]);
                     }
+
+                    $stockItem = Inventory_Item::lockForUpdate()->find($stockItemId);
 
                     $totalStockIn = (float) \App\Models\StockIn::query()
                         ->where('inventory_item_id', $stockItem->id)
@@ -321,68 +308,65 @@ class OrderController extends Controller
                     $availableStock = $totalStockIn - $totalStockOut;
 
                     if ($availableStock < $quantity) {
-                        throw \Illuminate\Validation\ValidationException::withMessages([
-                            'items' => "Not enough prepared stock for {$menuItem->name}. Available: {$availableStock}. Requested: {$quantity}.",
+                        throw ValidationException::withMessages([
+                            'items' => "Not enough prepared stock for {$inventoryItem->name}. Available: {$availableStock}. Requested: {$quantity}.",
                         ]);
                     }
 
                     \App\Models\StockOut::create([
                         'inventory_item_id' => $stockItem->id,
-                        'quantity' => $quantity,
-                        'recorded_by' => $validated['cashier_id'] ?? auth()->id(),
-                        'reason' => 'Sold via POS: ' . $order->order_number,
-                        'recorded_at' => now(),
-                        'remarks' => 'Order item: ' . $menuItem->name,
+                        'quantity'          => $quantity,
+                        'recorded_by'       => $validated['cashier_id'] ?? auth()->id(),
+                        'reason'            => 'Sold via POS: ' . $order->order_number,
+                        'recorded_at'       => now(),
+                        'remarks'           => 'Order item: ' . $inventoryItem->name,
                     ]);
 
                     $remainingStock = $availableStock - $quantity;
 
                     $stockUpdates[] = [
-                        'menu_item_id' => $menuItem->id,
-                        'stock' => $remainingStock,
+                        'menu_item_id' => $inventoryItem->id,
+                        'stock'        => $remainingStock,
                     ];
                 }
 
                 /*
-             * Create the kitchen ticket for this order line.
-             * Keep these field names aligned with your Kitchen_Order_Item model.
+             * Kitchen ticket for this order line.
              */
-                \App\Models\Kitchen_Order_Item::create([
-                    'order_id' => $order->id,
+                Kitchen_Order_Item::create([
+                    'order_id'      => $order->id,
                     'order_item_id' => $orderItem->id,
-                    'status' => 'Pending',
+                    'status'        => 'Pending',
                 ]);
             }
 
             /*
          * Record payment after all order items and stock-outs pass validation.
-         * Since this is inside the transaction, any error rolls back the order,
-         * order items, kitchen tickets, payment, and stock-outs together.
          */
-            \App\Models\Payment::create([
-                'order_id' => $order->id,
-                'payment_method' => $validated['payment_method'],
-                'amount' => $totalAmount,
-                'received_by' => auth()->id(),
-                'amount_received' => $validated['amount_tendered'] ?? $totalAmount,
-                'change_amount' => max(
+            Payment::create([
+                'order_id'         => $order->id,
+                'payment_method'   => $validated['payment_method'],
+                'amount'           => $totalAmount,
+                'received_by'      => auth()->id(),
+                'amount_received'  => $validated['amount_tendered'] ?? $totalAmount,
+                'change_amount'    => max(
                     0,
                     (float) ($validated['amount_tendered'] ?? $totalAmount) - $totalAmount
                 ),
                 'reference_number' => $validated['payment_method'] === 'GCash'
                     ? ($validated['reference_number'] ?? null)
                     : null,
-                'paid_at' => now(),
+                'paid_at'          => now(),
             ]);
 
             return response()->json([
-                'message' => 'Order placed successfully.',
-                'order_id' => $order->id,
-                'order' => [
-                    'id' => $order->id,
+                'message'       => 'Order placed successfully.',
+                'order_id'      => $order->id,
+                'order'         => [
+                    'id'           => $order->id,
                     'order_number' => $order->order_number,
                 ],
-                'queue_number' => $queueNumber,
+                'queue_number'  => $queueNumber,
                 'stock_updates' => $stockUpdates,
             ], 201);
         });

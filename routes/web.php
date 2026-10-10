@@ -74,6 +74,9 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/inventory/non-countable-history', [InventoryItemController::class, 'nonCountableHistory'])
             ->name('inventory.non-countable-history');
+
+        Route::get('/inventory/sales-history', [InventoryItemController::class, 'salesHistory'])
+            ->name('inventory.sales-history');
     });
 });
 

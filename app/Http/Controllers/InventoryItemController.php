@@ -160,54 +160,7 @@ class InventoryItemController extends Controller
 
         $units = Unit::orderBy('name')->get();
 
-        $juiceItems = Inventory_Item::with([
-            'category',
-            'inventoryLocation',
-            'unit',
-        ])
-            ->where('inventory_type', 'physical')
-            ->where('is_active', true)
-            ->whereHas('category', function ($query) {
-                $query->where('name', 'Juice');
-            })
-            ->when($search !== '', function ($query) use ($search) {
-                $query->where('name', 'like', "%{$search}%");
-            })
-            ->when($categoryId !== null && $categoryId !== '', function ($query) use ($categoryId) {
-                $query->where('category_id', $categoryId);
-            })
-            ->when($locationId !== null && $locationId !== '', function ($query) use ($locationId) {
-                $query->where('inventory_location_id', $locationId);
-            })
-            ->orderByDesc('is_active')
-            ->orderBy('name')
-            ->paginate(10, ['*'], 'juice_page')
-            ->withQueryString();
 
-
-        $coffeeItems = Inventory_Item::with([
-            'category',
-            'inventoryLocation',
-            'unit',
-        ])
-            ->where('inventory_type', 'physical')
-            ->where('is_active', true)
-            ->whereHas('category', function ($query) {
-                $query->where('name', 'Coffee');
-            })
-            ->when($search !== '', function ($query) use ($search) {
-                $query->where('name', 'like', "%{$search}%");
-            })
-            ->when($categoryId !== null && $categoryId !== '', function ($query) use ($categoryId) {
-                $query->where('category_id', $categoryId);
-            })
-            ->when($locationId !== null && $locationId !== '', function ($query) use ($locationId) {
-                $query->where('inventory_location_id', $locationId);
-            })
-            ->orderByDesc('is_active')
-            ->orderBy('name')
-            ->paginate(10, ['*'], 'coffee_page')
-            ->withQueryString();
         /*
         |--------------------------------------------------------------------------
         | MODAL STOCK VALUES
@@ -277,6 +230,70 @@ class InventoryItemController extends Controller
             ->orderBy('name')
             ->get();
 
+
+        /*
+|--------------------------------------------------------------------------
+| DRINKS (made-to-order)
+| Coffee, Non Coffee, Frappe, Smoothies, Boba, Oreo, Fizzy,
+| B1T1 Smoothies, Soda Fruit Jelly, Fruit Juice Pitcher
+|--------------------------------------------------------------------------
+*/
+
+        $drinkCategoryNames = [
+            'Coffee',
+            'Non Coffee',
+            'Frappe Ice Cream on Top',
+            'Smoothies Ice Cream on Top',
+            'Popping Boba Pearls',
+            'Oreo Milk Series',
+            'Fizzy Coolers',
+            'Buy 1 Take 1 Smoothies',
+            'Soda Fruit Jelly Buy 1 Take 1',
+            'Fruit Juice Pitcher',
+        ];
+
+        $drinkItems = Inventory_Item::with([
+            'category',
+            'inventoryLocation',
+            'unit',
+        ])
+            ->where('inventory_type', 'physical')
+            ->where('is_active', true)
+            ->whereHas('category', function ($query) use ($drinkCategoryNames) {
+                $query->whereIn('name', $drinkCategoryNames);
+            })
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where('name', 'like', "%{$search}%");
+            })
+            ->when($categoryId !== null && $categoryId !== '', function ($query) use ($categoryId) {
+                $query->where('category_id', $categoryId);
+            })
+            ->when($locationId !== null && $locationId !== '', function ($query) use ($locationId) {
+                $query->where('inventory_location_id', $locationId);
+            })
+            ->orderBy('name')
+            ->paginate(10, ['*'], 'drinks_page')
+            ->withQueryString();
+
+        /*
+|--------------------------------------------------------------------------
+| SOLD QUANTITIES FOR DRINKS (from order_items)
+|--------------------------------------------------------------------------
+*/
+
+        $drinkItemIds = $drinkItems->getCollection()->pluck('id');
+
+        $drinkSold = DB::table('order_items')
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->whereDate('orders.created_at', $stockDate)
+            ->whereIn('order_items.inventory_item_id', $drinkItemIds)
+            ->select(
+                'order_items.inventory_item_id',
+                DB::raw('SUM(order_items.quantity) as total_sold')
+            )
+            ->groupBy('order_items.inventory_item_id')
+            ->pluck('total_sold', 'inventory_item_id');
+
         return view('inventory.index', compact(
             'preppedItems',
             'nonCountableItems',
@@ -287,15 +304,18 @@ class InventoryItemController extends Controller
             'search',
             'categoryId',
             'locationId',
-            'coffeeItems',
-            'juiceItems',
             'beginningQuantities',
             'inputNewQuantities',
             'soldQuantities',
             'stockDate',
             'archivedItems',
+            'drinkItems',
+            'drinkSold',
+            'drinkCategoryNames',
         ));
     }
+
+
 
     public function toggleActive(Inventory_Item $inventoryItem)
     {
@@ -718,6 +738,76 @@ class InventoryItemController extends Controller
             'date' => $stockDate,
             'is_today' => $stockDate === $today,
             'items' => $data,
+        ]);
+    }
+
+    public function salesHistory(Request $request)
+    {
+        $request->validate([
+            'date'     => ['required', 'date'],
+            'category' => ['nullable', 'string'],
+        ]);
+
+        $stockDate = \Carbon\Carbon::parse($request->date)->toDateString();
+        $today     = now()->toDateString();
+
+        if ($stockDate > $today) {
+            return response()->json([
+                'message' => 'Future dates are not allowed.',
+            ], 422);
+        }
+
+        $drinkCategoryNames = [
+            'Coffee',
+            'Non Coffee',
+            'Frappe Ice Cream on Top',
+            'Smoothies Ice Cream on Top',
+            'Popping Boba Pearls',
+            'Oreo Milk Series',
+            'Fizzy Coolers',
+            'Buy 1 Take 1 Smoothies',
+            'Soda Fruit Jelly Buy 1 Take 1',
+            'Fruit Juice Pitcher',
+        ];
+
+        $query = Inventory_Item::with(['category'])
+            ->where('is_active', true)
+            ->where('inventory_type', 'physical')
+            ->whereHas('category', function ($q) use ($drinkCategoryNames, $request) {
+                if ($request->filled('category')) {
+                    $q->where('name', $request->category);
+                } else {
+                    $q->whereIn('name', $drinkCategoryNames);
+                }
+            })
+            ->orderBy('name');
+
+        $items = $query->get();
+
+        $soldMap = DB::table('order_items')
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->whereDate('orders.created_at', $stockDate)
+            ->whereIn('order_items.inventory_item_id', $items->pluck('id'))
+            ->select(
+                'order_items.inventory_item_id',
+                DB::raw('SUM(order_items.quantity) as total_sold')
+            )
+            ->groupBy('order_items.inventory_item_id')
+            ->pluck('total_sold', 'inventory_item_id');
+
+        $data = $items->map(function ($item) use ($soldMap) {
+            return [
+                'id'       => $item->id,
+                'name'     => $item->name,
+                'category' => $item->category?->name ?? '—',
+                'sold'     => (float) ($soldMap[$item->id] ?? 0),
+            ];
+        });
+
+        return response()->json([
+            'date'     => $stockDate,
+            'is_today' => $stockDate === $today,
+            'items'    => $data,
         ]);
     }
 

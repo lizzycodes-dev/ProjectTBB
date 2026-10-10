@@ -18,5 +18,10 @@ class OptionGroupsSeeder extends Seeder
             ['name' => 'Spice Level'],
             ['description' => 'Spicy or non-spicy variation for sisig dishes.']
         );
+
+        Option_Groups::firstOrCreate(
+            ['name' => 'Add-ons'],
+            ['description' => 'Optional add-ons for rice toppings (extra rice, extra egg, etc.).']
+        );
     }
 }

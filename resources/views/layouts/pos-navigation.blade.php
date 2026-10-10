@@ -44,8 +44,8 @@ $posCategories = Category::whereIn('name', $posCategoryNames)
         </a>
 
     </div>
-
-    {{-- Back to Inventory --}}
+    {{-- Back to Inventory (hidden for cashiers) --}}
+    @if (Auth::user()->role_id !== 2)
     <div class="pos-sidebar-back-wrap">
         <a
             href="{{ route('inventory.index') }}"
@@ -61,6 +61,7 @@ $posCategories = Category::whereIn('name', $posCategoryNames)
             </span>
         </a>
     </div>
+    @endif
 
     {{-- POS Categories --}}
     <div class="pos-sidebar-links">

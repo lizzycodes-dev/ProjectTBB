@@ -80,7 +80,7 @@
         </a>
 
 
-                @endunless
+        @endunless
 
         {{-- Kitchen --}}
         <a
@@ -119,7 +119,7 @@
         </a>
         @endunless
 
-                {{-- Purchase --}}
+        {{-- Purchase --}}
         @unless (in_array(Auth::user()->role_id, [2, 3]))
         <a
             href="{{ route('purchases.index') }}"
@@ -158,7 +158,7 @@
         </a>
 
 
-                @endunless
+        @endunless
 
         {{-- Users (managers only) --}}
         @if (strtolower(Auth::user()->role->name ?? '') === 'manager')

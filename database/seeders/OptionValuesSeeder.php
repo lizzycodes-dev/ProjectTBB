@@ -11,6 +11,9 @@ class OptionValuesSeeder extends Seeder
 {
     public function run(): void
     {
+        // -------------------------------------------------------------
+        // Temperature
+        // -------------------------------------------------------------
         $temperature = Option_Groups::where('name', 'Temperature')->first();
 
         if (! $temperature) {
@@ -19,29 +22,19 @@ class OptionValuesSeeder extends Seeder
             );
         }
 
-        // Temperature choices. Iced adds ₱10 to the listed Hot price.
         Option_Values::firstOrCreate(
-            [
-                'option_group_id' => $temperature->id,
-                'name' => 'Hot',
-            ],
-            [
-                'price_adjustment' => 0,
-                'is_active' => true,
-            ]
+            ['option_group_id' => $temperature->id, 'name' => 'Hot'],
+            ['price_adjustment' => 0, 'is_active' => true]
         );
 
         Option_Values::firstOrCreate(
-            [
-                'option_group_id' => $temperature->id,
-                'name' => 'Iced',
-            ],
-            [
-                'price_adjustment' => 10,
-                'is_active' => true,
-            ]
+            ['option_group_id' => $temperature->id, 'name' => 'Iced'],
+            ['price_adjustment' => 10, 'is_active' => true]
         );
 
+        // -------------------------------------------------------------
+        // Spice Level
+        // -------------------------------------------------------------
         $spice = Option_Groups::where('name', 'Spice Level')->first();
 
         if (! $spice) {
@@ -51,25 +44,34 @@ class OptionValuesSeeder extends Seeder
         }
 
         Option_Values::firstOrCreate(
-            [
-                'option_group_id' => $spice->id,
-                'name' => 'Spicy',
-            ],
-            [
-                'price_adjustment' => 0,
-                'is_active' => true,
-            ]
+            ['option_group_id' => $spice->id, 'name' => 'Spicy'],
+            ['price_adjustment' => 0, 'is_active' => true]
         );
 
         Option_Values::firstOrCreate(
-            [
-                'option_group_id' => $spice->id,
-                'name' => 'Non-Spicy',
-            ],
-            [
-                'price_adjustment' => 0,
-                'is_active' => true,
-            ]
+            ['option_group_id' => $spice->id, 'name' => 'Non-Spicy'],
+            ['price_adjustment' => 0, 'is_active' => true]
+        );
+
+        // -------------------------------------------------------------
+        // Add-ons (Rice Toppings)
+        // -------------------------------------------------------------
+        $addons = Option_Groups::where('name', 'Add-ons')->first();
+
+        if (! $addons) {
+            throw new RuntimeException(
+                'Missing Add-ons option group. Run OptionGroupsSeeder first.'
+            );
+        }
+
+        Option_Values::firstOrCreate(
+            ['option_group_id' => $addons->id, 'name' => 'Extra Rice'],
+            ['price_adjustment' => 20, 'is_active' => true]
+        );
+
+        Option_Values::firstOrCreate(
+            ['option_group_id' => $addons->id, 'name' => 'Extra Egg'],
+            ['price_adjustment' => 20, 'is_active' => true]
         );
     }
 }
