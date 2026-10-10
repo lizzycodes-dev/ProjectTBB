@@ -30,7 +30,7 @@ class Option_Groups extends Model
             Inventory_Item::class,
             'inventory_item_option_groups',
             'option_group_id',
-            'menu_item_id'
+            'inventory_item_id'
         )->withPivot('is_required');
     }
 }

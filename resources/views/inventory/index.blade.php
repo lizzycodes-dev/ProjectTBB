@@ -40,42 +40,39 @@
         {{-- ========================================================= --}}
         {{-- MAIN LAYOUT --}}
         {{-- ========================================================= --}}
-
         <div class="inventory-layout">
 
             <div class="inventory-main">
 
-                {{-- TABS --}}
-                {{-- CHANGED: Coffee + Juice tabs merged into a single Drinks tab --}}
-                <div class="inventory-tabs" role="tablist">
+                @php
+                $activeTab = request('tab',
+                request()->has('drinks_page') ? 'drinks'
+                : (request()->has('non_countable_page') ? 'non-countable'
+                : 'prepped')
+                );
+                @endphp
 
-                    <button
-                        type="button"
-                        class="inventory-tab {{ request()->has('prepped_page') || (!request()->hasAny(['drinks_page', 'non_countable_page'])) ? 'is-active' : '' }}"
-                        role="tab"
+                <div class="inventory-tabs" role="tablist">
+                    <button type="button"
+                        class="inventory-tab {{ $activeTab === 'prepped' ? 'is-active' : '' }}"
                         data-tab="prepped"
-                        aria-selected="{{ request()->has('prepped_page') || (!request()->hasAny(['drinks_page', 'non_countable_page'])) ? 'true' : 'false' }}">
+                        aria-selected="{{ $activeTab === 'prepped' ? 'true' : 'false' }}">
                         Prepped
                     </button>
 
-                    <button
-                        type="button"
-                        class="inventory-tab {{ request()->has('drinks_page') ? 'is-active' : '' }}"
-                        role="tab"
+                    <button type="button"
+                        class="inventory-tab {{ $activeTab === 'drinks' ? 'is-active' : '' }}"
                         data-tab="drinks"
-                        aria-selected="{{ request()->has('drinks_page') ? 'true' : 'false' }}">
+                        aria-selected="{{ $activeTab === 'drinks' ? 'true' : 'false' }}">
                         Drinks
                     </button>
 
-                    <button
-                        type="button"
-                        class="inventory-tab {{ request()->has('non_countable_page') ? 'is-active' : '' }}"
-                        role="tab"
+                    <button type="button"
+                        class="inventory-tab {{ $activeTab === 'non-countable' ? 'is-active' : '' }}"
                         data-tab="non-countable"
-                        aria-selected="{{ request()->has('non_countable_page') ? 'true' : 'false' }}">
+                        aria-selected="{{ $activeTab === 'non-countable' ? 'true' : 'false' }}">
                         Non countable
                     </button>
-
                 </div>
 
 
@@ -145,7 +142,7 @@
                 {{-- TAB PANELS --}}
                 {{-- ===================================================== --}}
 
-                {{-- PANEL: PREPPED (unchanged) --}}
+                {{-- PANEL: PREPPED --}}
                 <div class="inventory-tab-panel is-active" id="panel-prepped" role="tabpanel" data-panel="prepped">
 
                     <div class="inventory-table-section">
@@ -154,6 +151,7 @@
                             <div>
                                 <h3>Prepped Food</h3>
                                 <p>Countable inventory prepared in advance.</p>
+
                                 <button
                                     type="button"
                                     class="inventory-settings-button"
@@ -233,7 +231,8 @@
                                                     data-unit="{{ $item->unit_id }}"
                                                     data-type="{{ $item->inventory_type }}"
                                                     data-price="{{ $item->price }}"
-                                                    data-description="{{ $item->description }}">
+                                                    data-description="{{ $item->description }}"
+                                                    data-option-groups='@json($item->optionGroups->mapWithKeys(fn($g) => [$g->id => (bool) $g->pivot->is_required]))'>
                                                     Edit
                                                 </button>
                                                 <form method="POST" action="{{ route('inventory.toggle-active', $item) }}" onsubmit="return confirm('Are you sure you want to {{ $item->is_active ? 'deactivate' : 'activate' }} this inventory item?');">
@@ -247,7 +246,7 @@
                                     </tr>
                                     @empty
                                     <tr>
-                                        <td colspan="7" class="empty-state">No prepped food items found.</td>
+                                        <td colspan="10" class="empty-state">No prepped food items found.</td>
                                     </tr>
                                     @endforelse
                                 </tbody>
@@ -262,8 +261,7 @@
                 </div>
 
 
-                {{-- PANEL: DRINKS (replaces Coffee + Juice panels) --}}
-                {{-- CHANGED: single Drinks panel --}}
+                {{-- PANEL: DRINKS --}}
                 <div class="inventory-tab-panel" id="panel-drinks" role="tabpanel" data-panel="drinks" hidden>
 
                     <div class="inventory-table-section">
@@ -337,7 +335,8 @@
                                                     data-unit="{{ $item->unit_id }}"
                                                     data-type="{{ $item->inventory_type }}"
                                                     data-price="{{ $item->price }}"
-                                                    data-description="{{ $item->description }}">
+                                                    data-description="{{ $item->description }}"
+                                                    data-option-groups='@json($item->optionGroups->mapWithKeys(fn($g) => [$g->id => (bool) $g->pivot->is_required]))'>
                                                     Edit
                                                 </button>
                                                 <form method="POST" action="{{ route('inventory.toggle-active', $item) }}" onsubmit="return confirm('Are you sure you want to {{ $item->is_active ? 'deactivate' : 'activate' }} this inventory item?');">
@@ -366,7 +365,7 @@
                 </div>
 
 
-                {{-- PANEL: NON-COUNTABLE (unchanged) --}}
+                {{-- PANEL: NON-COUNTABLE --}}
                 <div class="inventory-tab-panel" id="panel-non-countable" role="tabpanel" data-panel="non-countable" hidden>
 
                     <div class="inventory-table-section non-countable-section">
@@ -375,6 +374,7 @@
                             <div>
                                 <h3>Non-Countable Inventory</h3>
                                 <p>Ingredients and supplies that are manually monitored.</p>
+
                                 <button
                                     type="button"
                                     class="inventory-settings-button"
@@ -450,7 +450,8 @@
                                                     data-unit="{{ $item->unit_id }}"
                                                     data-type="{{ $item->inventory_type }}"
                                                     data-price="{{ $item->price }}"
-                                                    data-description="{{ $item->description }}">
+                                                    data-description="{{ $item->description }}"
+                                                    data-option-groups='@json($item->optionGroups->mapWithKeys(fn($g) => [$g->id => (bool) $g->pivot->is_required]))'>
                                                     Edit
                                                 </button>
                                                 <form method="POST" action="{{ route('inventory.toggle-active', $item) }}" onsubmit="return confirm('Are you sure you want to {{ $item->is_active ? 'deactivate' : 'activate' }} this inventory item?');">
@@ -464,7 +465,7 @@
                                     </tr>
                                     @empty
                                     <tr>
-                                        <td colspan="7" class="empty-state">No non-countable inventory items found.</td>
+                                        <td colspan="8" class="empty-state">No non-countable inventory items found.</td>
                                     </tr>
                                     @endforelse
                                 </tbody>
@@ -487,7 +488,7 @@
 
 
     {{-- ========================================================= --}}
-    {{-- CREATE ITEM MODAL (unchanged) --}}
+    {{-- CREATE ITEM MODAL --}}
     {{-- ========================================================= --}}
     <div id="createItemModal" class="inventory-modal" aria-hidden="true">
         <div class="inventory-modal-backdrop" data-close-create-modal></div>
@@ -564,6 +565,35 @@
                         <textarea id="create_description" name="description" class="modal-input" rows="3" required>{{ old('description') }}</textarea>
                     </div>
 
+                    {{-- Option Groups (New Item) --}}
+                    <div class="form-group">
+                        <label>Option Groups</label>
+
+                        <div class="option-groups-list">
+                            @forelse ($optionGroups as $group)
+                            <label class="option-group-row">
+                                <input
+                                    type="checkbox"
+                                    class="option-group-checkbox"
+                                    name="option_groups[{{ $group->id }}][enabled]"
+                                    value="1">
+
+                                <span class="option-group-name">{{ $group->name }}</span>
+
+                                <select
+                                    class="option-required-select modal-input"
+                                    name="option_groups[{{ $group->id }}][required]"
+                                    disabled>
+                                    <option value="1">Required</option>
+                                    <option value="0">Optional</option>
+                                </select>
+                            </label>
+                            @empty
+                            <span class="no-value">No option groups available.</span>
+                            @endforelse
+                        </div>
+                    </div>
+
                 </div>
 
                 <div class="inventory-modal-footer">
@@ -577,7 +607,7 @@
 
 
     {{-- ========================================================= --}}
-    {{-- EDIT ITEM MODAL (unchanged) --}}
+    {{-- EDIT ITEM MODAL --}}
     {{-- ========================================================= --}}
     <div id="editItemModal" class="inventory-modal" aria-hidden="true">
         <div class="inventory-modal-backdrop" data-close-edit-modal></div>
@@ -647,6 +677,36 @@
                         <textarea id="edit_description" name="description" class="modal-input" rows="3" required></textarea>
                     </div>
 
+                    {{-- Option Groups (Edit Item) --}}
+                    {{-- Rendered unchecked + disabled by default; JS populates from data-option-groups --}}
+                    <div class="form-group">
+                        <label>Option Groups</label>
+
+                        <div class="option-groups-list">
+                            @forelse ($optionGroups as $group)
+                            <label class="option-group-row">
+                                <input
+                                    type="checkbox"
+                                    class="option-group-checkbox"
+                                    name="option_groups[{{ $group->id }}][enabled]"
+                                    value="1">
+
+                                <span class="option-group-name">{{ $group->name }}</span>
+
+                                <select
+                                    class="option-required-select modal-input"
+                                    name="option_groups[{{ $group->id }}][required]"
+                                    disabled>
+                                    <option value="1">Required</option>
+                                    <option value="0">Optional</option>
+                                </select>
+                            </label>
+                            @empty
+                            <span class="no-value">No option groups available.</span>
+                            @endforelse
+                        </div>
+                    </div>
+
                 </div>
 
                 <div class="inventory-modal-footer">
@@ -660,8 +720,7 @@
 
 
     {{-- ========================================================= --}}
-    {{-- DAILY INVENTORY MODAL (single modal, sections swap) --}}
-    {{-- CHANGED: Coffee + Juice sections replaced with Drinks --}}
+    {{-- DAILY INVENTORY MODAL --}}
     {{-- ========================================================= --}}
     <div class="inventory-daily-modal" id="inventoryDailyModal" aria-hidden="true">
 
@@ -685,7 +744,7 @@
 
                 <div class="inventory-daily-body">
 
-                    {{-- PREPPED FOOD (unchanged) --}}
+                    {{-- PREPPED --}}
                     <div id="preppedDailyFields" class="daily-field-group">
 
                         <div class="daily-date-row">
@@ -746,7 +805,7 @@
                     </div>
 
 
-                    {{-- NON-COUNTABLE (unchanged) --}}
+                    {{-- NON-COUNTABLE --}}
                     <div id="nonCountableDailyFields" class="daily-field-group" hidden>
 
                         <div class="daily-date-row">
@@ -779,8 +838,7 @@
                     </div>
 
 
-                    {{-- DRINKS (replaces Coffee + Juice sections) --}}
-                    {{-- CHANGED: one section with date + category filter + Sold column --}}
+                    {{-- DRINKS --}}
                     <div id="drinksDailyFields" class="daily-field-group" hidden>
 
                         <div class="daily-date-row" style="flex-wrap: wrap; gap: 10px;">
@@ -817,7 +875,6 @@
 
                 </div>
 
-                {{-- FOOTER --}}
                 <div class="inventory-daily-footer">
                     <button type="button" class="modal-secondary-button" data-close-daily-modal>Cancel</button>
                     <button type="submit" id="dailyInventorySaveButton" class="modal-primary-button">Add Stock</button>
@@ -839,49 +896,101 @@
             const tabs = document.querySelectorAll('.inventory-tab');
             const panels = document.querySelectorAll('.inventory-tab-panel');
 
-            function activateTab(target) {
-                tabs.forEach(item => {
-                    item.classList.remove('is-active');
-                    item.setAttribute('aria-selected', 'false');
+            function activateTab(target, updateUrl = false) {
+                tabs.forEach(t => {
+                    t.classList.remove('is-active');
+                    t.setAttribute('aria-selected', 'false');
                 });
-                panels.forEach(panel => {
-                    panel.classList.remove('is-active');
-                    panel.hidden = true;
+                panels.forEach(p => {
+                    p.classList.remove('is-active');
+                    p.hidden = true;
                 });
 
-                const targetTab = document.querySelector('.inventory-tab[data-tab="' + target + '"]');
-                if (targetTab) {
-                    targetTab.classList.add('is-active');
-                    targetTab.setAttribute('aria-selected', 'true');
+                const tab = document.querySelector('.inventory-tab[data-tab="' + target + '"]');
+                if (tab) {
+                    tab.classList.add('is-active');
+                    tab.setAttribute('aria-selected', 'true');
                 }
 
-                const targetPanel = document.querySelector('.inventory-tab-panel[data-panel="' + target + '"]');
-                if (targetPanel) {
-                    targetPanel.classList.add('is-active');
-                    targetPanel.hidden = false;
+                const panel = document.querySelector('.inventory-tab-panel[data-panel="' + target + '"]');
+                if (panel) {
+                    panel.classList.add('is-active');
+                    panel.hidden = false;
+                }
+
+                if (updateUrl) {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('tab', target);
+
+                    // Remove all per-tab page params so they don't leak across tabs
+                    ['prepped_page', 'drinks_page', 'non_countable_page']
+                    .forEach(p => url.searchParams.delete(p));
+
+                    window.history.replaceState({}, '', url.toString());
                 }
             }
 
             tabs.forEach(tab => {
                 tab.addEventListener('click', function() {
-                    activateTab(this.dataset.tab);
+                    activateTab(this.dataset.tab, true);
                 });
             });
 
+            // Prefer explicit ?tab=..., fall back to page params, else prepped
             const params = new URLSearchParams(window.location.search);
-            let initialTab = 'prepped';
+            const explicitTab = params.get('tab');
 
-            // CHANGED: drinks_page replaces coffee_page / juice_page
-            if (params.has('drinks_page')) {
+            let initialTab = 'prepped';
+            if (explicitTab === 'drinks' || explicitTab === 'non-countable' || explicitTab === 'prepped') {
+                initialTab = explicitTab;
+            } else if (params.has('drinks_page')) {
                 initialTab = 'drinks';
             } else if (params.has('non_countable_page')) {
                 initialTab = 'non-countable';
-            } else if (params.has('prepped_page')) {
-                initialTab = 'prepped';
             }
 
-            activateTab(initialTab);
+            activateTab(initialTab, false);
         });
+        const searchForm = document.getElementById('inventoryFilterForm');
+        const searchInput = document.getElementById('inventorySearch');
+
+        if (searchForm && searchInput) {
+            let timer = null;
+
+            searchInput.addEventListener('input', function() {
+                clearTimeout(timer);
+                timer = setTimeout(() => {
+                    // Preserve current tab when searching
+                    let tab = new URLSearchParams(window.location.search).get('tab') || 'prepped';
+                    let hidden = searchForm.querySelector('input[name="tab"]');
+                    if (!hidden) {
+                        hidden = document.createElement('input');
+                        hidden.type = 'hidden';
+                        hidden.name = 'tab';
+                        searchForm.appendChild(hidden);
+                    }
+                    hidden.value = tab;
+                    searchForm.submit();
+                }, 350);
+            });
+
+            searchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    clearTimeout(timer);
+                    let tab = new URLSearchParams(window.location.search).get('tab') || 'prepped';
+                    let hidden = searchForm.querySelector('input[name="tab"]');
+                    if (!hidden) {
+                        hidden = document.createElement('input');
+                        hidden.type = 'hidden';
+                        hidden.name = 'tab';
+                        searchForm.appendChild(hidden);
+                    }
+                    hidden.value = tab;
+                    searchForm.submit();
+                }
+            });
+        }
     </script>
 
 
@@ -897,7 +1006,6 @@
 
             const preppedFields = document.getElementById('preppedDailyFields');
             const nonCountableFields = document.getElementById('nonCountableDailyFields');
-            // CHANGED: drinksFields replaces salesFields
             const drinksFields = document.getElementById('drinksDailyFields');
 
             const dailyInventoryType = document.getElementById('dailyInventoryType');
@@ -909,7 +1017,6 @@
             const drinksCategoryFilter = document.getElementById('drinksCategoryFilter');
             const drinksSalesBody = document.getElementById('drinksSalesBody');
 
-            /* ---------------- close ---------------- */
             function closeDailyModal() {
                 modal.classList.remove('is-open');
                 modal.setAttribute('aria-hidden', 'true');
@@ -1186,7 +1293,6 @@
 
                     if (dailyInventoryType) dailyInventoryType.value = type;
 
-                    // Sync the modal's hidden stock_date with the visible date input
                     if (dailyStockDate) {
                         if (type === 'prepped' && preppedStockDate) {
                             dailyStockDate.value = preppedStockDate.value;
@@ -1197,12 +1303,10 @@
                         }
                     }
 
-                    // Hide all
                     preppedFields.hidden = true;
                     nonCountableFields.hidden = true;
                     drinksFields.hidden = true;
 
-                    // Show target
                     if (type === 'prepped') {
                         title.textContent = 'Prepped Food — Stock';
                         description.textContent = 'Review stock transactions and add new prepped food stock.';
@@ -1226,7 +1330,29 @@
         });
     </script>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('inventoryFilterForm');
+            const input = document.getElementById('inventorySearch');
 
+            if (!form || !input) return;
+
+            let timer = null;
+
+            input.addEventListener('input', function() {
+                clearTimeout(timer);
+                timer = setTimeout(() => form.submit(), 350); // debounce
+            });
+
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    clearTimeout(timer);
+                    form.submit();
+                }
+            });
+        });
+    </script>
     {{-- EDIT ITEM MODAL --}}
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -1245,8 +1371,32 @@
                     document.getElementById('edit_price').value = this.dataset.price || '';
                     document.getElementById('edit_description').value = this.dataset.description || '';
 
-                    editForm.action = `/inventory/${id}`;
+                    // Option groups
+                    let attached = {};
+                    try {
+                        attached = JSON.parse(this.dataset.optionGroups || '{}');
+                    } catch (e) {
+                        attached = {};
+                    }
 
+                    document.querySelectorAll('#editItemModal .option-group-row').forEach(row => {
+                        const checkbox = row.querySelector('.option-group-checkbox');
+                        const select = row.querySelector('.option-required-select');
+
+                        if (!checkbox || !select) return;
+
+                        const groupId = checkbox.name.match(/option_groups\[(\d+)\]/)?.[1];
+                        const isOn = groupId && (groupId in attached);
+
+                        checkbox.checked = isOn;
+                        select.disabled = !isOn;
+
+                        if (isOn) {
+                            select.value = attached[groupId] ? '1' : '0';
+                        }
+                    });
+
+                    editForm.action = `/inventory/${id}`;
                     editModal.classList.add('is-open');
                     editModal.setAttribute('aria-hidden', 'false');
                 });
@@ -1256,6 +1406,20 @@
                 button.addEventListener('click', function() {
                     editModal.classList.remove('is-open');
                     editModal.setAttribute('aria-hidden', 'true');
+                });
+            });
+
+            // Toggle the required dropdown when a checkbox is ticked
+            ['#createItemModal', '#editItemModal'].forEach(scope => {
+                document.querySelectorAll(scope + ' .option-group-row').forEach(row => {
+                    const checkbox = row.querySelector('.option-group-checkbox');
+                    const select = row.querySelector('.option-required-select');
+
+                    if (!checkbox || !select) return;
+
+                    checkbox.addEventListener('change', function() {
+                        select.disabled = !this.checked;
+                    });
                 });
             });
         });
@@ -1270,6 +1434,18 @@
 
             if (openCreateModal && createModal) {
                 openCreateModal.addEventListener('click', function() {
+                    // Reset option group rows
+                    document.querySelectorAll('#createItemModal .option-group-row').forEach(row => {
+                        const checkbox = row.querySelector('.option-group-checkbox');
+                        const select = row.querySelector('.option-required-select');
+
+                        if (!checkbox || !select) return;
+
+                        checkbox.checked = false;
+                        select.disabled = true;
+                        select.value = '1';
+                    });
+
                     createModal.classList.add('is-open');
                     createModal.setAttribute('aria-hidden', 'false');
                 });
@@ -1313,6 +1489,40 @@
             }
         });
     </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('posSidebar') || document.querySelector('.pos-sidebar');
+            const toggle = document.getElementById('posMobileToggle');
+            const backdrop = document.getElementById('posMobileBackdrop');
 
+            if (!sidebar || !toggle) return;
+
+            function openSidebar() {
+                sidebar.classList.add('is-open');
+                backdrop?.classList.add('is-open');
+            }
+
+            function closeSidebar() {
+                sidebar.classList.remove('is-open');
+                backdrop?.classList.remove('is-open');
+            }
+
+            toggle.addEventListener('click', function() {
+                sidebar.classList.contains('is-open') ? closeSidebar() : openSidebar();
+            });
+
+            backdrop?.addEventListener('click', closeSidebar);
+
+            // Close when a category is tapped
+            sidebar.querySelectorAll('.pos-sidebar-link').forEach(function(link) {
+                link.addEventListener('click', closeSidebar);
+            });
+
+            // Escape closes
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') closeSidebar();
+            });
+        });
+    </script>
     @include('inventory.partials.archive-modal')
 </x-app-layout>

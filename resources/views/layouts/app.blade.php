@@ -8,8 +8,9 @@
 
     <title>{{ config('app.name', 'The Brewing Bar') }}</title>
 
+    {{-- Fonts --}}
     <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700|playfair-display:600,700|jetbrains-mono:400,500,600&display=swap" rel="stylesheet" />
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
@@ -19,18 +20,15 @@
     @if (request()->is('pos*'))
 
     {{-- ============================================================
-             POS SHELL
-             - Fixed POS sidebar on the left
-             - Scrollable main area offset to the right
+             POS SHELL — no .app-content, no top bar
+             POS sidebar is fixed at 240px, .pos-main offsets by 240px.
            ============================================================ --}}
     <div class="pos-shell">
-
         @include('layouts.pos-navigation')
 
         <main class="pos-main">
             {{ $slot }}
         </main>
-
     </div>
 
     @else
@@ -49,6 +47,8 @@
         @include('layouts.navigation')
 
         <div class="app-content">
+
+            <x-top-bar />
 
             @isset($header)
             <header class="page-header">

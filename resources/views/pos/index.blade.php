@@ -114,7 +114,7 @@
 
                         <div class="menu-card-photo">
                             <img
-                                src="{{ asset('images/menu/sample.png') }}"
+                                src="{{ asset('images/menu/sample.jpg') }}"
                                 alt="{{ $menuItem->name }}">
                         </div>
 

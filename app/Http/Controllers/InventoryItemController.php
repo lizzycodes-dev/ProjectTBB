@@ -128,6 +128,7 @@ class InventoryItemController extends Controller
             ->paginate(10, ['*'], 'prepped_page')
             ->withQueryString();
 
+
         $nonCountableItems = $nonCountableQuery
             ->orderByDesc('is_active')
             ->orderBy('name')
@@ -280,7 +281,7 @@ class InventoryItemController extends Controller
 | SOLD QUANTITIES FOR DRINKS (from order_items)
 |--------------------------------------------------------------------------
 */
-
+        $drinksItems = $drinkItems;
         $drinkItemIds = $drinkItems->getCollection()->pluck('id');
 
         $drinkSold = DB::table('order_items')
@@ -293,6 +294,9 @@ class InventoryItemController extends Controller
             )
             ->groupBy('order_items.inventory_item_id')
             ->pluck('total_sold', 'inventory_item_id');
+
+        // inside index()
+        $optionGroups = \App\Models\Option_Groups::orderBy('name')->get();
 
         return view('inventory.index', compact(
             'preppedItems',
@@ -312,6 +316,7 @@ class InventoryItemController extends Controller
             'drinkItems',
             'drinkSold',
             'drinkCategoryNames',
+            'optionGroups',   // <-- add
         ));
     }
 
@@ -386,65 +391,50 @@ class InventoryItemController extends Controller
 
     public function create()
     {
-        $categories = Category::where('is_active', true)
-            ->orderBy('name')
-            ->get();
+        $categories = Category::where('is_active', true)->orderBy('name')->get();
+        $locations  = Inventory_Locations::orderBy('name')->get();
+        $units      = Unit::orderBy('name')->get();
 
-        $locations = Inventory_Locations::orderBy('name')->get();
-
-        $units = Unit::orderBy('name')->get();
+        // NEW — pass all option groups for the picker
+        $optionGroups = \App\Models\Option_Groups::orderBy('name')->get();
 
         return view('inventory.create', compact(
             'categories',
             'locations',
-            'units'
+            'units',
+            'optionGroups',
         ));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'category_id' => [
-                'required',
-                'integer',
-                'exists:categories,id',
-            ],
-            'inventory_location_id' => [
-                'required',
-                'integer',
-                'exists:inventory_locations,id',
-            ],
-            'unit_id' => [
-                'nullable',
-                'integer',
-                'exists:units,id',
-            ],
-            'inventory_type' => [
-                'nullable',
-                'in:prepped,physical',
-            ],
-            'price' => [
-                'required',
-                'numeric',
-                'min:0',
-            ],
-            'description' => [
-                'required',
-                'string',
-            ],
+            'name'                    => ['required', 'string', 'max:255'],
+            'category_id'             => ['required', 'integer', 'exists:categories,id'],
+            'inventory_location_id'   => ['required', 'integer', 'exists:inventory_locations,id'],
+            'unit_id'                 => ['nullable', 'integer', 'exists:units,id'],
+            'inventory_type'          => ['nullable', 'in:prepped,physical'],
+            'price'                   => ['required', 'numeric', 'min:0'],
+            'description'             => ['required', 'string'],
+
+            // NEW — option groups payload
+            'option_groups'           => ['nullable', 'array'],
+            'option_groups.*.enabled' => ['nullable', 'boolean'],
+            'option_groups.*.required' => ['nullable', 'boolean'],
         ]);
 
-        Inventory_Item::create([
-            'name' => $validated['name'],
-            'category_id' => $validated['category_id'],
+        $item = Inventory_Item::create([
+            'name'                  => $validated['name'],
+            'category_id'           => $validated['category_id'],
             'inventory_location_id' => $validated['inventory_location_id'],
-            'unit_id' => $validated['unit_id'] ?? null,
-            'inventory_type' => $validated['inventory_type'] ?? null,
-            'price' => $validated['price'],
-            'description' => $validated['description'],
-            'is_active' => true,
+            'unit_id'               => $validated['unit_id'] ?? null,
+            'inventory_type'        => $validated['inventory_type'] ?? null,
+            'price'                 => $validated['price'],
+            'description'           => $validated['description'],
+            'is_active'             => true,
         ]);
+
+        $this->syncOptionGroups($item, $validated['option_groups'] ?? []);
 
         return redirect()
             ->route('inventory.index')
@@ -472,51 +462,56 @@ class InventoryItemController extends Controller
     public function update(Request $request, Inventory_Item $inventoryItem)
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'category_id' => [
-                'required',
-                'integer',
-                'exists:categories,id',
-            ],
-            'inventory_location_id' => [
-                'required',
-                'integer',
-                'exists:inventory_locations,id',
-            ],
-            'unit_id' => [
-                'nullable',
-                'integer',
-                'exists:units,id',
-            ],
-            'inventory_type' => [
-                'nullable',
-                'in:prepped,physical',
-            ],
-            'price' => [
-                'required',
-                'numeric',
-                'min:0',
-            ],
-            'description' => [
-                'required',
-                'string',
-            ],
+            'name'                    => ['required', 'string', 'max:255'],
+            'category_id'             => ['required', 'integer', 'exists:categories,id'],
+            'inventory_location_id'   => ['required', 'integer', 'exists:inventory_locations,id'],
+            'unit_id'                 => ['nullable', 'integer', 'exists:units,id'],
+            'inventory_type'          => ['nullable', 'in:prepped,physical'],
+            'price'                   => ['required', 'numeric', 'min:0'],
+            'description'             => ['required', 'string'],
+
+            // NEW
+            'option_groups'           => ['nullable', 'array'],
+            'option_groups.*.enabled' => ['nullable', 'boolean'],
+            'option_groups.*.required' => ['nullable', 'boolean'],
         ]);
 
         $inventoryItem->update([
-            'name' => $validated['name'],
-            'category_id' => $validated['category_id'],
+            'name'                  => $validated['name'],
+            'category_id'           => $validated['category_id'],
             'inventory_location_id' => $validated['inventory_location_id'],
-            'unit_id' => $validated['unit_id'] ?? null,
-            'inventory_type' => $validated['inventory_type'] ?? null,
-            'price' => $validated['price'],
-            'description' => $validated['description'],
+            'unit_id'               => $validated['unit_id'] ?? null,
+            'inventory_type'        => $validated['inventory_type'] ?? null,
+            'price'                 => $validated['price'],
+            'description'           => $validated['description'],
         ]);
+
+        $this->syncOptionGroups($inventoryItem, $validated['option_groups'] ?? []);
 
         return redirect()
             ->route('inventory.index')
             ->with('success', 'Inventory item updated successfully.');
     }
+
+    private function syncOptionGroups(Inventory_Item $item, array $payload): void
+    {
+        $sync = [];
+
+        foreach ($payload as $groupId => $row) {
+            if (empty($row['enabled'])) {
+                continue;
+            }
+
+            $sync[$groupId] = [
+                'is_required' => (bool) ($row['required'] ?? false),
+                'created_at'  => now(),
+                'updated_at'  => now(),
+            ];
+        }
+
+        $item->optionGroups()->sync($sync);
+    }
+
     public function storeDailyInventory(Request $request)
     {
         $validated = $request->validate([
