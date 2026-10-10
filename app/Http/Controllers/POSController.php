@@ -9,7 +9,6 @@ class POSController extends Controller
 {
     public function index()
     {
-        // Categories that should appear on the POS sidebar (in this order).
         $posCategoryNames = [
             'Coffee',
             'Non Coffee',
@@ -26,17 +25,17 @@ class POSController extends Controller
             'Snack Meals',
         ];
 
-        $menuItems = Inventory_Item::with([
-            'category',
-            'optionGroups.optionValues',
-        ])
+        $menuItems = Inventory_Item::query()
+            ->with([
+                'category',
+                'optionGroups.optionValues',
+            ])
             ->withSum('stockIns as total_stock_in', 'quantity')
             ->withSum('stockOuts as total_stock_out', 'quantity')
             ->where('is_active', true)
             ->where('price', '>', 0)
             ->whereIn('inventory_type', ['prepped', 'physical'])
             ->whereHas('category', function ($query) use ($posCategoryNames) {
-                // Only show items that belong to the POS selling categories.
                 $query->whereIn('name', $posCategoryNames);
             })
             ->orderBy('name')
@@ -48,22 +47,19 @@ class POSController extends Controller
             $stockIn = (float) ($menuItem->total_stock_in ?? 0);
             $stockOut = (float) ($menuItem->total_stock_out ?? 0);
 
-            $currentStock = $stockIn - $stockOut;
+            $currentStock = max(0, $stockIn - $stockOut);
 
             $menuItem->current_stock = $currentStock;
 
-            if ($currentStock <= 0) {
-                $menuItem->stock_status = 'out';
-            } elseif ($currentStock <= $lowStockThreshold) {
-                $menuItem->stock_status = 'low';
-            } else {
-                $menuItem->stock_status = 'in';
-            }
+            $menuItem->stock_status = match (true) {
+                $currentStock <= 0 => 'out',
+                $currentStock <= $lowStockThreshold => 'low',
+                default => 'in',
+            };
         }
 
-        // Only load categories that are used on the POS sidebar.
-        // Keep the same explicit order as $posCategoryNames.
-        $categories = Category::where('is_active', true)
+        $categories = Category::query()
+            ->where('is_active', true)
             ->whereIn('name', $posCategoryNames)
             ->orderByRaw(
                 "FIELD(name, '" . implode("','", $posCategoryNames) . "')"

@@ -126,14 +126,14 @@ class InventoryItemController extends Controller
             ->orderByDesc('is_active')
             ->orderBy('name')
             ->paginate(10, ['*'], 'prepped_page')
-            ->withQueryString();
+            ->appends(request()->only(['search', 'category_id', 'location_id', 'tab']));
 
 
         $nonCountableItems = $nonCountableQuery
             ->orderByDesc('is_active')
             ->orderBy('name')
             ->paginate(10, ['*'], 'non_countable_page')
-            ->withQueryString();
+            ->appends(request()->only(['search', 'category_id', 'location_id', 'tab']));
 
 
 
@@ -274,7 +274,7 @@ class InventoryItemController extends Controller
             })
             ->orderBy('name')
             ->paginate(10, ['*'], 'drinks_page')
-            ->withQueryString();
+            ->appends(request()->only(['search', 'category_id', 'location_id', 'tab']));
 
         /*
 |--------------------------------------------------------------------------

@@ -77,43 +77,9 @@ class OrderController extends Controller
      * Buy 1 Take 1, Soda Fruit Jelly, Fruit Juice Pitcher) are NOT here
      * on purpose. Their sale is recorded in order_items only.
      */
-        $kitchenStockMap = [
-            // Rice Meals
-            'Porkchop with Sauce'                           => 'Pork Chop',
-            'Chicken Teriyaki'                              => 'C-Teriyaki',
-            'Chicken Ala King'                              => 'Chicken Ala King',
-            '2 pcs Burger Steak'                            => 'Burger Patty',
-            'Tocino with Egg'                               => 'Pork/Chicken Tocino',
-            'Chorizo with Egg'                              => 'Chicken Franks',
-            'Cornbeef with Egg'                             => 'Corn Beef',
-            'Fish Fillet (Rice Meal)'                       => 'Fish Fillet',
-            'Deep Fried Bangus'                             => 'Bangus',
-            'Ham and Egg'                                   => 'Pork/Chicken Ham',
-            'Chicken Hotdog with Egg'                       => 'Chicken Franks',
-            'Pork Sisig (Rice Meal)'                        => 'Pork Sisig',
-            'Chicken Sisig (Rice Meal)'                     => 'Chicken Sisig',
 
-            // Rice Toppings
-            'Fried Siomai with Egg'                         => 'Fried Siomai',
-            'Pork Binagoongan'                              => 'Binagoongan',
-            'Chicken Adobo'                                 => 'Chicken Adobo',
-            'Pork Adobo'                                    => 'Pork Adobo',
 
-            // Snack Meals
-            'Clubhouse Sandwich'                            => 'Pork/Chicken Ham',
-            'Beef Cheese Burger with Fries'                 => 'Burger Patty',
-            'Double Patty Chicken Cheese Burger with Fries' => 'Burger Patty',
-            'Chicken Hotdog Sandwich'                       => 'Chicken Franks',
-            'Chicken Carbonara with Coke'                   => 'Chicken Carbonara',
-            'Ham Carbonara with Coke'                       => 'Chicken Carbonara',
-            'Bihon Guisado'                                 => 'Bihon',
-            'Bake Mac'                                      => 'Baked Mac',
-            'Beef Cheese Nachos'                            => 'Nachos Chips/Beef',
-            'Mozzarella Cheese Stick'                       => 'Mozzarella',
-            'French Fries'                                  => 'Fries',
-        ];
-
-        return DB::transaction(function () use ($request, $validated, $kitchenStockMap) {
+        return DB::transaction(function () use ($request, $validated) {
 
             /*
          * Load the selected menu items and their option groups.
@@ -172,28 +138,6 @@ class OrderController extends Controller
                     ]);
                 }
             }
-
-            /*
-         * Get the Kitchen Area location once.
-         */
-            $kitchenLocation = \App\Models\Inventory_Locations::query()
-                ->where('name', 'Kitchen Area')
-                ->first();
-
-            if (! $kitchenLocation) {
-                throw ValidationException::withMessages([
-                    'items' => 'Kitchen Area was not found in inventory locations.',
-                ]);
-            }
-
-            /*
-         * Cache the Kitchen Area stock items by name so we don't hit the DB
-         * repeatedly. Only active items in Kitchen Area are considered.
-         */
-            $kitchenStockByName = Inventory_Item::query()
-                ->where('inventory_location_id', $kitchenLocation->id)
-                ->where('is_active', true)
-                ->pluck('id', 'name');
 
             /*
          * Calculate the order subtotal using inventory_items.price
@@ -279,23 +223,15 @@ class OrderController extends Controller
                     ]);
                 }
 
+
                 /*
-             * Stock-out: only prepped food items in the mapping are deducted.
-             * Drinks (Coffee, Non Coffee, Frappe, etc.) are NOT in the map
-             * and therefore will not create a stock_out row.
-             */
-                $stockItemName = $kitchenStockMap[$inventoryItem->name] ?? null;
-
-                if ($stockItemName !== null) {
-                    $stockItemId = $kitchenStockByName[$stockItemName] ?? null;
-
-                    if (! $stockItemId) {
-                        throw ValidationException::withMessages([
-                            'items' => "Kitchen stock item '{$stockItemName}' is missing or inactive.",
-                        ]);
-                    }
-
-                    $stockItem = Inventory_Item::lockForUpdate()->find($stockItemId);
+ * Deduct stock only for prepared-food items.
+ * Drinks are recorded in order_items only.
+ */
+                if ($inventoryItem->inventory_type === 'prepped') {
+                    $stockItem = Inventory_Item::query()
+                        ->lockForUpdate()
+                        ->findOrFail($inventoryItem->id);
 
                     $totalStockIn = (float) \App\Models\StockIn::query()
                         ->where('inventory_item_id', $stockItem->id)
@@ -305,11 +241,11 @@ class OrderController extends Controller
                         ->where('inventory_item_id', $stockItem->id)
                         ->sum('quantity');
 
-                    $availableStock = $totalStockIn - $totalStockOut;
+                    $availableStock = max(0, $totalStockIn - $totalStockOut);
 
                     if ($availableStock < $quantity) {
                         throw ValidationException::withMessages([
-                            'items' => "Not enough prepared stock for {$inventoryItem->name}. Available: {$availableStock}. Requested: {$quantity}.",
+                            'items' => "Not enough stock for {$stockItem->name}. Available: {$availableStock}. Requested: {$quantity}.",
                         ]);
                     }
 
@@ -319,20 +255,15 @@ class OrderController extends Controller
                         'recorded_by'       => $validated['cashier_id'] ?? auth()->id(),
                         'reason'            => 'Sold via POS: ' . $order->order_number,
                         'recorded_at'       => now(),
-                        'remarks'           => 'Order item: ' . $inventoryItem->name,
+                        'remarks'           => 'Order item: ' . $stockItem->name,
                     ]);
 
-                    $remainingStock = $availableStock - $quantity;
-
                     $stockUpdates[] = [
-                        'menu_item_id' => $inventoryItem->id,
-                        'stock'        => $remainingStock,
+                        'menu_item_id' => $stockItem->id,
+                        'stock'        => $availableStock - $quantity,
                     ];
                 }
 
-                /*
-             * Kitchen ticket for this order line.
-             */
                 Kitchen_Order_Item::create([
                     'order_id'      => $order->id,
                     'order_item_id' => $orderItem->id,

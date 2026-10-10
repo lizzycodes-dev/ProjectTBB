@@ -92,14 +92,14 @@
                         aria-label="Search inventory items"
                         autocomplete="off">
 
-                    <select name="location_id" onchange="this.form.submit()">
+                    <!--<select name="location_id" onchange="this.form.submit()">
                         <option value="">All Areas</option>
                         @foreach ($locations as $location)
                         <option value="{{ $location->id }}" @selected((string) $locationId===(string) $location->id)>
                             {{ $location->name }}
                         </option>
                         @endforeach
-                    </select>
+                    </select>-->
 
                     <select name="category_id" onchange="this.form.submit()">
                         <option value="">All Categories</option>
@@ -796,7 +796,21 @@
                                                 data-input-new="{{ $inputNew }}"
                                                 min="0" step="1" value="0" placeholder="0">
                                         </td>
-                                        <td><span class="ending-value">{{ number_format($ending, 0) }}</span></td>
+                                        <td>
+                                            <span class="ending-value"
+                                                style="
+                                                        font-weight: 700;
+                                                        @if ($ending <= 5)
+                                                            color: #dc2626;
+                                                        @elseif ($ending <= 15)
+                                                            color: #ea580c;
+                                                        @else
+                                                            color: #16a34a;
+                                                        @endif
+                                                    ">
+                                                {{ number_format($ending, 0) }}
+                                            </span>
+                                        </td>
                                     </tr>
                                     @endforeach
                                 </tbody>
@@ -922,8 +936,8 @@
                     const url = new URL(window.location.href);
                     url.searchParams.set('tab', target);
 
-                    // Remove all per-tab page params so they don't leak across tabs
-                    ['prepped_page', 'drinks_page', 'non_countable_page']
+                    // Remove ALL page params so pagination state doesn't leak across tabs
+                    ['prepped_page', 'drinks_page', 'non_countable_page', 'page']
                     .forEach(p => url.searchParams.delete(p));
 
                     window.history.replaceState({}, '', url.toString());
@@ -936,17 +950,34 @@
                 });
             });
 
-            // Prefer explicit ?tab=..., fall back to page params, else prepped
+            // Determine initial tab
             const params = new URLSearchParams(window.location.search);
             const explicitTab = params.get('tab');
 
             let initialTab = 'prepped';
-            if (explicitTab === 'drinks' || explicitTab === 'non-countable' || explicitTab === 'prepped') {
+            if (['prepped', 'drinks', 'non-countable'].includes(explicitTab)) {
                 initialTab = explicitTab;
             } else if (params.has('drinks_page')) {
                 initialTab = 'drinks';
             } else if (params.has('non_countable_page')) {
                 initialTab = 'non-countable';
+            }
+
+            // If URL has an explicit tab but also has other tabs' page params, clean it
+            if (explicitTab) {
+                const url = new URL(window.location.href);
+                let dirty = false;
+
+                ['prepped_page', 'drinks_page', 'non_countable_page'].forEach(p => {
+                    if (url.searchParams.has(p)) {
+                        url.searchParams.delete(p);
+                        dirty = true;
+                    }
+                });
+
+                if (dirty) {
+                    window.history.replaceState({}, '', url.toString());
+                }
             }
 
             activateTab(initialTab, false);

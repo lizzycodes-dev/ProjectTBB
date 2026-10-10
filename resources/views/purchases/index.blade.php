@@ -317,7 +317,7 @@
                                     </strong>
 
                                     <span>
-                                        {{ number_format($stockIn->quantity, 2) }}
+                                        {{ number_format($stockIn->quantity) }}
                                         {{ $stockIn->inventoryItem->unit->name ?? '' }}
                                     </span>
 
