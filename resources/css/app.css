@@ -1328,7 +1328,55 @@
     color: var(--foreground);
 }
 
-.kitchen-header { margin-bottom: 22px; }
+
+
+```css
+.kitchen-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.kitchen-header > div:first-child {
+    flex: 0 0 auto;
+}
+
+.kitchen-header > .kitchen-button {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: max-content !important;
+    flex: 0 0 auto !important;
+    align-self: center;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background-color: var(--soft-brown);
+    color: #fff;
+    text-decoration: none;
+    white-space: nowrap;
+}
+```
+
+.kitchen-button:hover {
+    background-color: #ea580c;
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+.kitchen-button:focus-visible {
+    outline: 3px solid #fdba74;
+    outline-offset: 3px;
+}
+
+
+.kitchen-icon-button:focus-visible {
+    outline: 3px solid #fdba74;
+    outline-offset: 3px;
+}
 
 .kitchen-header h1 {
     margin: 0;

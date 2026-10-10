@@ -85,7 +85,6 @@ class InventoryItemSeeder extends Seeder
                 ['name' => 'Egg'],
                 ['name' => 'Mozzarella'],
                 ['name' => 'Fries'],
-                ['name' => 'Burger Patty'],
                 ['name' => 'Pork Chop'],
                 ['name' => 'Bihon'],
                 ['name' => 'C/K for Bihon'],

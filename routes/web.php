@@ -27,7 +27,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // Kitchen: everyone can view it (cashiers view-only)
-    Route::get('/kitchen', [KitchenOrderItemController::class, 'index']);
+    Route::get('/kitchen', [KitchenOrderItemController::class, 'index'])
+        ->name('kitchen.index');
 
     // Kitchen actions: cooks AND managers only
     Route::post('/kitchen/{kitchenOrder}/start', [KitchenOrderItemController::class, 'start'])
