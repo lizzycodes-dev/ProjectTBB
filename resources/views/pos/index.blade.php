@@ -35,6 +35,26 @@
             stroke-linecap: round;
             stroke-linejoin: round;
         }
+
+        /* Highlight active POS category in the sidebar */
+        .pos-category-link.active {
+            background: #b4473b;
+            color: #ffffff;
+        }
+
+        .pos-category-link.active svg {
+            stroke: #ffffff;
+        }
+
+        /* Optional: nicer button reset inside the sidebar */
+        .pos-category-link {
+            border: none;
+            background: transparent;
+            font: inherit;
+            text-align: left;
+            cursor: pointer;
+            width: 100%;
+        }
     </style>
 
     <div class="kitchen-page">
@@ -50,25 +70,9 @@
 
             <!-- MENU -->
             <section class="menu-section">
-                <div class="category-tabs">
-                    <button
-                        type="button"
-                        class="category-tab active"
-                        data-category="All"
-                        onclick="filterCategory(this.dataset.category, this)">
-                        ALL
-                    </button>
 
-                    @foreach ($categories as $category)
-                    <button
-                        type="button"
-                        class="category-tab"
-                        data-category="{{ $category->name }}"
-                        onclick="filterCategory(this.dataset.category, this)">
-                        {{ strtoupper($category->name) }}
-                    </button>
-                    @endforeach
-                </div>
+                {{-- NOTE: category tabs removed — now rendered in the sidebar --}}
+
                 <div class="pos-search">
                     <input
                         type="search"
@@ -89,6 +93,14 @@
                     'Coffee',
                     'Non Coffee',
                     'Juice',
+                    'Frappe Ice Cream on Top',
+                    'Smoothies Ice Cream on Top',
+                    'Popping Boba Pearls',
+                    'Oreo Milk Series',
+                    'Fizzy Coolers',
+                    'Buy 1 Take 1 Smoothies',
+                    'Soda Fruit Jelly Buy 1 Take 1',
+                    'Fruit Juice Pitcher',
                     ]);
 
                     $isOutOfStock = $usesStockStatus
@@ -159,7 +171,6 @@
                     @endforeach
 
                 </div>
-
 
             </section>
 
@@ -292,6 +303,7 @@
         </div>
 
     </div>
+
     <!-- OPTIONS MODAL -->
     <div id="optionModal" class="option-modal">
         <div class="option-modal-content">
@@ -338,6 +350,7 @@
                 );
             });
         });
+
         let cart = [];
         let selectedMenuItem = null;
 
@@ -347,39 +360,25 @@
 
         const DISCOUNT_RATE = 0.20;
 
-        /*
-         * Convert the inventory-item option-group pivot data into
-         * the simpler structure used by the option modal.
-         *
-         * Expected relation structure:
-         * optionGroups -> optionGroup -> optionValues
-         */
         function normalizeOptionGroups(rawGroups) {
-            return (rawGroups || [])
-                .map(itemGroup => {
-                    const group = itemGroup.option_group;
-
-                    if (!group) {
-                        return null;
-                    }
-
-                    return {
-                        id: Number(group.id),
-                        name: group.name,
-                        is_required: Boolean(itemGroup.is_required),
-                        values: (group.option_values || []).map(value => ({
-                            id: Number(value.id),
-                            name: value.name,
-                            price_adjustment: Number(value.price_adjustment || 0)
-                        }))
-                    };
-                })
-                .filter(group => group !== null);
+            return (rawGroups || []).map(group => ({
+                id: Number(group.id),
+                name: group.name,
+                is_required: Boolean(
+                    group.pivot?.is_required ?? group.is_required
+                ),
+                values: (group.option_values || group.optionValues || [])
+                    .filter(value => Boolean(value.is_active ?? true))
+                    .map(value => ({
+                        id: Number(value.id),
+                        name: value.name,
+                        price_adjustment: Number(
+                            value.price_adjustment || 0
+                        )
+                    }))
+            }));
         }
 
-        /*
-         * Add-to-cart buttons
-         */
         document.querySelectorAll('.add-to-cart').forEach(button => {
             button.addEventListener('click', function() {
                 const id = Number(this.dataset.id);
@@ -413,10 +412,6 @@
             });
         });
 
-        /*
-         * Add item to cart.
-         * The item ID is the inventory_items.id.
-         */
         function addToCart(id, name, price, options = []) {
             const optionIds = options
                 .map(option => Number(option.id))
@@ -446,9 +441,6 @@
             renderCart();
         }
 
-        /*
-         * Calculate totals
-         */
         function getTotals() {
             const subtotal = cart.reduce(
                 (sum, item) => sum + (item.price * item.quantity),
@@ -471,18 +463,15 @@
             };
         }
 
-        /*
-         * Render cart and update the summary
-         */
         function renderCart() {
             const cartItems = document.getElementById('cartItems');
 
             if (cart.length === 0) {
                 cartItems.innerHTML = `
-                <div class="empty-cart">
-                    No items added.
-                </div>
-            `;
+                    <div class="empty-cart">
+                        No items added.
+                    </div>
+                `;
 
                 document.getElementById('subtotal').textContent = '₱0.00';
                 document.getElementById('discount').textContent = '₱0.00';
@@ -505,60 +494,60 @@
                 itemElement.className = 'cart-item';
 
                 itemElement.innerHTML = `
-                <div class="cart-item-image">
-                    IMAGE
-                </div>
-
-                <div class="cart-item-info">
-                    <div class="cart-item-name">
-                        ${esc(item.name)}
+                    <div class="cart-item-image">
+                        IMAGE
                     </div>
 
-                    ${
-                        optionText
-                            ? `<div class="cart-item-options">${esc(optionText)}</div>`
-                            : ''
-                    }
+                    <div class="cart-item-info">
+                        <div class="cart-item-name">
+                            ${esc(item.name)}
+                        </div>
 
-                    <div class="cart-item-price">
-                        ₱${item.price.toFixed(2)} each
+                        ${
+                            optionText
+                                ? `<div class="cart-item-options">${esc(optionText)}</div>`
+                                : ''
+                        }
+
+                        <div class="cart-item-price">
+                            ₱${item.price.toFixed(2)} each
+                        </div>
                     </div>
-                </div>
 
-                <div class="cart-quantity">
+                    <div class="cart-quantity">
+                        <button
+                            type="button"
+                            onclick="decreaseQuantity(${index})">
+                            −
+                        </button>
+
+                        <span>${item.quantity}</span>
+
+                        <button
+                            type="button"
+                            onclick="increaseQuantity(${index})">
+                            +
+                        </button>
+                    </div>
+
                     <button
                         type="button"
-                        onclick="decreaseQuantity(${index})">
-                        −
+                        class="remove-item"
+                        title="Remove item"
+                        aria-label="Remove ${esc(item.name)}"
+                        onclick="removeCartItem(${index})">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M4 7h16" />
+                            <path d="M10 11v6M14 11v6" />
+                            <path d="M6 7l1 13h10l1-13" />
+                            <path d="M9 7V4h6v3" />
+                        </svg>
                     </button>
 
-                    <span>${item.quantity}</span>
-
-                    <button
-                        type="button"
-                        onclick="increaseQuantity(${index})">
-                        +
-                    </button>
-                </div>
-
-                <button
-                    type="button"
-                    class="remove-item"
-                    title="Remove item"
-                    aria-label="Remove ${esc(item.name)}"
-                    onclick="removeCartItem(${index})">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M4 7h16" />
-                        <path d="M10 11v6M14 11v6" />
-                        <path d="M6 7l1 13h10l1-13" />
-                        <path d="M9 7V4h6v3" />
-                    </svg>
-                </button>
-
-                <div class="cart-item-total">
-                    ₱${itemSubtotal.toFixed(2)}
-                </div>
-            `;
+                    <div class="cart-item-total">
+                        ₱${itemSubtotal.toFixed(2)}
+                    </div>
+                `;
 
                 cartItems.appendChild(itemElement);
             });
@@ -601,9 +590,6 @@
             renderCart();
         }
 
-        /*
-         * Options modal
-         */
         function openOptionModal(menuItem) {
             selectedMenuItem = menuItem;
 
@@ -707,9 +693,6 @@
             closeOptionModal();
         }
 
-        /*
-         * Order type and payment controls
-         */
         function selectOrderType(type) {
             orderType = type;
 
@@ -753,9 +736,6 @@
             renderCart();
         }
 
-        /*
-         * Cash change calculation
-         */
         function updateChange() {
             const received =
                 parseFloat(document.getElementById('amountReceived').value) || 0;
@@ -769,9 +749,6 @@
         document.getElementById('amountReceived')
             .addEventListener('input', updateChange);
 
-        /*
-         * Escape text before inserting it into HTML
-         */
         function esc(value) {
             const map = {
                 '&': '&amp;',
@@ -784,86 +761,83 @@
             return String(value).replace(/[&<>"']/g, character => map[character]);
         }
 
-        /*
-         * Receipt
-         */
         function showReceipt(receipt) {
             const money = number => '₱' + Number(number).toFixed(2);
 
             const lines = receipt.items.map(item => `
-            <div class="receipt-line">
-                <span>
-                    ${item.quantity}× ${esc(item.name)}
-                    ${item.options ? ' (' + esc(item.options) + ')' : ''}
-                </span>
-                <span>${money(item.price * item.quantity)}</span>
-            </div>
-        `).join('');
+                <div class="receipt-line">
+                    <span>
+                        ${item.quantity}× ${esc(item.name)}
+                        ${item.options ? ' (' + esc(item.options) + ')' : ''}
+                    </span>
+                    <span>${money(item.price * item.quantity)}</span>
+                </div>
+            `).join('');
 
             const discountLine = receipt.discount > 0 ?
                 `
-                <div class="receipt-line">
-                    <span>Discount (${esc(receipt.discountType)})</span>
-                    <span>−${money(receipt.discount)}</span>
-                </div>
-            ` :
+                    <div class="receipt-line">
+                        <span>Discount (${esc(receipt.discountType)})</span>
+                        <span>−${money(receipt.discount)}</span>
+                    </div>
+                ` :
                 '';
 
             const cashLines = receipt.payment === 'Cash' ?
                 `
-                <div class="receipt-line">
-                    <span>Cash</span>
-                    <span>${money(receipt.received)}</span>
-                </div>
-                <div class="receipt-line">
-                    <span>Change</span>
-                    <span>${money(receipt.received - receipt.total)}</span>
-                </div>
-            ` :
+                    <div class="receipt-line">
+                        <span>Cash</span>
+                        <span>${money(receipt.received)}</span>
+                    </div>
+                    <div class="receipt-line">
+                        <span>Change</span>
+                        <span>${money(receipt.received - receipt.total)}</span>
+                    </div>
+                ` :
                 '';
 
             document.getElementById('receiptBody').innerHTML = `
-            <div class="receipt-head">
-                <h2>The Brewing Bar</h2>
-                <p>Gravahan, New Matina, Davao City</p>
+                <div class="receipt-head">
+                    <h2>The Brewing Bar</h2>
+                    <p>Gravahan, New Matina, Davao City</p>
 
-                <div class="receipt-line">
-                    <strong>Queue #${esc(receipt.queue)}</strong>
-                    <strong>${esc(receipt.orderType)}</strong>
-                </div>
-            </div>
-
-            <div class="receipt-meta">
-                ${esc(receipt.orderNumber)} · ${new Date().toLocaleString('en-PH')}
-            </div>
-
-            ${lines}
-
-            <div class="receipt-totals">
-                <div class="receipt-line">
-                    <span>Subtotal</span>
-                    <span>${money(receipt.subtotal)}</span>
+                    <div class="receipt-line">
+                        <strong>Queue #${esc(receipt.queue)}</strong>
+                        <strong>${esc(receipt.orderType)}</strong>
+                    </div>
                 </div>
 
-                ${discountLine}
-
-                <div class="receipt-line receipt-total">
-                    <strong>TOTAL</strong>
-                    <strong>${money(receipt.total)}</strong>
+                <div class="receipt-meta">
+                    ${esc(receipt.orderNumber)} · ${new Date().toLocaleString('en-PH')}
                 </div>
 
-                <div class="receipt-line">
-                    <span>Payment</span>
-                    <span>${esc(receipt.payment)}</span>
+                ${lines}
+
+                <div class="receipt-totals">
+                    <div class="receipt-line">
+                        <span>Subtotal</span>
+                        <span>${money(receipt.subtotal)}</span>
+                    </div>
+
+                    ${discountLine}
+
+                    <div class="receipt-line receipt-total">
+                        <strong>TOTAL</strong>
+                        <strong>${money(receipt.total)}</strong>
+                    </div>
+
+                    <div class="receipt-line">
+                        <span>Payment</span>
+                        <span>${esc(receipt.payment)}</span>
+                    </div>
+
+                    ${cashLines}
                 </div>
 
-                ${cashLines}
-            </div>
-
-            <p class="receipt-thanks">
-                Thank you for visiting!
-            </p>
-        `;
+                <p class="receipt-thanks">
+                    Thank you for visiting!
+                </p>
+            `;
 
             document.getElementById('receiptModal').style.display = 'flex';
         }
@@ -872,12 +846,6 @@
             document.getElementById('receiptModal').style.display = 'none';
         }
 
-        /*
-         * Submit the cart to the Laravel store method.
-         *
-         * Important: items[*].inventory_item_id must match the
-         * validation key in the controller.
-         */
         async function placeOrder() {
             if (cart.length === 0) {
                 alert('Please add an item to the order.');
@@ -980,9 +948,6 @@
                     received: amountTendered
                 });
 
-                /*
-                 * Update POS stock display after successful order
-                 */
                 if (result.stock_updates) {
                     result.stock_updates.forEach(update => {
                         const button = document.querySelector(
@@ -1002,28 +967,26 @@
                         const stockStatus = card.querySelector('.menu-stock-status');
 
                         if (update.stock <= 0) {
-                            // Out of stock
                             card.classList.add('out-of-stock');
 
                             if (stockStatus) {
                                 stockStatus.innerHTML = `
-                    <span class="stock-badge stock-out">
-                        Out of Stock
-                    </span>
-                `;
+                                    <span class="stock-badge stock-out">
+                                        Out of Stock
+                                    </span>
+                                `;
                             }
 
                             button.textContent = 'Out of Stock';
                             button.disabled = true;
                             button.classList.add('disabled');
                         } else {
-                            // Still has stock
                             if (stockStatus) {
                                 stockStatus.innerHTML = `
-                    <span class="stock-badge stock-in">
-                        In Stock · ${Number(update.stock).toLocaleString()} left
-                    </span>
-                `;
+                                    <span class="stock-badge stock-in">
+                                        In Stock · ${Number(update.stock).toLocaleString()} left
+                                    </span>
+                                `;
                             }
                         }
                     });
@@ -1046,9 +1009,10 @@
 
         /*
          * Filter menu cards by category
+         * Triggered from the POS sidebar buttons (.pos-category-link)
          */
         function filterCategory(category, button) {
-            document.querySelectorAll('.category-tab').forEach(tab => {
+            document.querySelectorAll('.pos-category-link').forEach(tab => {
                 tab.classList.remove('active');
             });
 
@@ -1064,4 +1028,5 @@
             });
         }
     </script>
+
 </x-app-layout>

@@ -692,8 +692,6 @@
     padding: 12px;
     display: flex;
     flex-direction: column;
-    min-height: 0;
-    overflow: hidden;
     box-shadow: -2px 0 6px rgba(0, 0, 0, 0.06);
 }
 
@@ -6029,4 +6027,389 @@
 
 .user-confirm-ok.success:hover {
     background: #14532d;
+}
+
+
+/* =========================================================
+   POS SIDEBAR (always open, fixed on the left)
+   ========================================================= */
+.pos-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 240px;
+    height: 100vh;
+
+    display: flex;
+    flex-direction: column;
+
+    background: #2b1d16;
+    color: #f7f2ea;
+
+    padding: 16px 12px;
+    box-sizing: border-box;
+
+    overflow-y: auto;
+
+    z-index: 1000;
+}
+
+/* Header / brand */
+.pos-sidebar-header {
+    display: flex;
+    align-items: center;
+    padding: 8px 6px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 12px;
+}
+
+.pos-sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: inherit;
+}
+
+.pos-sidebar-logo {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+.pos-sidebar-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #f7f2ea;
+}
+
+.pos-sidebar-subtitle {
+    font-size: 0.72rem;
+    color: #c9a27a;
+    margin-top: 2px;
+}
+
+/* Back-to-inventory wrapper */
+.pos-sidebar-back-wrap {
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 8px;
+}
+
+/* Nav links (both anchors and buttons) */
+.pos-sidebar-links {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 2px;
+}
+
+.pos-sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    width: 100%;
+    padding: 10px 12px;
+
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: transparent;
+
+    color: #f7f2ea;
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.pos-sidebar-link:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.pos-sidebar-link.active {
+    background: #b4473b;
+    border-color: #b4473b;
+    color: #ffffff;
+    font-weight: 700;
+}
+
+.pos-sidebar-link svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.pos-sidebar-link-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Logout section */
+.pos-sidebar-logout {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pos-sidebar-logout-button {
+    color: #f7d2c8;
+}
+
+.pos-sidebar-logout-button:hover {
+    background: rgba(180, 71, 59, 0.35);
+}
+
+/* =========================================================
+   POS LAYOUT SHELL
+   Sidebar fixed on the left, content flows to its right.
+   ========================================================= */
+
+.pos-shell {
+    position: relative;
+    min-height: 100vh;
+    width: 100%;
+    background: #f7f2ea;
+}
+.pos-main .menu-section {
+    overflow-y: auto;
+    max-height: calc(100vh - 48px);   /* 24px top + 24px bottom padding */
+}
+
+/* ---------- POS sidebar ---------- */
+.pos-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+
+    width: 240px;
+    height: 100vh;
+
+    display: flex;
+    flex-direction: column;
+
+    background: #2b1d16;
+    color: #f7f2ea;
+
+    padding: 16px 12px;
+    box-sizing: border-box;
+
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+/* Brand / header */
+.pos-sidebar-header {
+    display: flex;
+    align-items: center;
+    padding: 8px 6px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 12px;
+}
+
+.pos-sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: inherit;
+}
+
+.pos-sidebar-logo {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+.pos-sidebar-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #f7f2ea;
+}
+
+.pos-sidebar-subtitle {
+    font-size: 0.72rem;
+    color: #c9a27a;
+    margin-top: 2px;
+}
+
+/* Back link */
+.pos-sidebar-back-wrap {
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 8px;
+}
+
+/* Nav links */
+.pos-sidebar-links {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 2px;
+}
+
+.pos-sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    width: 100%;
+    padding: 10px 12px;
+
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: transparent;
+
+    color: #f7f2ea;
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.pos-sidebar-link:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.pos-sidebar-link.active {
+    background: #b4473b;
+    border-color: #b4473b;
+    color: #ffffff;
+    font-weight: 700;
+}
+
+.pos-sidebar-link svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.pos-sidebar-link-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Logout */
+.pos-sidebar-logout {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pos-sidebar-logout-button {
+    color: #f7d2c8;
+}
+
+.pos-sidebar-logout-button:hover {
+    background: rgba(180, 71, 59, 0.35);
+}
+
+/* ---------- POS main area ---------- */
+.pos-main {
+    margin-left: 240px;                 /* leave room for the fixed sidebar */
+    width: calc(100% - 240px);
+    min-height: 100vh;
+    box-sizing: border-box;
+    padding: 24px 28px;
+    overflow-x: hidden;
+}
+
+/* Optional: keep the POS page's own content spacing reasonable */
+.pos-main .kitchen-page {
+    max-width: 100%;
+}
+
+/* POS should always be 2-column-ish; make sure cart doesn't overlap */
+.pos-main .pos-container {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 24px;
+    align-items: start;
+}
+
+/* Cart panel: no internal scroll, let it grow naturally */
+.pos-main .cart-section {
+    position: sticky;         /* keeps it visible while menu scrolls */
+    top: 24px;
+    max-height: none;
+    overflow: visible;
+}
+
+/* Hide scrollbar visually but keep it scrollable */
+.pos-sidebar {
+    scrollbar-width: none;        /* Firefox */
+    -ms-overflow-style: none;     /* IE / old Edge */
+}
+
+.pos-sidebar::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+}
+
+/* Also hide it on the inner links container */
+.pos-sidebar-links {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.pos-sidebar-links::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+}
+
+/* Small screens: stack the cart under the menu */
+@media (max-width: 1100px) {
+    .pos-main .pos-container {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* Very small screens: shrink the sidebar width and offset accordingly */
+@media (max-width: 640px) {
+    .pos-sidebar {
+        width: 72px;
+        padding: 12px 6px;
+    }
+
+    .pos-sidebar .pos-sidebar-title,
+    .pos-sidebar .pos-sidebar-subtitle,
+    .pos-sidebar .pos-sidebar-link-text {
+        display: none;
+    }
+
+    .pos-main {
+        margin-left: 72px;
+        width: calc(100% - 72px);
+        padding: 16px;
+    }
 }

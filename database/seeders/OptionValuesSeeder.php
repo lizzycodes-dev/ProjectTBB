@@ -41,5 +41,35 @@ class OptionValuesSeeder extends Seeder
                 'is_active' => true,
             ]
         );
+
+        $spice = Option_Groups::where('name', 'Spice Level')->first();
+
+        if (! $spice) {
+            throw new RuntimeException(
+                'Missing Spice Level option group. Run OptionGroupsSeeder first.'
+            );
+        }
+
+        Option_Values::firstOrCreate(
+            [
+                'option_group_id' => $spice->id,
+                'name' => 'Spicy',
+            ],
+            [
+                'price_adjustment' => 0,
+                'is_active' => true,
+            ]
+        );
+
+        Option_Values::firstOrCreate(
+            [
+                'option_group_id' => $spice->id,
+                'name' => 'Non-Spicy',
+            ],
+            [
+                'price_adjustment' => 0,
+                'is_active' => true,
+            ]
+        );
     }
 }

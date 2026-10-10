@@ -20,9 +20,18 @@ class InventoryItemOptionGroupsSeeder extends Seeder
             );
         }
 
+        $spice = DB::table('option_groups')
+            ->where('name', 'Spice Level')
+            ->first();
+
+        if (! $spice) {
+            throw new RuntimeException(
+                'Spice Level option group is missing. Run OptionGroupsSeeder first.'
+            );
+        }
+
         // Beverage items that offer both Hot and Iced.
-        $itemNames = [
-            // Coffee
+        $temperatureItemNames = [
             'Americano',
             'Cafe Latte',
             'Cappuccino',
@@ -33,31 +42,62 @@ class InventoryItemOptionGroupsSeeder extends Seeder
             'Hazelnut Latte',
             'Coffee Jelly',
             'Choco Almond Toffee',
-
-            // Non-coffee drinks that can be served hot or iced
             'Dark Chocolate',
             'Matcha Latte',
             'Strawberry Latte',
         ];
 
-        $items = DB::table('inventory_items')
-            ->whereIn('name', $itemNames)
+        $temperatureItems = DB::table('inventory_items')
+            ->whereIn('name', $temperatureItemNames)
             ->get(['id', 'name']);
 
-        $foundNames = $items->pluck('name')->all();
-        $missingNames = array_values(array_diff($itemNames, $foundNames));
+        $foundTemperatureNames = $temperatureItems->pluck('name')->all();
+        $missingTemperatureNames = array_values(array_diff($temperatureItemNames, $foundTemperatureNames));
 
-        if ($missingNames) {
+        if ($missingTemperatureNames) {
             throw new RuntimeException(
-                'These inventory items were not found: ' . implode(', ', $missingNames)
+                'These temperature inventory items were not found: ' . implode(', ', $missingTemperatureNames)
             );
         }
 
-        foreach ($items as $item) {
+        foreach ($temperatureItems as $item) {
             DB::table('inventory_item_option_groups')->updateOrInsert(
                 [
                     'inventory_item_id' => $item->id,
                     'option_group_id' => $temperature->id,
+                ],
+                [
+                    'is_required' => true,
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ]
+            );
+        }
+
+        // Sisig items that offer Spicy / Non-Spicy.
+        $spiceItemNames = [
+            'Pork Sisig (Rice Meal)',
+            'Chicken Sisig (Rice Meal)',
+        ];
+
+        $spiceItems = DB::table('inventory_items')
+            ->whereIn('name', $spiceItemNames)
+            ->get(['id', 'name']);
+
+        $foundSpiceNames = $spiceItems->pluck('name')->all();
+        $missingSpiceNames = array_values(array_diff($spiceItemNames, $foundSpiceNames));
+
+        if ($missingSpiceNames) {
+            throw new RuntimeException(
+                'These spice inventory items were not found: ' . implode(', ', $missingSpiceNames)
+            );
+        }
+
+        foreach ($spiceItems as $item) {
+            DB::table('inventory_item_option_groups')->updateOrInsert(
+                [
+                    'inventory_item_id' => $item->id,
+                    'option_group_id' => $spice->id,
                 ],
                 [
                     'is_required' => true,

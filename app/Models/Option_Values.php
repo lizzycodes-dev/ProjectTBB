@@ -25,4 +25,13 @@ class Option_Values extends Model
             'id'
         );
     }
+
+
+    public function orderItemOptions(): HasMany
+    {
+        return $this->hasMany(
+            Order_Item_Option::class,
+            'option_value_id'
+        );
+    }
 }

@@ -9,17 +9,35 @@ class POSController extends Controller
 {
     public function index()
     {
+        // Categories that should appear on the POS sidebar (in this order).
+        $posCategoryNames = [
+            'Coffee',
+            'Non Coffee',
+            'Frappe Ice Cream on Top',
+            'Smoothies Ice Cream on Top',
+            'Popping Boba Pearls',
+            'Oreo Milk Series',
+            'Fizzy Coolers',
+            'Buy 1 Take 1 Smoothies',
+            'Soda Fruit Jelly Buy 1 Take 1',
+            'Fruit Juice Pitcher',
+            'Rice Meals',
+            'Rice Toppings',
+            'Snack Meals',
+        ];
+
         $menuItems = Inventory_Item::with([
             'category',
-            'optionGroups',
+            'optionGroups.optionValues',
         ])
             ->withSum('stockIns as total_stock_in', 'quantity')
             ->withSum('stockOuts as total_stock_out', 'quantity')
             ->where('is_active', true)
             ->where('price', '>', 0)
             ->whereIn('inventory_type', ['prepped', 'physical'])
-            ->whereHas('category', function ($query) {
-                $query->whereIn('name', ['Food', 'Coffee', 'Non Coffee', 'Juice']);
+            ->whereHas('category', function ($query) use ($posCategoryNames) {
+                // Only show items that belong to the POS selling categories.
+                $query->whereIn('name', $posCategoryNames);
             })
             ->orderBy('name')
             ->get();
@@ -43,12 +61,14 @@ class POSController extends Controller
             }
         }
 
+        // Only load categories that are used on the POS sidebar.
+        // Keep the same explicit order as $posCategoryNames.
         $categories = Category::where('is_active', true)
-            ->whereNotIn('name', ['Ingredient', 'Puree', 'Sauce', 'Juice'])
-            ->orderBy('id')
+            ->whereIn('name', $posCategoryNames)
+            ->orderByRaw(
+                "FIELD(name, '" . implode("','", $posCategoryNames) . "')"
+            )
             ->get();
-
-
 
         return view('pos.index', compact('menuItems', 'categories'));
     }

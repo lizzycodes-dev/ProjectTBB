@@ -81,6 +81,13 @@
                             <div class="item-main">
                                 {{ $kitchenOrder->orderItem->quantity }}x
                                 {{ $kitchenOrder->orderItem->InventoryItem->name }}
+                                @foreach ($kitchenOrder->orderItem->selectedOptions as $selectedOption)
+                                @if ($selectedOption->optionValue)
+                                <span class="option-label">
+                                    ({{ $selectedOption->optionValue->name }})
+                                </span>
+                                @endif
+                                @endforeach
                             </div>
 
 
@@ -183,6 +190,13 @@
                             <div class="item-main">
                                 {{ $kitchenOrder->orderItem->quantity }}x
                                 {{ $kitchenOrder->orderItem->InventoryItem->name }}
+                                @foreach ($kitchenOrder->orderItem->selectedOptions as $selectedOption)
+                                @if ($selectedOption->optionValue)
+                                <span class="option-label">
+                                    ({{ $selectedOption->optionValue->name }})
+                                </span>
+                                @endif
+                                @endforeach
                             </div>
 
 
@@ -311,6 +325,13 @@
                             <div class="item-main">
                                 {{ $kitchenOrder->orderItem->quantity }}x
                                 {{ $kitchenOrder->orderItem->InventoryItem->name }}
+                                @foreach ($kitchenOrder->orderItem->selectedOptions as $selectedOption)
+                                @if ($selectedOption->optionValue)
+                                <span class="option-label">
+                                    ({{ $selectedOption->optionValue->name }})
+                                </span>
+                                @endif
+                                @endforeach
                             </div>
 
 
@@ -411,12 +432,21 @@
                         </span>
                     </div>
 
+
                     <div class="completed-items">
 
                         @foreach ($orderItems as $kitchenOrder)
 
                         {{ $kitchenOrder->orderItem->quantity }}x
                         {{ $kitchenOrder->orderItem->InventoryItem->name }}
+
+                        @foreach ($kitchenOrder->orderItem->selectedOptions as $selectedOption)
+                        @if ($selectedOption->optionValue)
+                        <span class="option-label">
+                            ({{ $selectedOption->optionValue->name }})
+                        </span>
+                        @endif
+                        @endforeach
 
                         @if (!$loop->last)
                         •
@@ -425,6 +455,7 @@
                         @endforeach
 
                     </div>
+
 
                     @if ($order->completed_at)
 

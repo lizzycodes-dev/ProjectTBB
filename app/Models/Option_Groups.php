@@ -28,7 +28,7 @@ class Option_Groups extends Model
     {
         return $this->belongsToMany(
             Inventory_Item::class,
-            'menu_item_option_groups',
+            'inventory_item_option_groups',
             'option_group_id',
             'menu_item_id'
         )->withPivot('is_required');

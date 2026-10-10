@@ -120,7 +120,7 @@ class OrderController extends Controller
                 ->whereIn('id', $menuItemIds)
                 ->where('is_active', true)
                 ->with([
-                    'optionGroups.optionGroup.optionValues',
+                    'optionGroups.optionValues',
                 ])
                 ->get()
                 ->keyBy('id');
@@ -143,9 +143,8 @@ class OrderController extends Controller
                     ->values();
 
                 $allowedOptionIds = $menuItem->optionGroups
-                    ->flatMap(function ($itemOptionGroup) {
-                        return $itemOptionGroup->optionGroup?->optionValues
-                            ->pluck('id') ?? collect();
+                    ->flatMap(function ($optionGroup) {
+                        return $optionGroup->optionValues->pluck('id');
                     })
                     ->map(fn($id) => (int) $id)
                     ->values();

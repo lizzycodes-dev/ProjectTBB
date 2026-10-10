@@ -44,4 +44,12 @@ class Order_Item extends Model
             'id'
         );
     }
+
+    public function selectedOptions(): HasMany
+    {
+        return $this->hasMany(
+            Order_Item_Option::class,
+            'order_item_id'
+        );
+    }
 }
