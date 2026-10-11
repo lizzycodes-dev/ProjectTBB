@@ -83,6 +83,7 @@
                 </div>
 
 
+
                 {{-- SEARCH / FILTER --}}
                 <form
                     method="GET"
@@ -99,15 +100,6 @@
                         aria-label="Search inventory items"
                         autocomplete="off">
 
-                    <!--<select name="location_id" onchange="this.form.submit()">
-                        <option value="">All Areas</option>
-                        @foreach ($locations as $location)
-                        <option value="{{ $location->id }}" @selected((string) $locationId===(string) $location->id)>
-                            {{ $location->name }}
-                        </option>
-                        @endforeach
-                    </select>-->
-
                     <select name="category_id" onchange="this.form.submit()">
                         <option value="">All Categories</option>
                         @foreach ($categories as $category)
@@ -117,32 +109,46 @@
                         @endforeach
                     </select>
 
-                    @if ($search !== '' || ($categoryId !== null && $categoryId !== '') || ($locationId !== null && $locationId !== ''))
-                    <a href="{{ route('inventory.index') }}" class="inventory-clear">Clear</a>
+                    <div class="inventory-search-dates">
+
+                        <div class="inventory-date-field">
+                            <label for="date_from" class="inventory-date-label">From</label>
+                            <input
+                                type="date"
+                                id="date_from"
+                                name="date_from"
+                                value="{{ $dateFrom ?? '' }}"
+                                max="{{ now()->toDateString() }}"
+                                onchange="this.form.submit()">
+                        </div>
+
+                        <div class="inventory-date-field">
+                            <label for="date_to" class="inventory-date-label">To</label>
+                            <input
+                                type="date"
+                                id="date_to"
+                                name="date_to"
+                                value="{{ $dateTo ?? '' }}"
+                                max="{{ now()->toDateString() }}"
+                                onchange="this.form.submit()">
+                        </div>
+
+                    </div>
+
+                    @if (
+                    $search !== '' ||
+                    ($categoryId !== null && $categoryId !== '') ||
+                    ($dateFrom ?? null) ||
+                    ($dateTo ?? null)
+                    )
+                    <a
+                        href="{{ route('inventory.index', ['tab' => $activeTab ?? 'prepped']) }}"
+                        class="inventory-clear">
+                        Clear
+                    </a>
                     @endif
 
                 </form>
-
-
-                {{-- SUCCESS --}}
-                @if (session('success'))
-                <div class="inventory-alert">
-                    {{ session('success') }}
-                </div>
-                @endif
-
-
-                {{-- ERRORS --}}
-                @if ($errors->any())
-                <div class="inventory-error">
-                    <strong>Please check the following:</strong>
-                    <ul>
-                        @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-                @endif
 
 
                 {{-- ===================================================== --}}
@@ -862,17 +868,25 @@
                     {{-- DRINKS --}}
                     <div id="drinksDailyFields" class="daily-field-group" hidden>
 
-                        <div class="daily-date-row" style="flex-wrap: wrap; gap: 10px;">
-                            <label for="drinksStockDate">Date</label>
-                            <input type="date" id="drinksStockDate" value="{{ $stockDate }}" max="{{ now()->toDateString() }}">
+                        <div class="daily-date-row">
+                            <div class="daily-filter-field">
+                                <label for="drinksStockDate">Date</label>
+                                <input
+                                    type="date"
+                                    id="drinksStockDate"
+                                    value="{{ $stockDate }}"
+                                    max="{{ now()->toDateString() }}">
+                            </div>
 
-                            <label for="drinksCategoryFilter" style="margin-left: 10px;">Category</label>
-                            <select id="drinksCategoryFilter" class="daily-input" style="min-width: 220px;">
-                                <option value="">All Drink Categories</option>
-                                @foreach ($drinkCategoryNames as $name)
-                                <option value="{{ $name }}">{{ $name }}</option>
-                                @endforeach
-                            </select>
+                            <div class="daily-filter-field">
+                                <label for="drinksCategoryFilter">Category</label>
+                                <select id="drinksCategoryFilter">
+                                    <option value="">All Drink Categories</option>
+                                    @foreach ($drinkCategoryNames as $name)
+                                    <option value="{{ $name }}">{{ $name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
                         </div>
 
                         <div class="daily-info-box">

@@ -17,12 +17,14 @@ class InventoryItemController extends Controller
         $search = trim($request->query('search', ''));
         $categoryId = $request->query('category_id');
         $locationId = $request->query('location_id');
+        $dateFrom   = $request->query('date_from');   // ← moved up
+        $dateTo     = $request->query('date_to');     // ← moved up
 
         /*
-    |--------------------------------------------------------------------------
-    | PREPPED FOOD / COUNTABLE
-    |--------------------------------------------------------------------------
-    */
+|--------------------------------------------------------------------------
+| PREPPED FOOD / COUNTABLE
+|--------------------------------------------------------------------------
+*/
 
         $preppedQuery = Inventory_Item::with([
             'category',
@@ -35,11 +37,11 @@ class InventoryItemController extends Controller
             ->where('is_active', true);
 
         /*
-    |--------------------------------------------------------------------------
-    | NON-COUNTABLE
-    | Ingredient / Puree / Sauce / Powder
-    |--------------------------------------------------------------------------
-    */
+|--------------------------------------------------------------------------
+| NON-COUNTABLE
+| Ingredient / Puree / Sauce / Powder
+|--------------------------------------------------------------------------
+*/
 
         $nonCountableQuery = Inventory_Item::with([
             'category',
@@ -58,10 +60,10 @@ class InventoryItemController extends Controller
             });
 
         /*
-    |--------------------------------------------------------------------------
-    | SEARCH
-    |--------------------------------------------------------------------------
-    */
+|--------------------------------------------------------------------------
+| SEARCH
+|--------------------------------------------------------------------------
+*/
 
         if ($search !== '') {
 
@@ -79,10 +81,10 @@ class InventoryItemController extends Controller
         }
 
         /*
-    |--------------------------------------------------------------------------
-    | CATEGORY FILTER
-    |--------------------------------------------------------------------------
-    */
+|--------------------------------------------------------------------------
+| CATEGORY FILTER
+|--------------------------------------------------------------------------
+*/
 
         if ($categoryId !== null && $categoryId !== '') {
 
@@ -98,10 +100,10 @@ class InventoryItemController extends Controller
         }
 
         /*
-    |--------------------------------------------------------------------------
-    | LOCATION FILTER
-    |--------------------------------------------------------------------------
-    */
+|--------------------------------------------------------------------------
+| LOCATION FILTER
+|--------------------------------------------------------------------------
+*/
 
         if ($locationId !== null && $locationId !== '') {
 
@@ -117,31 +119,57 @@ class InventoryItemController extends Controller
         }
 
         /*
-    |--------------------------------------------------------------------------
-    | PAGINATION
-    |--------------------------------------------------------------------------
-    */
+|--------------------------------------------------------------------------
+| DATE RANGE FILTER (Prepped & Non-countable)
+|--------------------------------------------------------------------------
+| Only include items that have stock activity inside the range.
+| Must run before paginate() so it actually affects the query.
+*/
+
+        if ($dateFrom || $dateTo) {
+            foreach ([$preppedQuery, $nonCountableQuery] as $q) {
+                $q->where(function ($sub) use ($dateFrom, $dateTo) {
+                    $sub->where(function ($w) use ($dateFrom, $dateTo) {
+                        $w->whereHas('stockIns', function ($s) use ($dateFrom, $dateTo) {
+                            if ($dateFrom) $s->whereDate('recorded_at', '>=', $dateFrom);
+                            if ($dateTo)   $s->whereDate('recorded_at', '<=', $dateTo);
+                        });
+                    })->orWhere(function ($w) use ($dateFrom, $dateTo) {
+                        $w->whereHas('stockOuts', function ($s) use ($dateFrom, $dateTo) {
+                            if ($dateFrom) $s->whereDate('recorded_at', '>=', $dateFrom);
+                            if ($dateTo)   $s->whereDate('recorded_at', '<=', $dateTo);
+                        });
+                    });
+                });
+            }
+        }
+
+        /*
+|--------------------------------------------------------------------------
+| PAGINATION
+|--------------------------------------------------------------------------
+*/
 
         $preppedItems = $preppedQuery
             ->orderByDesc('is_active')
             ->orderBy('name')
             ->paginate(10, ['*'], 'prepped_page')
-            ->appends(request()->only(['search', 'category_id', 'location_id', 'tab']));
+            ->appends(request()->only(['search', 'category_id', 'location_id', 'tab', 'date_from', 'date_to']));
 
 
         $nonCountableItems = $nonCountableQuery
             ->orderByDesc('is_active')
             ->orderBy('name')
             ->paginate(10, ['*'], 'non_countable_page')
-            ->appends(request()->only(['search', 'category_id', 'location_id', 'tab']));
+            ->appends(request()->only(['search', 'category_id', 'location_id', 'tab', 'date_from', 'date_to']));
 
 
 
         /*
-    |--------------------------------------------------------------------------
-    | SUMMARY
-    |--------------------------------------------------------------------------
-    */
+|--------------------------------------------------------------------------
+| SUMMARY
+|--------------------------------------------------------------------------
+*/
 
         $activeItemCount = Inventory_Item::where('is_active', true)
             ->when(
@@ -163,10 +191,10 @@ class InventoryItemController extends Controller
 
 
         /*
-        |--------------------------------------------------------------------------
-        | MODAL STOCK VALUES
-        |--------------------------------------------------------------------------
-        */
+    |--------------------------------------------------------------------------
+    | MODAL STOCK VALUES
+    |--------------------------------------------------------------------------
+    */
 
         $stockDate = $request->query('stock_date', now()->toDateString());
 
@@ -274,7 +302,7 @@ class InventoryItemController extends Controller
             })
             ->orderBy('name')
             ->paginate(10, ['*'], 'drinks_page')
-            ->appends(request()->only(['search', 'category_id', 'location_id', 'tab']));
+            ->appends(request()->only(['search', 'category_id', 'location_id', 'tab', 'date_from', 'date_to']));
 
         /*
 |--------------------------------------------------------------------------
@@ -317,7 +345,9 @@ class InventoryItemController extends Controller
             'drinkSold',
             'drinkCategoryNames',
             'optionGroups',
-            'archivedCount' // to count archived items
+            'archivedCount', // to count archived items
+            'dateFrom',
+            'dateTo'
         ));
     }
 

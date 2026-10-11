@@ -733,7 +733,7 @@
 .menu-card h3 {
     margin: 0;
     color: var(--foreground);
-    font-family: var(--font-mono);
+    font-family: var(--font-sanso);
     font-size: 12px;
     font-weight: 700;
     white-space: nowrap;
@@ -2808,7 +2808,10 @@
     font-size: 13px;
 }
 
-.inventory-search input { width: 100%; max-width: 380px; }
+.inventory-search input[type="search"] {
+    width: 100%;
+    max-width: 380px;
+}
 
 .inventory-search input:focus,
 .inventory-search select:focus {
@@ -6565,5 +6568,202 @@
     .archive-date-filters input {
         flex: 1;
         width: auto;
+    }
+}
+/* =========================================================
+   INVENTORY — DATE RANGE FILTER
+   ========================================================= */
+
+.inventory-search-dates {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.inventory-date-label {
+    color: var(--muted-foreground);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.inventory-search-dates input[type="date"] {
+    min-height: 38px;
+    padding: 8px 10px;
+    border: 1px solid var(--input);
+    border-radius: 7px;
+    background: var(--card);
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: 13px;
+}
+
+.inventory-search-dates input[type="date"]:focus {
+    outline: 2px solid var(--ring);
+    outline-offset: 1px;
+}
+
+@media (max-width: 640px) {
+    .inventory-search-dates {
+        width: 100%;
+    }
+
+    .inventory-search-dates input[type="date"] {
+        flex: 1;
+        min-width: 0;
+    }
+}
+
+.inventory-search-dates {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.inventory-date-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;      /* keep label + input on one line */
+}
+
+.inventory-date-label {
+    color: var(--muted-foreground);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.inventory-date-field input[type="date"] {
+    min-height: 38px;
+    padding: 8px 10px;
+    border: 1px solid var(--input);
+    border-radius: 7px;
+    background: var(--card);
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: 13px;
+}
+
+.inventory-date-field input[type="date"]:focus {
+    outline: 2px solid var(--ring);
+    outline-offset: 1px;
+}
+
+/* On small screens, stack each field but keep label+input inline */
+@media (max-width: 640px) {
+    .inventory-search-dates {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .inventory-date-field {
+        justify-content: space-between;
+    }
+
+    .inventory-date-field input[type="date"] {
+        flex: 1;
+        min-width: 0;
+    }
+}
+
+/* Date range — override the generic .inventory-search input rules */
+.inventory-search .inventory-search-dates input[type="date"] {
+    width: auto;
+    max-width: none;
+    min-width: 140px;
+    height: 38px;
+    padding: 8px 10px;
+    border: 1px solid var(--input);
+    border-radius: 7px;
+    background: var(--card);
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: 13px;
+    box-sizing: border-box;
+}
+
+.inventory-search .inventory-search-dates {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.inventory-search .inventory-date-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+/* =========================================================
+   INVENTORY — DAILY MODAL FILTER ROW
+   ========================================================= */
+
+.daily-date-row {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+
+.daily-filter-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.daily-filter-field label {
+    color: var(--muted-foreground);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.daily-filter-field input[type="date"],
+.daily-filter-field select {
+    height: 38px;
+    padding: 8px 10px;
+    border: 1px solid var(--input);
+    border-radius: 7px;
+    background: var(--card);
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: 13px;
+    box-sizing: border-box;
+}
+
+.daily-filter-field select {
+    min-width: 220px;
+    width: auto;
+    max-width: 100%;
+}
+
+.daily-filter-field input[type="date"]:focus,
+.daily-filter-field select:focus {
+    outline: 2px solid var(--ring);
+    outline-offset: 1px;
+}
+
+@media (max-width: 640px) {
+    .daily-date-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .daily-filter-field {
+        justify-content: space-between;
+    }
+
+    .daily-filter-field input[type="date"],
+    .daily-filter-field select {
+        flex: 1;
+        min-width: 0;
     }
 }
