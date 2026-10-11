@@ -51,6 +51,9 @@
     --cream-light: rgb(252, 250, 249);
     --soft-brown: rgb(122, 90, 76);
 
+    /*for hovers for soft brown*/
+    --hover: #5f3a2c;
+
     --sage: #4e9b61;
     --sage-light: #eaf4ec;
     --sage-border: #c8e2cf;
@@ -6466,4 +6469,101 @@
 
 .kitchen-tab-panel[data-panel="completed"] .completed-section {
     margin-top: 0;
+}
+
+/*styles for archive*/
+.archive-count-badge { 
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background-color: #dc2626;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+
+.archive-filters {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.archive-search {
+    flex: 1 1 220px;
+}
+
+.archive-search input,
+.archive-date-filters input {
+    width: 100%;
+    min-width: 0;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #fff;
+    color: #374151;
+    font-size: 13px;
+}
+
+.archive-date-filters {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.archive-date-filters input {
+    width: 145px;
+}
+
+.archive-filter-button,
+.archive-reset-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.archive-filter-button {
+    border: none;
+    background: var(--primary);
+    color: white;
+}
+
+.archive-filter-button:hover {
+    background: var(--hover);
+    border-color: var(--hover);
+}
+
+.archive-reset-button {
+    border: 1px solid #d1d5db;
+    color: #374151;
+    background: white;
+}
+
+@media (max-width: 700px) {
+    .archive-filters {
+        align-items: stretch;
+    }
+
+    .archive-search,
+    .archive-date-filters {
+        flex: 1 1 100%;
+    }
+
+    .archive-date-filters input {
+        flex: 1;
+        width: auto;
+    }
 }

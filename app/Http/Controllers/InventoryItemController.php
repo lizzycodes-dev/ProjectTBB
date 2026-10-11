@@ -227,10 +227,10 @@ class InventoryItemController extends Controller
             'inventoryLocation',
             'unit',
         ])
-            ->where('is_active', false)
-            ->orderBy('name')
+            ->where('is_active', 0)
+            ->orderByDesc('updated_at')
             ->get();
-
+        $archivedCount = Inventory_Item::where('is_active', 0)->count();
 
         /*
 |--------------------------------------------------------------------------
@@ -316,7 +316,8 @@ class InventoryItemController extends Controller
             'drinkItems',
             'drinkSold',
             'drinkCategoryNames',
-            'optionGroups',   // <-- add
+            'optionGroups',
+            'archivedCount' // to count archived items
         ));
     }
 

@@ -13,14 +13,21 @@
             </div>
 
             <div class="inventory-header-actions">
-
+                <!--add badges for counting non active-->
                 {{-- Archive --}}
                 <button
                     type="button"
                     class="inventory-archive-button"
                     id="openArchiveModal">
+
                     <span class="archive-button-icon">▣</span>
                     <span>Archive</span>
+
+                    @if (($archivedCount ?? 0) > 0)
+                    <span class="archive-count-badge">
+                        {{ $archivedCount }}
+                    </span>
+                    @endif
                 </button>
 
                 {{-- New Item --}}
