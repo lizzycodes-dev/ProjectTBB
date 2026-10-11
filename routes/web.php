@@ -11,6 +11,7 @@ use App\Http\Controllers\FinanceReportController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\ExpenseController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -24,6 +25,11 @@ Route::get('/', function () {
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+
+    // Password change request (goes through manager approval)
+    Route::patch('/profile/request-password', [ProfileController::class, 'requestPassword'])
+        ->name('profile.request-password');
+
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // Kitchen: everyone can view it (cashiers view-only)
@@ -115,6 +121,13 @@ Route::middleware(['auth', 'no.cook', 'no.cashier'])->group(function () {
     Route::put('/users/{id}/restore', [UserController::class, 'restore'])
         ->name('users.restore');
 
+    // Profile change + password change request approvals
+    Route::post('/profile-requests/{profileRequest}/approve', [UserController::class, 'approveProfileRequest'])
+        ->name('profile-requests.approve');
+
+    Route::post('/profile-requests/{profileRequest}/deny', [UserController::class, 'denyProfileRequest'])
+        ->name('profile-requests.deny');
+
     Route::get('/purchases', [PurchaseController::class, 'index'])
         ->name('purchases.index');
 
@@ -132,6 +145,9 @@ Route::middleware(['auth', 'no.cook', 'no.cashier'])->group(function () {
 
     Route::post('/suppliers/{supplier}/toggle-active', [SupplierController::class, 'toggleActive'])
         ->name('suppliers.toggle-active');
+
+    Route::post('/expenses', [ExpenseController::class, 'store'])
+        ->name('expenses.store');
 });
 
 require __DIR__ . '/auth.php';

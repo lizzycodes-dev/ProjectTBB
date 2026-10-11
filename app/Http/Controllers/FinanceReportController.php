@@ -109,7 +109,16 @@ class FinanceReportController extends Controller
         }
 
         // --- Table rows ---
-        $orders = $tableQuery->orderByDesc('ordered_at')->paginate(10)->withQueryString();
+        $direction = strtolower($request->input('direction', 'desc'));
+        if (! in_array($direction, ['asc', 'desc'], true)) {
+            $direction = 'desc';
+        }
+
+        $orders = $tableQuery
+            ->orderBy('ordered_at', $direction)
+            ->orderBy('id', $direction)
+            ->paginate(10)
+            ->withQueryString();
 
         $expenses = (clone $expenseQuery)
             ->with('purchase')
@@ -134,7 +143,8 @@ class FinanceReportController extends Controller
             'card',
             'totalExpenses',
             'netRevenue',
-            'expenses'
+            'expenses',
+            'direction'
         ));
     }
 

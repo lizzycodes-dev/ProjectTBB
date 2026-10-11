@@ -3991,7 +3991,7 @@
 
 .purchase-stock-row {
     display: grid;
-    grid-template-columns: 34px minmax(0, 1fr) 180px 130px;
+    grid-template-columns: 34px minmax(0, 1.5fr) minmax(0, 1fr) 110px 130px;
     align-items: center;
     gap: 14px;
     padding: 13px 14px;
@@ -3999,6 +3999,36 @@
     border-radius: 8px;
     background: var(--card);
     transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.purchase-stock-cost input:disabled {
+    background: var(--secondary);
+    color: var(--muted-foreground);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.purchase-stock-cost input:not(:disabled) {
+    background: var(--card);
+    color: var(--foreground);
+}
+
+.purchase-stock-cost input.stock-quantity,
+.purchase-stock-cost input.stock-unit-cost {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.purchase-stock-cost input {
+    font-variant-numeric: tabular-nums;
+}
+
+.purchase-stock-cost input.stock-quantity {
+    text-align: right;
+}
+
+.purchase-stock-cost input.stock-unit-cost {
+    text-align: right;
 }
 
 .purchase-stock-row:hover { background: var(--cream); }
@@ -4177,15 +4207,38 @@
 }
 
 @media (max-width: 800px) {
-    .purchase-header { flex-direction: column; }
-    .purchase-header-actions { width: 100%; }
+    .purchase-header {
+        flex-direction: column;
+    }
+
+    .purchase-header-actions {
+        width: 100%;
+    }
+
     .purchase-primary-button,
-    .purchase-secondary-button { flex: 1; }
-    .purchase-form-grid { grid-template-columns: 1fr; }
-    .purchase-form-full { grid-column: auto; }
-    .purchase-stock-row { grid-template-columns: 34px 1fr; }
+    .purchase-secondary-button {
+        flex: 1;
+    }
+
+    .purchase-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .purchase-form-full {
+        grid-column: auto;
+    }
+
+    /* Stock rows: stack info → supplier → quantity → unit cost */
+    .purchase-stock-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .purchase-stock-info,
     .purchase-stock-supplier,
-    .purchase-stock-cost { grid-column: 2; }
+    .purchase-stock-cost {
+        grid-column: 1;
+    }
 }
 
 @media (max-width: 600px) {
@@ -4634,7 +4687,7 @@
 
 .user-stat-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 14px;
     margin-bottom: 20px;
 }
@@ -4999,6 +5052,10 @@
 
 @media (max-width: 900px) {
     .user-edit-grid { grid-template-columns: repeat(2, 1fr); }
+    .user-stat-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 600px) {
     .user-stat-grid { grid-template-columns: 1fr; }
 }
 
@@ -6566,4 +6623,435 @@
         flex: 1;
         width: auto;
     }
+}
+
+/* =========================================================
+   DASHBOARD — SALES LOG SORT TOGGLE
+   ========================================================= */
+
+.panel-title-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sales-sort-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    padding: 5px 10px;
+
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--card);
+
+    color: var(--muted-foreground);
+    font-family: var(--font-sans);
+    font-size: 11.5px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.sales-sort-toggle:hover {
+    background: var(--secondary);
+    color: var(--foreground);
+    border-color: var(--input);
+}
+
+.sales-sort-toggle svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* =========================================================
+   SUPPLIER FILTERS (search + status)
+   ========================================================= */
+
+.supplier-filters {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.supplier-search-wrapper {
+    flex: 1 1 260px;
+    min-width: 0;
+}
+
+.supplier-search-input,
+.supplier-filter-select {
+    width: 100%;
+    height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.supplier-search-input::placeholder {
+    color: var(--muted-foreground);
+}
+
+.supplier-filter-select {
+    width: 180px;
+    cursor: pointer;
+}
+
+.supplier-search-input:focus,
+.supplier-filter-select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(120, 73, 58, 0.08);
+}
+
+.supplier-reset-button {
+    height: 40px;
+    padding: 0 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.supplier-reset-button:hover {
+    background: var(--secondary);
+    border-color: var(--input);
+}
+
+
+/* =========================================================
+   SUPPLIER ROW WRAPPER + EDIT DROPDOWN
+   ========================================================= */
+
+.supplier-entry {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.supplier-entry + .supplier-entry {
+    margin-top: 8px;
+}
+
+.supplier-entry .supplier-row {
+    /* keep existing grid layout */
+    border-radius: 8px;
+}
+
+.supplier-entry .toggle-supplier {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--card);
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.supplier-entry .toggle-supplier:hover {
+    background: var(--secondary);
+    border-color: var(--input);
+}
+
+.supplier-entry .toggle-icon {
+    font-size: 13px;
+    line-height: 1;
+}
+
+.supplier-details[hidden] {
+    display: none;
+}
+
+.supplier-details {
+    margin-top: 8px;
+    margin-bottom: 4px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--cream);
+    overflow: hidden;
+}
+
+.supplier-details-panel {
+    padding: 16px;
+}
+
+.supplier-details-header {
+    margin-bottom: 14px;
+}
+
+.supplier-details-header h3 {
+    margin: 0;
+    color: var(--foreground);
+    font-family: var(--font-serif);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.supplier-details-header p {
+    margin: 3px 0 0;
+    color: var(--muted-foreground);
+    font-size: 12px;
+}
+
+@media (max-width: 700px) {
+    .supplier-filters {
+        align-items: stretch;
+    }
+
+    .supplier-search-wrapper,
+    .supplier-filter-select,
+    .supplier-reset-button {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+}
+
+/* =========================================================
+   PURCHASE MANAGEMENT — TABS
+   ========================================================= */
+
+.purchase-tabs {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+
+    padding: 5px;
+    margin-bottom: 18px;
+
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--cream-light);
+    box-shadow: 0 1px 3px rgba(91, 70, 53, 0.04);
+}
+
+.purchase-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+
+    padding: 9px 18px;
+
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+
+    color: var(--muted-foreground);
+    font-family: var(--font-sans);
+    font-size: 12.5px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+
+    transition: background-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.purchase-tab:hover {
+    background: var(--muted);
+    color: var(--foreground);
+}
+
+.purchase-tab.is-active {
+    background: var(--primary);
+    color: var(--primary-foreground);
+    box-shadow: 0 2px 5px rgba(82, 50, 30, 0.14);
+}
+
+.purchase-tab-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 22px;
+    height: 20px;
+    padding: 0 7px;
+
+    border-radius: 999px;
+    background: var(--secondary);
+    color: var(--muted-foreground);
+
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.purchase-tab.is-active .purchase-tab-count {
+    background: rgba(255, 255, 255, 0.22);
+    color: #ffffff;
+}
+
+.purchase-tab-panel[hidden] {
+    display: none !important;
+}
+
+.purchase-tab-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: 14px;
+    gap: 12px;
+}
+
+.expense-total-badge {
+    padding: 9px 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--muted-foreground);
+    font-size: 13px;
+}
+
+.expense-total-badge strong {
+    color: var(--foreground);
+    font-family: var(--font-serif);
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.purchase-category-badge {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 6px;
+    background: var(--secondary);
+    color: var(--soft-brown);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+/* =========================================================
+   ADD EXPENSE MODAL — small tweaks
+   ========================================================= */
+
+#expense_purchase_id {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 9px 11px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--card);
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+#expense_purchase_id:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(120, 73, 58, 0.08);
+}
+
+/* =========================================================
+   USER MANAGEMENT — TABS
+   ========================================================= */
+
+.user-tabs {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px;
+    margin-bottom: 18px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--cream-light);
+    box-shadow: 0 1px 3px rgba(91, 70, 53, 0.04);
+}
+
+.user-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 18px;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--muted-foreground);
+    font-family: var(--font-sans);
+    font-size: 12.5px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+.user-tab:hover {
+    background: var(--muted);
+    color: var(--foreground);
+}
+
+.user-tab.is-active {
+    background: var(--primary);
+    color: var(--primary-foreground);
+    box-shadow: 0 2px 5px rgba(82, 50, 30, 0.14);
+}
+
+.user-tab-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 20px;
+    padding: 0 7px;
+    border-radius: 999px;
+    background: #b4473b;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.user-tab-panel[hidden] {
+    display: none !important;
+}
+
+/* =========================================================
+   PROFILE REQUEST TYPES
+   ========================================================= */
+
+.profile-request-type,
+.user-request-type-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 9px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.user-request-type-badge.type-profile,
+.profile-request-type {
+    background: var(--secondary);
+    color: var(--soft-brown);
+}
+
+.user-request-type-badge.type-password {
+    background: #eef2ff;
+    color: #3730a3;
 }

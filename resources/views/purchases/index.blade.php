@@ -2,19 +2,65 @@
 
     <div class="purchase-page">
 
-        {{-- =====================================================
-         HEADER
-         ===================================================== --}}
+            {{-- =====================================================
+            HEADER
+            ===================================================== --}}
         <div class="purchase-header">
 
             <div>
-                <h1>Purchase Management</h1>
-                <p>
-                    Manage inventory purchases, suppliers, and purchase expenses.
-                </p>
+                <h1>Purchases &amp; Expenses</h1>
+                <p>Manage inventory purchases, suppliers, and purchase expenses.</p>
             </div>
 
-            <div class="purchase-header-actions">
+        </div>
+
+
+        {{-- =====================================================
+            SUCCESS MESSAGE
+            ===================================================== --}}
+        @if (session('success'))
+        <div class="purchase-success-message">
+            {{ session('success') }}
+        </div>
+        @endif
+
+
+        {{-- =====================================================
+            TABS
+            ===================================================== --}}
+        @php
+            $activeTab = $tab ?? request('tab', 'purchases');
+        @endphp
+
+        <div class="purchase-tabs" role="tablist">
+
+            <a
+                href="{{ route('purchases.index', ['tab' => 'purchases']) }}"
+                class="purchase-tab {{ $activeTab === 'purchases' ? 'is-active' : '' }}"
+                role="tab"
+                aria-selected="{{ $activeTab === 'purchases' ? 'true' : 'false' }}">
+                Purchases
+                <span class="purchase-tab-count">{{ $purchases->total() }}</span>
+            </a>
+
+            <a
+                href="{{ route('purchases.index', ['tab' => 'expenses']) }}"
+                class="purchase-tab {{ $activeTab === 'expenses' ? 'is-active' : '' }}"
+                role="tab"
+                aria-selected="{{ $activeTab === 'expenses' ? 'true' : 'false' }}">
+                Expenses
+                <span class="purchase-tab-count">{{ $expenses->total() }}</span>
+            </a>
+
+        </div>
+
+
+        {{-- =====================================================
+            TAB PANEL: PURCHASES
+            ===================================================== --}}
+        <div class="purchase-tab-panel" data-panel="purchases" @if($activeTab !== 'purchases') hidden @endif>
+
+            <div class="purchase-tab-actions">
 
                 <button
                     type="button"
@@ -33,120 +79,221 @@
 
             </div>
 
-        </div>
+            <div class="purchase-card">
 
-
-        {{-- =====================================================
-         SUCCESS MESSAGE
-         ===================================================== --}}
-        @if (session('success'))
-        <div class="purchase-success-message">
-            {{ session('success') }}
-        </div>
-        @endif
-
-
-        {{-- =====================================================
-         PURCHASE RECORDS
-         ===================================================== --}}
-        <div class="purchase-card">
-
-            <div class="purchase-card-header">
-                <div>
-                    <h2>Purchase Records</h2>
-                    <p>
-                        View recorded inventory purchases and their expenses.
-                    </p>
+                <div class="purchase-card-header">
+                    <div>
+                        <h2>Purchase Records</h2>
+                        <p>View recorded inventory purchases and their expenses.</p>
+                    </div>
                 </div>
+
+                <div class="purchase-table-wrapper">
+
+                    <table class="purchase-table">
+
+                        <thead>
+                            <tr>
+                                <th>DATE</th>
+                                <th>REFERENCE</th>
+                                <th>SUPPLIER</th>
+                                <th>ITEMS</th>
+                                <th>TOTAL</th>
+                                <th>EXPENSE</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            @forelse ($purchases as $purchase)
+
+                            <tr
+                                class="purchase-record-row"
+                                data-purchase-id="{{ $purchase->id }}">
+
+                                <td>
+                                    {{ \Carbon\Carbon::parse($purchase->purchase_date)->format('M d, Y') }}
+                                </td>
+
+                                <td>
+                                    {{ $purchase->reference_number ?? '—' }}
+                                </td>
+
+                                <td>
+                                    {{ $purchase->supplier->name ?? '—' }}
+                                </td>
+
+                                <td>
+                                    {{ $purchase->purchaseItems->count() }}
+                                    {{ $purchase->purchaseItems->count() === 1 ? 'item' : 'items' }}
+                                </td>
+
+                                <td>
+                                    ₱{{ number_format(
+                                        $purchase->purchaseItems->sum('subtotal'),
+                                        2
+                                    ) }}
+                                </td>
+
+                                <td>
+                                    @if ($purchase->expense)
+                                    ₱{{ number_format($purchase->expense->amount, 2) }}
+                                    @else
+                                    —
+                                    @endif
+                                </td>
+
+                            </tr>
+
+                            @empty
+
+                            <tr>
+                                <td colspan="6" class="purchase-empty">
+                                    No purchase records yet.
+                                </td>
+                            </tr>
+
+                            @endforelse
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+                @if ($purchases->hasPages())
+
+                <div class="purchase-pagination">
+                    {{ $purchases->links() }}
+                </div>
+
+                @endif
+
             </div>
-
-
-            <div class="purchase-table-wrapper">
-
-                <table class="purchase-table">
-
-                    <thead>
-                        <tr>
-                            <th>DATE</th>
-                            <th>REFERENCE</th>
-                            <th>SUPPLIER</th>
-                            <th>ITEMS</th>
-                            <th>TOTAL</th>
-                            <th>EXPENSE</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-
-                        @forelse ($purchases as $purchase)
-
-                        <tr
-                            class="purchase-record-row"
-                            data-purchase-id="{{ $purchase->id }}">
-
-                            <td>
-                                {{ \Carbon\Carbon::parse($purchase->purchase_date)->format('M d, Y') }}
-                            </td>
-
-                            <td>
-                                {{ $purchase->reference_number ?? '—' }}
-                            </td>
-
-                            <td>
-                                {{ $purchase->supplier->name ?? '—' }}
-                            </td>
-
-                            <td>
-                                {{ $purchase->purchaseItems->count() }}
-                                {{ $purchase->purchaseItems->count() === 1 ? 'item' : 'items' }}
-                            </td>
-
-                            <td>
-                                ₱{{ number_format(
-                                    $purchase->purchaseItems->sum('subtotal'),
-                                    2
-                                ) }}
-                            </td>
-
-                            <td>
-                                @if ($purchase->expense)
-                                ₱{{ number_format($purchase->expense->amount, 2) }}
-                                @else
-                                —
-                                @endif
-                            </td>
-
-                        </tr>
-
-                        @empty
-
-                        <tr>
-                            <td colspan="6" class="purchase-empty">
-                                No purchase records yet.
-                            </td>
-                        </tr>
-
-                        @endforelse
-
-                    </tbody>
-
-                </table>
-
-            </div>
-
-
-            {{-- Pagination --}}
-            @if ($purchases->hasPages())
-
-            <div class="purchase-pagination">
-                {{ $purchases->links() }}
-            </div>
-
-            @endif
 
         </div>
 
-    </div>
+
+        {{-- =====================================================
+            TAB PANEL: EXPENSES
+            ===================================================== --}}
+        <div class="purchase-tab-panel" data-panel="expenses" @if($activeTab !== 'expenses') hidden @endif>
+
+            <div class="purchase-tab-actions">
+
+                <div class="expense-total-badge">
+                    Total Expenses: <strong>₱{{ number_format($totalExpenses, 2) }}</strong>
+                </div>
+
+                <button
+                    type="button"
+                    class="purchase-primary-button"
+                    id="openExpenseModal">
+                    <span>+</span>
+                    Add Expense
+                </button>
+
+            </div>
+
+            <div class="purchase-card">
+
+                <div class="purchase-card-header">
+                    <div>
+                        <h2>Expense Records</h2>
+                        <p>Expenses from purchases and other operating costs.</p>
+                    </div>
+                </div>
+
+                <div class="purchase-table-wrapper">
+
+                    <table class="purchase-table">
+
+                        <thead>
+                            <tr>
+                                <th>DATE</th>
+                                <th>DESCRIPTION</th>
+                                <th>CATEGORY</th>
+                                <th>SOURCE</th>
+                                <th>NOTES</th>
+                                <th>AMOUNT</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            @forelse ($expenses as $expense)
+
+                            <tr>
+
+                                <td>
+                                    {{ \Carbon\Carbon::parse($expense->expense_date)->format('M d, Y') }}
+                                </td>
+
+                                <td>
+                                    {{ $expense->description }}
+                                </td>
+
+                                <td>
+                                    @if ($expense->category)
+                                        <span class="purchase-category-badge">
+                                            {{ $expense->category }}
+                                        </span>
+                                    @else
+                                        <span class="supplier-muted">—</span>
+                                    @endif
+                                </td>
+
+                                <td>
+                                    @if ($expense->purchase)
+                                        Purchase · {{ $expense->purchase->reference_number ?? ('PO #' . $expense->purchase->id) }}
+                                        @if ($expense->purchase->supplier)
+                                            <br>
+                                            <small class="supplier-muted">
+                                                {{ $expense->purchase->supplier->name }}
+                                            </small>
+                                        @endif
+                                    @else
+                                        <span class="supplier-muted">Manual entry</span>
+                                    @endif
+                                </td>
+
+                                <td>
+                                    {{ $expense->notes ?: '—' }}
+                                </td>
+
+                                <td>
+                                    ₱{{ number_format($expense->amount, 2) }}
+                                </td>
+
+                            </tr>
+
+                            @empty
+
+                            <tr>
+                                <td colspan="6" class="purchase-empty">
+                                    No expense records yet.
+                                </td>
+                            </tr>
+
+                            @endforelse
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+                @if ($expenses->hasPages())
+
+                <div class="purchase-pagination">
+                    {{ $expenses->links() }}
+                </div>
+
+                @endif
+
+            </div>
+
+        </div>
 
 
     {{-- =====================================================
@@ -294,84 +441,98 @@
 
                             @forelse ($stockIns as $stockIn)
 
-                            <div
-                                class="purchase-stock-row"
-                                data-stock-row>
+                                <div
+                                    class="purchase-stock-row"
+                                    data-stock-row>
 
-                                <div class="purchase-stock-select">
+                                    <div class="purchase-stock-select">
+                                        <input
+                                            type="checkbox"
+                                            class="stock-checkbox"
+                                            data-stock-id="{{ $stockIn->id }}">
+                                    </div>
 
-                                    <input
-                                        type="checkbox"
-                                        class="stock-checkbox"
-                                        name="stock_ins[{{ $stockIn->id }}][id]"
-                                        value="{{ $stockIn->id }}"
-                                        data-stock-id="{{ $stockIn->id }}">
+
+                                    <div class="purchase-stock-info">
+
+                                        <strong>
+                                            {{ $stockIn->inventoryItem->name ?? 'Unknown Item' }}
+                                        </strong>
+
+                                        <small>
+                                            Recorded:
+                                            {{ number_format($stockIn->quantity) }}
+                                            {{ $stockIn->inventoryItem->unit->name ?? '' }}
+                                            · {{ \Carbon\Carbon::parse($stockIn->recorded_at)->format('M d, Y h:i A') }}
+                                        </small>
+
+                                    </div>
+
+
+                                    <div class="purchase-stock-supplier">
+
+                                        <span>Current Supplier</span>
+
+                                        <strong>
+                                            {{ $stockIn->supplier->name ?? 'No Supplier' }}
+                                        </strong>
+
+                                    </div>
+
+
+                                    <div class="purchase-stock-cost">
+
+                                        <label>
+                                            Quantity
+                                        </label>
+
+                                        <input
+                                            type="number"
+                                            name="stock_ins[{{ $stockIn->id }}][quantity]"
+                                            class="stock-quantity"
+                                            data-stock-id="{{ $stockIn->id }}"
+                                            min="0"
+                                            step="1"
+                                            value="{{ (int) $stockIn->quantity }}"
+                                            placeholder="0"
+                                            disabled>
+
+                                    </div>
+
+
+                                    <div class="purchase-stock-cost">
+
+                                        <label>
+                                            Unit Cost
+                                        </label>
+
+                                        <input
+                                            type="number"
+                                            name="stock_ins[{{ $stockIn->id }}][unit_cost]"
+                                            class="stock-unit-cost"
+                                            data-stock-id="{{ $stockIn->id }}"
+                                            min="0"
+                                            step="0.01"
+                                            value="0"
+                                            placeholder="0.00"
+                                            disabled>
+
+                                        <input
+                                            type="hidden"
+                                            name="stock_ins[{{ $stockIn->id }}][id]"
+                                            value="{{ $stockIn->id }}"
+                                            disabled>
+
+                                    </div>
 
                                 </div>
 
+                                @empty
 
-                                <div class="purchase-stock-info">
-
-                                    <strong>
-                                        {{ $stockIn->inventoryItem->name ?? 'Unknown Item' }}
-                                    </strong>
-
-                                    <span>
-                                        {{ number_format($stockIn->quantity) }}
-                                        {{ $stockIn->inventoryItem->unit->name ?? '' }}
-                                    </span>
-
-                                    <small>
-                                        {{ \Carbon\Carbon::parse($stockIn->recorded_at)->format('M d, Y h:i A') }}
-                                    </small>
-
+                                <div class="purchase-no-stock">
+                                    <strong>No available stock-in records.</strong>
+                                    <span>Add stock through Manage Stocks first.</span>
                                 </div>
-
-
-                                <div class="purchase-stock-supplier">
-
-                                    <span>
-                                        Current Supplier
-                                    </span>
-
-                                    <strong>
-                                        {{ $stockIn->supplier->name ?? 'No Supplier' }}
-                                    </strong>
-
-                                </div>
-
-
-                                <div class="purchase-stock-cost">
-
-                                    <label>
-                                        Unit Cost
-                                    </label>
-
-                                    <input
-                                        type="number"
-                                        name="stock_ins[{{ $stockIn->id }}][unit_cost]"
-                                        class="stock-unit-cost"
-                                        data-stock-id="{{ $stockIn->id }}"
-                                        min="0"
-                                        step="0.01"
-                                        value="0"
-                                        disabled>
-
-                                </div>
-
-                            </div>
-
-                            @empty
-
-                            <div class="purchase-no-stock">
-
-                                <strong>No available stock-in records.</strong>
-
-                                <span>
-                                    Add stock through Manage Stocks first.
-                                </span>
-
-                            </div>
 
                             @endforelse
 
@@ -660,88 +821,212 @@
                 </div>
 
 
+                {{-- SUPPLIER FILTER BAR --}}
+                <div class="supplier-filters" id="supplierFilterBar">
+
+                    <div class="supplier-search-wrapper">
+                        <input
+                            type="search"
+                            id="supplierSearch"
+                            class="supplier-search-input"
+                            placeholder="Search suppliers by name, contact, phone, or email..."
+                            autocomplete="off">
+                    </div>
+
+                    <select id="supplierStatusFilter" class="supplier-filter-select">
+                        <option value="all">All Suppliers</option>
+                        <option value="active">Active only</option>
+                        <option value="archived">Archived only</option>
+                    </select>
+
+                    <button
+                        type="button"
+                        id="supplierResetFilters"
+                        class="supplier-reset-button">
+                        Reset
+                    </button>
+
+                </div>
+
+
                 {{-- SUPPLIER LIST --}}
-                <div class="supplier-list">
+                <div class="supplier-list" id="supplierList">
 
                     @forelse ($allSuppliers as $supplier)
 
-                    <div class="supplier-row">
+                    @php
+                        $searchBlob = strtolower(trim(
+                            ($supplier->name ?? '') . ' ' .
+                            ($supplier->contact_person ?? '') . ' ' .
+                            ($supplier->phone ?? '') . ' ' .
+                            ($supplier->email ?? '')
+                        ));
 
-                        <div class="supplier-main">
+                        $statusKey = $supplier->is_active ? 'active' : 'archived';
+                    @endphp
 
-                            <strong>
-                                {{ $supplier->name }}
-                            </strong>
+                    <div
+                        class="supplier-entry"
+                        data-supplier-entry
+                        data-name="{{ $searchBlob }}"
+                        data-status="{{ $statusKey }}">
 
-                            <span>
-                                {{ $supplier->contact_person ?: 'No contact person' }}
-                            </span>
+                        {{-- Visible supplier row --}}
+                        <div class="supplier-row">
 
-                        </div>
+                            <div class="supplier-main">
+                                <strong>{{ $supplier->name }}</strong>
+                                <span>{{ $supplier->contact_person ?: 'No contact person' }}</span>
+                            </div>
 
+                            <div class="supplier-contact">
+                                @if ($supplier->phone)
+                                    <span>{{ $supplier->phone }}</span>
+                                @endif
 
-                        <div class="supplier-contact">
+                                @if ($supplier->email)
+                                    <span>{{ $supplier->email }}</span>
+                                @endif
 
-                            @if ($supplier->phone)
-                            <span>{{ $supplier->phone }}</span>
-                            @endif
+                                @if (!$supplier->phone && !$supplier->email)
+                                    <span class="supplier-muted">No contact information</span>
+                                @endif
+                            </div>
 
-                            @if ($supplier->email)
-                            <span>{{ $supplier->email }}</span>
-                            @endif
+                            <div class="supplier-status">
+                                @if ($supplier->is_active)
+                                    <span class="supplier-status-badge active">Active</span>
+                                @else
+                                    <span class="supplier-status-badge inactive">Inactive</span>
+                                @endif
+                            </div>
 
-                            @if (!$supplier->phone && !$supplier->email)
-                            <span class="supplier-muted">
-                                No contact information
-                            </span>
-                            @endif
-
-                        </div>
-
-
-                        <div class="supplier-status">
-
-                            @if ($supplier->is_active)
-
-                            <span class="supplier-status-badge active">
-                                Active
-                            </span>
-
-                            @else
-
-                            <span class="supplier-status-badge inactive">
-                                Inactive
-                            </span>
-
-                            @endif
-
-                        </div>
-
-
-                        <div class="supplier-actions">
-
-                            <button
-                                type="button"
-                                class="supplier-edit-button"
-                                data-supplier-id="{{ $supplier->id }}">
-                                Edit
-                            </button>
-
-                            <form
-                                method="POST"
-                                action="{{ route('suppliers.toggle-active', $supplier->id) }}">
-
-                                @csrf
+                            <div class="supplier-actions">
 
                                 <button
-                                    type="submit"
-                                    class="supplier-toggle-button">
-
-                                    {{ $supplier->is_active ? 'Deactivate' : 'Activate' }}
-
+                                    type="button"
+                                    class="supplier-edit-button toggle-supplier"
+                                    data-target="supplier-details-{{ $supplier->id }}"
+                                    aria-expanded="false">
+                                    <span class="toggle-label">Edit</span>
+                                    <span class="toggle-icon">＋</span>
                                 </button>
 
-                            </form>
+                                <form
+                                    method="POST"
+                                    action="{{ route('suppliers.toggle-active', $supplier->id) }}">
+                                    @csrf
+                                    <button
+                                        type="submit"
+                                        class="supplier-toggle-button">
+                                        {{ $supplier->is_active ? 'Deactivate' : 'Activate' }}
+                                    </button>
+                                </form>
+
+                            </div>
+
+                        </div>
+
+
+                        {{-- Hidden edit panel --}}
+                        <div
+                            id="supplier-details-{{ $supplier->id }}"
+                            class="supplier-details"
+                            hidden>
+
+                            <div class="supplier-details-panel">
+
+                                <div class="supplier-details-header">
+                                    <h3>{{ $supplier->name }} — Supplier Details</h3>
+                                    <p>Update the supplier information or change its status.</p>
+                                </div>
+
+                                <form
+                                    method="POST"
+                                    action="{{ route('suppliers.update', $supplier->id) }}">
+
+                                    @csrf
+                                    @method('PUT')
+
+                                    <div class="supplier-form-grid">
+
+                                        <div class="supplier-form-group">
+                                            <label for="edit_supplier_name_{{ $supplier->id }}">
+                                                Supplier Name
+                                            </label>
+                                            <input
+                                                type="text"
+                                                id="edit_supplier_name_{{ $supplier->id }}"
+                                                name="name"
+                                                value="{{ $supplier->name }}"
+                                                required>
+                                        </div>
+
+                                        <div class="supplier-form-group">
+                                            <label for="edit_supplier_contact_{{ $supplier->id }}">
+                                                Contact Person
+                                            </label>
+                                            <input
+                                                type="text"
+                                                id="edit_supplier_contact_{{ $supplier->id }}"
+                                                name="contact_person"
+                                                value="{{ $supplier->contact_person }}"
+                                                placeholder="Optional">
+                                        </div>
+
+                                        <div class="supplier-form-group">
+                                            <label for="edit_supplier_phone_{{ $supplier->id }}">
+                                                Phone
+                                            </label>
+                                            <input
+                                                type="text"
+                                                id="edit_supplier_phone_{{ $supplier->id }}"
+                                                name="phone"
+                                                value="{{ $supplier->phone }}"
+                                                placeholder="Optional">
+                                        </div>
+
+                                        <div class="supplier-form-group">
+                                            <label for="edit_supplier_email_{{ $supplier->id }}">
+                                                Email
+                                            </label>
+                                            <input
+                                                type="email"
+                                                id="edit_supplier_email_{{ $supplier->id }}"
+                                                name="email"
+                                                value="{{ $supplier->email }}"
+                                                placeholder="Optional">
+                                        </div>
+
+                                        <div class="supplier-form-group supplier-form-full">
+                                            <label for="edit_supplier_address_{{ $supplier->id }}">
+                                                Address
+                                            </label>
+                                            <textarea
+                                                id="edit_supplier_address_{{ $supplier->id }}"
+                                                name="address"
+                                                rows="2"
+                                                placeholder="Optional">{{ $supplier->address }}</textarea>
+                                        </div>
+
+                                    </div>
+
+                                    <div class="supplier-form-actions">
+                                        <button
+                                            type="button"
+                                            class="purchase-cancel-button toggle-supplier-close"
+                                            data-target="supplier-details-{{ $supplier->id }}">
+                                            Cancel
+                                        </button>
+
+                                        <button type="submit" class="purchase-save-button">
+                                            Save Changes
+                                        </button>
+                                    </div>
+
+                                </form>
+
+                            </div>
 
                         </div>
 
@@ -750,17 +1035,18 @@
                     @empty
 
                     <div class="purchase-no-stock">
-
                         <strong>No suppliers yet.</strong>
-
-                        <span>
-                            Add your first supplier to use it when recording purchases.
-                        </span>
-
+                        <span>Add your first supplier to use it when recording purchases.</span>
                     </div>
 
                     @endforelse
 
+                </div>
+
+                {{-- Message shown when the filters hide every supplier --}}
+                <div id="supplierFilterEmpty" class="purchase-no-stock" hidden>
+                    <strong>No suppliers match your filters.</strong>
+                    <span>Try a different search term or clear the filter.</span>
                 </div>
 
             </div>
@@ -1036,6 +1322,9 @@
                 purchaseModal.classList.add('is-open');
                 purchaseModal.setAttribute('aria-hidden', 'false');
 
+                // Reset stock-in rows to a clean state every time
+                resetPurchaseRows();
+
             }
 
 
@@ -1098,6 +1387,200 @@
 
             }
 
+            /*
+            |--------------------------------------------------------------------------
+            | Expense Modal
+            |--------------------------------------------------------------------------
+            */
+
+            const expenseModal = document.getElementById('expenseModal');
+            const openExpenseModal = document.getElementById('openExpenseModal');
+            const closeExpenseModal = document.getElementById('closeExpenseModal');
+            const cancelExpenseButton = document.getElementById('cancelExpenseButton');
+            const closeExpenseModalBackdrop = document.getElementById('closeExpenseModalBackdrop');
+            const expenseForm = document.getElementById('expenseForm');
+
+            function openExpense() {
+                if (!expenseModal) return;
+
+                // Reset form fields to a fresh state each time the modal opens
+                if (expenseForm) {
+                    expenseForm.reset();
+
+                    const dateField = document.getElementById('expense_date');
+                    if (dateField) dateField.value = new Date().toISOString().split('T')[0];
+                }
+
+                expenseModal.classList.add('is-open');
+                expenseModal.setAttribute('aria-hidden', 'false');
+            }
+
+            function closeExpense() {
+                if (!expenseModal) return;
+
+                expenseModal.classList.remove('is-open');
+                expenseModal.setAttribute('aria-hidden', 'true');
+            }
+
+            if (openExpenseModal) {
+                openExpenseModal.addEventListener('click', openExpense);
+            }
+
+            if (closeExpenseModal) {
+                closeExpenseModal.addEventListener('click', closeExpense);
+            }
+
+            if (cancelExpenseButton) {
+                cancelExpenseButton.addEventListener('click', closeExpense);
+            }
+
+            if (closeExpenseModalBackdrop) {
+                closeExpenseModalBackdrop.addEventListener('click', closeExpense);
+            }
+
+            // Escape closes any open purchase/expense modal
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    if (expenseModal && expenseModal.classList.contains('is-open')) {
+                        closeExpense();
+                    }
+                }
+            });
+
+            /*
+            |--------------------------------------------------------------------------
+            | Supplier Edit Dropdowns (toggle open / close)
+            |--------------------------------------------------------------------------
+            */
+
+            document.querySelectorAll('.toggle-supplier').forEach(function(button) {
+                button.addEventListener('click', function() {
+                    const panel = document.getElementById(button.dataset.target);
+                    if (!panel) return;
+
+                    const isOpen = !panel.hidden;
+
+                    // Close any other open supplier panel first
+                    document.querySelectorAll('.supplier-details').forEach(function(other) {
+                        if (other !== panel) other.hidden = true;
+                    });
+                    document.querySelectorAll('.toggle-supplier').forEach(function(otherBtn) {
+                        if (otherBtn !== button) {
+                            otherBtn.setAttribute('aria-expanded', 'false');
+                            const lbl = otherBtn.querySelector('.toggle-label');
+                            const icn = otherBtn.querySelector('.toggle-icon');
+                            if (lbl) lbl.textContent = 'Edit';
+                            if (icn) icn.textContent = '＋';
+                        }
+                    });
+
+                    panel.hidden = isOpen;
+                    button.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+
+                    const label = button.querySelector('.toggle-label');
+                    const icon = button.querySelector('.toggle-icon');
+
+                    if (label) label.textContent = isOpen ? 'Edit' : 'Close';
+                    if (icon) icon.textContent = isOpen ? '＋' : '−';
+
+                    if (!isOpen) {
+                        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                });
+            });
+
+            document.querySelectorAll('.toggle-supplier-close').forEach(function(button) {
+                button.addEventListener('click', function() {
+                    const panel = document.getElementById(button.dataset.target);
+                    if (!panel) return;
+
+                    panel.hidden = true;
+
+                    const opener = document.querySelector(
+                        '.toggle-supplier[data-target="' + button.dataset.target + '"]'
+                    );
+
+                    if (opener) {
+                        opener.setAttribute('aria-expanded', 'false');
+
+                        const label = opener.querySelector('.toggle-label');
+                        const icon = opener.querySelector('.toggle-icon');
+
+                        if (label) label.textContent = 'Edit';
+                        if (icon) icon.textContent = '＋';
+                    }
+                });
+            });
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Supplier Filters (search + status)
+            |--------------------------------------------------------------------------
+            */
+
+            const supplierSearch = document.getElementById('supplierSearch');
+            const supplierStatusFilter = document.getElementById('supplierStatusFilter');
+            const supplierResetFilters = document.getElementById('supplierResetFilters');
+            const supplierEntries = document.querySelectorAll('[data-supplier-entry]');
+            const supplierFilterEmpty = document.getElementById('supplierFilterEmpty');
+
+            function applySupplierFilters() {
+                const search = (supplierSearch?.value || '').trim().toLowerCase();
+                const status = supplierStatusFilter?.value || 'all';
+
+                let visibleCount = 0;
+
+                supplierEntries.forEach(function(entry) {
+                    const name = entry.dataset.name || '';
+                    const entryStatus = entry.dataset.status || 'active';
+
+                    const matchesSearch = search === '' || name.includes(search);
+                    const matchesStatus = status === 'all' || entryStatus === status;
+
+                    const visible = matchesSearch && matchesStatus;
+                    entry.hidden = !visible;
+
+                    if (visible) visibleCount++;
+                });
+
+                if (supplierFilterEmpty) {
+                    supplierFilterEmpty.hidden = visibleCount !== 0;
+                }
+            }
+
+            if (supplierSearch) supplierSearch.addEventListener('input', applySupplierFilters);
+            if (supplierStatusFilter) supplierStatusFilter.addEventListener('change', applySupplierFilters);
+
+            if (supplierResetFilters) {
+                supplierResetFilters.addEventListener('click', function() {
+                    if (supplierSearch) supplierSearch.value = '';
+                    if (supplierStatusFilter) supplierStatusFilter.value = 'all';
+                    applySupplierFilters();
+                });
+            }
+
+            // Make sure the filter bar resets whenever the modal is opened fresh
+            if (openSupplierModal) {
+                openSupplierModal.addEventListener('click', function() {
+                    if (supplierSearch) supplierSearch.value = '';
+                    if (supplierStatusFilter) supplierStatusFilter.value = 'all';
+                    applySupplierFilters();
+
+                    // Also close any open edit dropdowns
+                    document.querySelectorAll('.supplier-details').forEach(function(p) {
+                        p.hidden = true;
+                    });
+                    document.querySelectorAll('.toggle-supplier').forEach(function(b) {
+                        b.setAttribute('aria-expanded', 'false');
+                        const lbl = b.querySelector('.toggle-label');
+                        const icn = b.querySelector('.toggle-icon');
+                        if (lbl) lbl.textContent = 'Edit';
+                        if (icn) icn.textContent = '＋';
+                    });
+                });
+            }
+
 
             if (openSupplierModal) {
                 openSupplierModal.addEventListener('click', openSupplier);
@@ -1114,101 +1597,143 @@
 
             /*
             |--------------------------------------------------------------------------
-            | Stock Selection
+            | Stock Selection + Purchase Total
             |--------------------------------------------------------------------------
             */
 
-            const stockCheckboxes =
-                document.querySelectorAll('.stock-checkbox');
-
-            const stockCosts =
-                document.querySelectorAll('.stock-unit-cost');
-
-            const purchaseTotal =
-                document.getElementById('purchaseTotal');
-
+            const purchaseTotal = document.getElementById('purchaseTotal');
 
             function updatePurchaseTotal() {
 
                 let total = 0;
 
-                stockCheckboxes.forEach(function(checkbox) {
+                document.querySelectorAll('.purchase-stock-row').forEach(function(row) {
 
-                    if (!checkbox.checked) {
-                        return;
+                    const checkbox      = row.querySelector('.stock-checkbox');
+                    const quantityInput = row.querySelector('.stock-quantity');
+                    const costInput     = row.querySelector('.stock-unit-cost');
+
+                    if (!checkbox || !checkbox.checked) return;
+                    if (!quantityInput || !costInput) return;
+
+                    const quantity = parseFloat(quantityInput.value) || 0;
+                    const unitCost = parseFloat(costInput.value) || 0;
+
+                    if (quantity > 0 && unitCost > 0) {
+                        total += quantity * unitCost;
                     }
-
-                    const stockId = checkbox.dataset.stockId;
-
-                    const costInput =
-                        document.querySelector(
-                            `.stock-unit-cost[data-stock-id="${stockId}"]`
-                        );
-
-                    if (!costInput) {
-                        return;
-                    }
-
-                    const row =
-                        checkbox.closest('.purchase-stock-row');
-
-                    const quantityText =
-                        row.querySelector('.purchase-stock-info span')?.textContent || '';
-
-                    const quantity =
-                        parseFloat(quantityText.replace(/[^0-9.-]+/g, '')) || 0;
-
-                    const unitCost =
-                        parseFloat(costInput.value) || 0;
-
-                    total += quantity * unitCost;
-
                 });
 
-
                 if (purchaseTotal) {
-
                     purchaseTotal.textContent =
                         '₱' + total.toLocaleString('en-PH', {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2
                         });
-
                 }
-
             }
 
-
-            stockCheckboxes.forEach(function(checkbox) {
+            // Toggle row enabled state when the checkbox changes
+            document.querySelectorAll('.stock-checkbox').forEach(function(checkbox) {
 
                 checkbox.addEventListener('change', function() {
 
-                    const stockId = this.dataset.stockId;
+                    const row = this.closest('.purchase-stock-row');
+                    if (!row) return;
 
-                    const costInput =
-                        document.querySelector(
-                            `.stock-unit-cost[data-stock-id="${stockId}"]`
-                        );
+                    const quantityInput = row.querySelector('.stock-quantity');
+                    const costInput     = row.querySelector('.stock-unit-cost');
+                    const hiddenId      = row.querySelector('input[type="hidden"][name*="[id]"]');
 
-                    if (costInput) {
-                        costInput.disabled = !this.checked;
+                    const enabled = this.checked;
+
+                    if (quantityInput) quantityInput.disabled = !enabled;
+                    if (costInput)     costInput.disabled = !enabled;
+                    if (hiddenId)      hiddenId.disabled = !enabled;
+
+                    // Reset unit cost when unchecking
+                    if (!enabled && costInput) {
+                        costInput.value = 0;
                     }
 
                     updatePurchaseTotal();
+                });
+            });
 
+            // Live update while typing
+            document.querySelectorAll('.stock-quantity, .stock-unit-cost').forEach(function(input) {
+                input.addEventListener('input', updatePurchaseTotal);
+            });
+
+            // Reset every row when the modal opens
+            function resetPurchaseRows() {
+                document.querySelectorAll('.purchase-stock-row').forEach(function(row) {
+
+                    const checkbox      = row.querySelector('.stock-checkbox');
+                    const quantityInput = row.querySelector('.stock-quantity');
+                    const costInput     = row.querySelector('.stock-unit-cost');
+                    const hiddenId      = row.querySelector('input[type="hidden"][name*="[id]"]');
+
+                    if (checkbox)      checkbox.checked = false;
+                    if (quantityInput) quantityInput.disabled = true;
+                    if (costInput) {
+                        costInput.disabled = true;
+                        costInput.value = 0;
+                    }
+                    if (hiddenId)      hiddenId.disabled = true;
                 });
 
-            });
+                updatePurchaseTotal();
+            }
 
+            updatePurchaseTotal();
 
-            stockCosts.forEach(function(input) {
+            /*
+            |--------------------------------------------------------------------------
+            | Client-side guard — checked rows need quantity AND unit cost > 0
+            |--------------------------------------------------------------------------
+            */
 
-                input.addEventListener('input', updatePurchaseTotal);
+            const purchaseForm = document.getElementById('purchaseForm');
 
-            });
+            if (purchaseForm) {
+                purchaseForm.addEventListener('submit', function(e) {
 
+                    const checkedRows = Array.from(
+                        document.querySelectorAll('.purchase-stock-row')
+                    ).filter(row => row.querySelector('.stock-checkbox')?.checked);
+
+                    if (checkedRows.length === 0) {
+                        e.preventDefault();
+                        alert('Please select at least one stock-in record.');
+                        return;
+                    }
+
+                    for (const row of checkedRows) {
+
+                        const quantityInput = row.querySelector('.stock-quantity');
+                        const costInput     = row.querySelector('.stock-unit-cost');
+
+                        const quantity = parseFloat(quantityInput?.value) || 0;
+                        const unitCost = parseFloat(costInput?.value) || 0;
+
+                        if (quantity <= 0 || unitCost <= 0) {
+                            e.preventDefault();
+
+                            const name = row.querySelector('.purchase-stock-info strong')
+                                ?.textContent?.trim() || 'an item';
+
+                            alert(
+                                'Enter a quantity and unit cost greater than 0 for: ' + name
+                            );
+                            return;
+                        }
+                    }
+                });
+            }
 
         });
+
         /*
         |--------------------------------------------------------------------------
         | Add Supplier Form
@@ -1272,5 +1797,193 @@
             );
         }
     </script>
+
+    {{-- =====================================================
+     ADD EXPENSE MODAL
+     ===================================================== --}}
+    <div
+        id="expenseModal"
+        class="purchase-modal"
+        aria-hidden="true">
+
+        <div
+            class="purchase-modal-backdrop"
+            id="closeExpenseModalBackdrop">
+        </div>
+
+        <div
+            class="purchase-modal-content"
+            role="dialog"
+            aria-modal="true">
+
+            <div class="purchase-modal-header">
+
+                <div>
+                    <h2>Add Expense</h2>
+                    <p>Record an operating expense or any non-purchase cost.</p>
+                </div>
+
+                <button
+                    type="button"
+                    class="purchase-modal-close"
+                    id="closeExpenseModal">
+                    &times;
+                </button>
+
+            </div>
+
+
+            <form
+                method="POST"
+                action="{{ route('expenses.store') }}"
+                id="expenseForm">
+
+                @csrf
+
+                <div class="purchase-modal-body">
+
+                    <div class="purchase-section">
+
+                        <div class="purchase-section-title">
+                            Expense Details
+                        </div>
+
+                        <div class="purchase-form-grid">
+
+                            <div class="purchase-form-group purchase-form-full">
+
+                                <label for="expense_description">
+                                    Description
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="description"
+                                    id="expense_description"
+                                    maxlength="255"
+                                    placeholder="e.g. Electricity bill, Cleaning supplies"
+                                    required>
+
+                            </div>
+
+
+                            <div class="purchase-form-group">
+
+                                <label for="expense_category_input">
+                                    Category
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="category"
+                                    id="expense_category_input"
+                                    maxlength="255"
+                                    placeholder="e.g. Utilities, Supplies">
+
+                            </div>
+
+
+                            <div class="purchase-form-group">
+
+                                <label for="expense_amount">
+                                    Amount
+                                </label>
+
+                                <input
+                                    type="number"
+                                    name="amount"
+                                    id="expense_amount"
+                                    min="0.01"
+                                    step="0.01"
+                                    placeholder="0.00"
+                                    required>
+
+                            </div>
+
+
+                            <div class="purchase-form-group">
+
+                                <label for="expense_date">
+                                    Expense Date
+                                </label>
+
+                                <input
+                                    type="date"
+                                    name="expense_date"
+                                    id="expense_date"
+                                    value="{{ now()->toDateString() }}"
+                                    max="{{ now()->toDateString() }}"
+                                    required>
+
+                            </div>
+
+
+                            <div class="purchase-form-group">
+
+                                <label for="expense_purchase_id">
+                                    Link to Purchase <span style="color: var(--muted-foreground); font-weight: 400;">(optional)</span>
+                                </label>
+
+                                <select name="purchase_id" id="expense_purchase_id">
+                                    <option value="">— No purchase —</option>
+
+                                    @foreach ($linkablePurchases as $purchase)
+                                        <option value="{{ $purchase->id }}">
+                                            {{ \Carbon\Carbon::parse($purchase->purchase_date)->format('M d, Y') }}
+                                            ·
+                                            {{ $purchase->reference_number ?? ('PO #' . $purchase->id) }}
+                                            @if ($purchase->supplier)
+                                                · {{ $purchase->supplier->name }}
+                                            @endif
+                                        </option>
+                                    @endforeach
+                                </select>
+
+                            </div>
+
+
+                            <div class="purchase-form-group purchase-form-full">
+
+                                <label for="expense_notes">
+                                    Notes
+                                </label>
+
+                                <textarea
+                                    name="notes"
+                                    id="expense_notes"
+                                    rows="3"
+                                    placeholder="Optional notes about this expense"></textarea>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="purchase-modal-footer">
+
+                    <button
+                        type="button"
+                        class="purchase-cancel-button"
+                        id="cancelExpenseButton">
+                        Cancel
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="purchase-save-button">
+                        Save Expense
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
 
 </x-app-layout>

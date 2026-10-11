@@ -5,7 +5,7 @@
         {{-- Header --}}
         <div class="kitchen-header">
             <div>
-                <h1>Kitchen / Bar Orders</h1>
+                <h1>Order Queue</h1>
                 <p>Manage active orders and preparation status.</p>
             </div>
         </div>
