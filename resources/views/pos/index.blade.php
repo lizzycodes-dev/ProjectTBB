@@ -56,6 +56,8 @@
             width: 100%;
         }
     </style>
+    {{-- Ready-order toasts --}}
+    <div id="posToasts" class="pos-toasts" aria-live="polite" aria-atomic="false"></div>
 
     <div class="kitchen-page">
         <div class="kitchen-header">
@@ -355,6 +357,102 @@
             </div>
         </div>
     </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const toastBox = document.getElementById('posToasts');
+            const endpoint = @json(route('pos.ready-orders'));
+
+            // Remember what we've already announced so we don't repeat.
+            let seen = new Set();
+            let lastPoll = null;
+
+            // Seed "seen" with everything currently Ready so the first poll doesn't
+            // dump a wall of toasts.
+            async function seed() {
+                try {
+                    const res = await fetch(endpoint, {
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
+                    const data = await res.json();
+                    (data.orders || []).forEach(o => seen.add(o.id));
+                    lastPoll = data.now;
+                } catch (e) {
+                    console.error('POS seed failed', e);
+                }
+            }
+
+            function showToast(order) {
+                if (!toastBox) return;
+
+                const el = document.createElement('div');
+                el.className = 'pos-toast';
+                el.innerHTML = `
+            <div class="pos-toast-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                    <path d="M5 12l5 5L20 7" />
+                </svg>
+            </div>
+            <div class="pos-toast-body">
+                <div class="pos-toast-title">
+                    Queue ${order.queue_label} is ready
+                </div>
+                <div class="pos-toast-sub">
+                    ${order.order_number}
+                </div>
+            </div>
+            <button type="button" class="pos-toast-close" aria-label="Dismiss">×</button>
+        `;
+
+                el.querySelector('.pos-toast-close')
+                    ?.addEventListener('click', () => el.remove());
+
+                toastBox.appendChild(el);
+
+                // Fade in
+                requestAnimationFrame(() => el.classList.add('is-visible'));
+
+                // Auto-remove after 8s
+                setTimeout(() => {
+                    el.classList.remove('is-visible');
+                    setTimeout(() => el.remove(), 250);
+                }, 8000);
+            }
+
+            async function poll() {
+                try {
+                    const url = new URL(endpoint, window.location.origin);
+                    if (lastPoll) url.searchParams.set('since', lastPoll);
+
+                    const res = await fetch(url, {
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
+                    const data = await res.json();
+
+                    (data.orders || []).forEach(o => {
+                        if (!seen.has(o.id)) {
+                            seen.add(o.id);
+                            showToast(o);
+                        }
+                    });
+
+                    lastPoll = data.now;
+                } catch (e) {
+                    console.error('POS poll failed', e);
+                }
+            }
+
+            (async function start() {
+                await seed();
+                setInterval(poll, 15000); // every 15 seconds
+            })();
+        });
+    </script>
 
     <script>
         const posSearch = document.getElementById('posSearch');

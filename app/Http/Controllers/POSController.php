@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Inventory_Item;
+use Illuminate\Http\Request;
 
 class POSController extends Controller
 {
@@ -67,5 +68,37 @@ class POSController extends Controller
             ->get();
 
         return view('pos.index', compact('menuItems', 'categories'));
+    }
+    public function readyOrders(Request $request)
+    {
+        // Optional: accept a "since" timestamp so we only return new ones.
+        $since = $request->query('since');
+
+        $query = \App\Models\Order::query()
+            ->where('status', 'Ready')
+            ->orderByDesc('updated_at');
+
+        if ($since) {
+            $query->where('updated_at', '>', $since);
+        }
+
+        $orders = $query->limit(20)->get([
+            'id',
+            'order_number',
+            'queue_number',
+            'queue_date',
+            'updated_at',
+        ]);
+
+        return response()->json([
+            'now'    => now()->toDateTimeString(),
+            'orders' => $orders->map(fn($o) => [
+                'id'           => $o->id,
+                'order_number' => $o->order_number,
+                'queue_number' => $o->queue_number,
+                'queue_label'  => $o->queue_label ?? ('#' . $o->queue_number),
+                'updated_at'   => $o->updated_at->toDateTimeString(),
+            ]),
+        ]);
     }
 }

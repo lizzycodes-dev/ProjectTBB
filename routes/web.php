@@ -43,6 +43,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/inventory', [InventoryItemController::class, 'index'])
             ->name('inventory.index');
 
+        Route::get('/pos/ready-orders', [POSController::class, 'readyOrders'])
+            ->name('pos.ready-orders');
+
         Route::post('/inventory/{inventoryItem}/toggle-active', [InventoryItemController::class, 'toggleActive'])
             ->name('inventory.toggle-active');
 
