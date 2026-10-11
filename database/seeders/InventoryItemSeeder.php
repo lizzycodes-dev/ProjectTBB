@@ -10,17 +10,13 @@ class InventoryItemSeeder extends Seeder
 {
     public function run(): void
     {
-        $categoryIds = DB::table('categories')
-            ->pluck('id', 'name');
-
-        $locationIds = DB::table('inventory_locations')
-            ->pluck('id', 'name');
+        $categoryIds = DB::table('categories')->pluck('id', 'name');
+        $locationIds = DB::table('inventory_locations')->pluck('id', 'name');
 
         $getCategoryId = function (string $name) use ($categoryIds): int {
             if (!isset($categoryIds[$name])) {
                 throw new \RuntimeException("Category not found: {$name}");
             }
-
             return $categoryIds[$name];
         };
 
@@ -28,7 +24,6 @@ class InventoryItemSeeder extends Seeder
             if (!isset($locationIds[$name])) {
                 throw new \RuntimeException("Inventory location not found: {$name}");
             }
-
             return $locationIds[$name];
         };
 
@@ -63,8 +58,10 @@ class InventoryItemSeeder extends Seeder
 
             /*
             |--------------------------------------------------------------------------
-            | KITCHEN AREA — PREPPED FOOD STOCK (internal stock, not menu)
+            | KITCHEN AREA — PREPPED FOOD STOCK (real dishes only)
             |--------------------------------------------------------------------------
+            | Only prepared dishes live here. Ingredients and supplies belong to the
+            | non-countable list further down.
             */
 
             $seedItems([
@@ -82,26 +79,37 @@ class InventoryItemSeeder extends Seeder
                 ['name' => 'Pork/Chicken Tocino'],
                 ['name' => 'Corn Beef'],
                 ['name' => 'Pork/Chicken Ham'],
+                ['name' => 'Chicken Carbonara'],
+            ], 'Food', 'Kitchen Area', 'prepped');
+
+            /*
+            |--------------------------------------------------------------------------
+            | KITCHEN AREA — INGREDIENTS (non-countable)
+            |--------------------------------------------------------------------------
+            | Moved out of prepped stock because they are supplies/ingredients.
+            */
+
+            $seedItems([
                 ['name' => 'Egg'],
                 ['name' => 'Mozzarella'],
                 ['name' => 'Fries'],
+                ['name' => 'Burger Patty'],
                 ['name' => 'Pork Chop'],
                 ['name' => 'Bihon'],
                 ['name' => 'C/K for Bihon'],
                 ['name' => 'Mixed Vegetables'],
                 ['name' => 'Pasta'],
-                ['name' => 'Chicken Carbonara'],
                 ['name' => 'Carbonara/Spaghetti Sauce'],
                 ['name' => 'Nachos Chips/Beef'],
                 ['name' => 'Cheese/Quickmelt'],
                 ['name' => 'Gravy'],
                 ['name' => 'Teriyaki/PorkChop Sauce'],
                 ['name' => 'Coke/Royal/Sprite'],
-            ], 'Food', 'Kitchen Area', 'prepped');
+            ], 'Ingredient', 'Kitchen Area', 'physical');
 
             /*
             |--------------------------------------------------------------------------
-            | BAR AREA — INGREDIENTS (internal stock)
+            | BAR AREA — INGREDIENTS (non-countable)
             |--------------------------------------------------------------------------
             */
 
@@ -122,7 +130,7 @@ class InventoryItemSeeder extends Seeder
 
             /*
             |--------------------------------------------------------------------------
-            | BAR AREA — SAUCES (internal stock)
+            | BAR AREA — SAUCES
             |--------------------------------------------------------------------------
             */
 
@@ -134,7 +142,7 @@ class InventoryItemSeeder extends Seeder
 
             /*
             |--------------------------------------------------------------------------
-            | BAR AREA — PUREES (internal stock)
+            | BAR AREA — PUREES
             |--------------------------------------------------------------------------
             */
 
@@ -146,8 +154,7 @@ class InventoryItemSeeder extends Seeder
 
             /*
             |--------------------------------------------------------------------------
-            | COFFEE — HOT / COLD PRICES
-            | Hot price is base. Iced adds ₱10 via Temperature option.
+            | COFFEE — HOT / COLD
             |--------------------------------------------------------------------------
             */
 
@@ -166,7 +173,7 @@ class InventoryItemSeeder extends Seeder
 
             /*
             |--------------------------------------------------------------------------
-            | NON COFFEE — HOT / COLD PRICES
+            | NON COFFEE
             |--------------------------------------------------------------------------
             */
 
@@ -179,7 +186,7 @@ class InventoryItemSeeder extends Seeder
 
             /*
             |--------------------------------------------------------------------------
-            | FRAPPE ICE CREAM ON TOP
+            | FRAPPE
             |--------------------------------------------------------------------------
             */
 
@@ -192,7 +199,7 @@ class InventoryItemSeeder extends Seeder
 
             /*
             |--------------------------------------------------------------------------
-            | SMOOTHIES ICE CREAM ON TOP
+            | SMOOTHIES
             |--------------------------------------------------------------------------
             */
 
@@ -205,7 +212,7 @@ class InventoryItemSeeder extends Seeder
 
             /*
             |--------------------------------------------------------------------------
-            | POPPING BOBA PEARLS
+            | POPPING BOBA
             |--------------------------------------------------------------------------
             */
 
@@ -220,7 +227,7 @@ class InventoryItemSeeder extends Seeder
 
             /*
             |--------------------------------------------------------------------------
-            | OREO MILK SERIES — LARGE SIZE @ 109
+            | OREO MILK SERIES
             |--------------------------------------------------------------------------
             */
 
@@ -233,7 +240,7 @@ class InventoryItemSeeder extends Seeder
 
             /*
             |--------------------------------------------------------------------------
-            | FIZZY COOLERS — LARGE SIZE @ 109
+            | FIZZY COOLERS
             |--------------------------------------------------------------------------
             */
 
@@ -246,7 +253,7 @@ class InventoryItemSeeder extends Seeder
 
             /*
             |--------------------------------------------------------------------------
-            | BUY 1 TAKE 1 SMOOTHIES @ 139
+            | BUY 1 TAKE 1 SMOOTHIES
             |--------------------------------------------------------------------------
             */
 
@@ -262,7 +269,7 @@ class InventoryItemSeeder extends Seeder
 
             /*
             |--------------------------------------------------------------------------
-            | SODA FRUIT JELLY BUY 1 TAKE 1 @ 129
+            | SODA FRUIT JELLY B1T1
             |--------------------------------------------------------------------------
             */
 
@@ -274,7 +281,7 @@ class InventoryItemSeeder extends Seeder
 
             /*
             |--------------------------------------------------------------------------
-            | FRUIT JUICE PITCHER @ 110
+            | FRUIT JUICE PITCHER
             |--------------------------------------------------------------------------
             */
 
@@ -288,7 +295,7 @@ class InventoryItemSeeder extends Seeder
 
             /*
             |--------------------------------------------------------------------------
-            | RICE MEALS
+            | RICE MEALS (sellable)
             |--------------------------------------------------------------------------
             */
 
@@ -310,7 +317,7 @@ class InventoryItemSeeder extends Seeder
 
             /*
             |--------------------------------------------------------------------------
-            | RICE TOPPINGS
+            | RICE TOPPINGS (sellable)
             |--------------------------------------------------------------------------
             */
 
@@ -323,7 +330,7 @@ class InventoryItemSeeder extends Seeder
 
             /*
             |--------------------------------------------------------------------------
-            | SNACK MEALS
+            | SNACK MEALS (sellable)
             |--------------------------------------------------------------------------
             */
 

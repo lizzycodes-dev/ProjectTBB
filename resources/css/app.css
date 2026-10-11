@@ -1139,7 +1139,136 @@
     font-weight: 700;
     letter-spacing: -0.4px;
 }
+/* =========================================================
+   FINANCE REPORT — LAYOUT FIX
+   ========================================================= */
 
+.finance-page {
+    padding: 28px 30px;
+    color: var(--foreground);
+    background: var(--background);
+
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;      /* kill the horizontal scrollbar */
+    box-sizing: border-box;
+}
+
+.finance-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;         /* allow export buttons to wrap */
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.finance-header h1 {
+    margin: 0;
+    color: var(--foreground);
+    font-family: var(--font-serif);
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.4px;
+}
+
+/* ---------- Summary strip ---------- */
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+
+    width: 100%;
+    min-width: 0;
+}
+
+.summary-grid .summary-card {
+    min-width: 0;             /* critical: prevents grid blowout */
+    overflow: hidden;
+}
+
+/* ---------- Filters ---------- */
+
+.filters-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+
+    margin-bottom: 18px;
+    width: 100%;
+    min-width: 0;
+}
+
+.filter-group {
+    min-width: 0;
+}
+
+.filter-group select,
+.filter-group input {
+    max-width: 100%;
+}
+
+/* ---------- Panels ---------- */
+
+.sales-panel,
+.expense-panel,
+.dashboard-panel {
+    width: 100%;
+    min-width: 0;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 1100px) {
+    .summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .sales-panel,
+    .expense-panel {
+        overflow-x: auto;
+    }
+
+    .sales-header,
+    .sales-row,
+    .expense-header,
+    .expense-row {
+        min-width: 760px;
+    }
+}
+
+@media (max-width: 700px) {
+    .finance-page {
+        padding: 20px 16px;
+    }
+
+    .finance-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .filters-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-group select,
+    .filter-group input {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .date-group {
+        justify-content: space-between;
+    }
+}
 .export-btn {
     padding: 9px 18px;
     border: 1px solid var(--primary);
