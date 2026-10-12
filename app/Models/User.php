@@ -10,7 +10,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes; // 1. Added SoftDeletes import
-use App\Models\Inventory_Transactions;
+use App\Models\ProfileRequest;
 use App\Models\Order;
 use App\Models\Kitchen_Order_Item;
 use App\Models\Payment;
@@ -70,5 +70,9 @@ class User extends Authenticatable
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class, 'received_by');
+    }
+    public function profileRequests(): HasMany
+    {
+        return $this->hasMany(ProfileRequest::class, 'user_id');
     }
 }

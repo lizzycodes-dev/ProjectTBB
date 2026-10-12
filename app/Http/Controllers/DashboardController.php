@@ -36,7 +36,27 @@ class DashboardController extends Controller
             ? $dailyRevenue / $completed->count()
             : 0;
 
-        $orders = $todayQuery->orderByDesc('ordered_at')->paginate(10)->withQueryString();
+        /* =========================================================
+         | DAILY SALES LOG — today's completed orders
+         | Sortable by ordered_at (toggle asc / desc)
+         | ========================================================= */
+
+        $direction = strtolower($request->input('direction', 'desc'));
+        if (! in_array($direction, ['asc', 'desc'], true)) {
+            $direction = 'desc';
+        }
+
+        $orders = Order::with(['payment', 'orderItems'])
+            ->whereDate('ordered_at', today())
+            ->where('status', 'Completed')
+            ->orderBy('ordered_at', $direction)
+            ->orderBy('id', $direction)
+            ->paginate(10)
+            ->withQueryString();
+
+        /* =========================================================
+         | Everything else stays the same
+         | ========================================================= */
 
         $stockItems = Inventory_Item::with('unit')
             ->withSum('stockIns as total_stock_in', 'quantity')
@@ -57,8 +77,6 @@ class DashboardController extends Controller
             ->sortBy('current_stock')
             ->values();
 
-        // Low-stock list: 5 per page. Page links only render when there
-        // are more than 5 items (hasPages()).
         $lowStockPerPage = 5;
         $lowStockPage = LengthAwarePaginator::resolveCurrentPage('low_stock_page');
 
@@ -96,7 +114,8 @@ class DashboardController extends Controller
             'lowStockItems',
             'lowStockPaginator',
             'currentInventory',
-            'bestSellers'
+            'bestSellers',
+            'direction'
         ));
     }
 }

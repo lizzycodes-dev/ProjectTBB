@@ -2,59 +2,118 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\ProfileRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
 class ProfileController extends Controller
 {
-    /**
-     * Display the user's profile form.
-     */
     public function edit(Request $request): View
     {
+        $user = $request->user();
+
+        $requests = ProfileRequest::where('user_id', $user->id)
+            ->orderByDesc('created_at')
+            ->limit(20)
+            ->get();
+
+        $pendingRequest = $requests->firstWhere('status', 'pending');
+
         return view('profile.edit', [
-            'user' => $request->user(),
+            'user' => $user,
+            'requests' => $requests,
+            'pendingRequest' => $pendingRequest,
         ]);
     }
 
     /**
-     * Update the user's profile information.
+     * Submit a profile update request (name / email).
      */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function update(Request $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $user = $request->user();
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        if (ProfileRequest::where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->exists()) {
+            return back()->withErrors([
+                'request' => 'You already have a pending request. Wait for the manager to review it.',
+            ]);
         }
 
-        $request->user()->save();
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => [
+                'required',
+                'string',
+                'lowercase',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->ignore($user->id),
+            ],
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
 
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        ProfileRequest::create([
+            'user_id' => $user->id,
+            'type'    => 'profile',
+            'name'    => $validated['name'],
+            'email'   => $validated['email'],
+            'reason'  => $validated['reason'] ?? null,
+            'status'  => 'pending',
+        ]);
+
+        return redirect()
+            ->route('profile.edit')
+            ->with('status', 'request-submitted');
     }
 
     /**
-     * Delete the user's account.
+     * Submit a password reset request.
+     */
+    public function requestPassword(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        if (ProfileRequest::where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->exists()) {
+            return back()->withErrors([
+                'password_request' => 'You already have a pending request. Wait for the manager to review it.',
+            ]);
+        }
+
+        $validated = $request->validate([
+            'new_password' => ['required', 'string', Password::defaults(), 'confirmed'],
+            'reason'       => ['nullable', 'string', 'max:500'],
+        ]);
+
+        ProfileRequest::create([
+            'user_id'  => $user->id,
+            'type'     => 'password',
+            'password' => Hash::make($validated['new_password']),
+            'reason'   => $validated['reason'] ?? null,
+            'status'   => 'pending',
+        ]);
+
+        return redirect()
+            ->route('profile.edit')
+            ->with('status', 'password-request-submitted');
+    }
+
+    /**
+     * Account deletion is disabled — see User Management.
      */
     public function destroy(Request $request): RedirectResponse
     {
-        $request->validateWithBag('userDeletion', [
-            'password' => ['required', 'current_password'],
-        ]);
-
-        $user = $request->user();
-
-        Auth::logout();
-
-        $user->delete();
-
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return Redirect::to('/');
+        return redirect()
+            ->route('profile.edit')
+            ->withErrors([
+                'account' => 'Account deletion is disabled. Contact a manager if you need your account removed.',
+            ]);
     }
 }

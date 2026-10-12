@@ -8,7 +8,7 @@
         <div class="user-header">
 
             <div>
-                <h1>User Management</h1>
+                <h1>Staff Accounts</h1>
                 <p>
                     Select a user to view their details, update their position,
                     or archive their account.
@@ -48,6 +48,13 @@
                 <div>
                     <span class="user-stat-label">Kitchen Staff / Cooks</span>
                     <strong>{{ $cookCount }}</strong>
+                </div>
+            </div>
+
+            <div class="user-stat-card">
+                <div>
+                    <span class="user-stat-label">Pending Requests</span>
+                    <strong>{{ $pendingCount }}</strong>
                 </div>
             </div>
 
@@ -96,416 +103,635 @@
 
 
         {{-- =====================================================
-         SEARCH & FILTER
+         TABS (Users / Pending Requests)
          ===================================================== --}}
-        <div class="user-filter-bar">
+        @php
+            $activeTab = request('tab', 'users');
+            if (! in_array($activeTab, ['users', 'requests'], true)) {
+                $activeTab = 'users';
+            }
+        @endphp
 
-            <form
-                method="GET"
-                action="{{ route('users.index') }}"
-                class="user-filter-form">
+        <div class="user-tabs" role="tablist">
 
-                <div class="user-search-wrapper">
+            <a
+                href="{{ route('users.index', array_merge(request()->except(['page', 'tab']), ['tab' => 'users'])) }}"
+                class="user-tab {{ $activeTab === 'users' ? 'is-active' : '' }}"
+                role="tab"
+                aria-selected="{{ $activeTab === 'users' ? 'true' : 'false' }}">
+                Users
+            </a>
 
-                    <input
-                        type="text"
-                        name="search"
-                        value="{{ request('search') }}"
-                        placeholder="Search by name or email..."
-                        class="user-search-input">
-
-                </div>
-
-
-                <select
-                    name="filter"
-                    class="user-filter-select">
-
-                    <option value="">
-                        All Roles
-                    </option>
-
-                    <option
-                        value="Manager"
-                        @selected(request('filter')=='Manager' )>
-                        Manager
-                    </option>
-
-                    <option
-                        value="Cashier"
-                        @selected(request('filter')=='Cashier' )>
-                        Cashier
-                    </option>
-
-                    <option
-                        value="Cook"
-                        @selected(request('filter')=='Cook' )>
-                        Cook
-                    </option>
-
-                    <option
-                        value="archived"
-                        @selected(request('filter')=='archived' )>
-                        Archived Accounts
-                    </option>
-
-                </select>
-
-
-                <button
-                    type="submit"
-                    class="user-filter-button">
-                    Filter
-                </button>
-
-
-                @if(request('search') || request('filter'))
-
-                <a
-                    href="{{ route('users.index') }}"
-                    class="user-reset-button">
-                    Reset
-                </a>
-
+            <a
+                href="{{ route('users.index', array_merge(request()->except(['page', 'tab']), ['tab' => 'requests'])) }}"
+                class="user-tab {{ $activeTab === 'requests' ? 'is-active' : '' }}"
+                role="tab"
+                aria-selected="{{ $activeTab === 'requests' ? 'true' : 'false' }}">
+                Pending Requests
+                @if ($pendingCount > 0)
+                    <span class="user-tab-count">{{ $pendingCount }}</span>
                 @endif
-
-            </form>
+            </a>
 
         </div>
 
 
         {{-- =====================================================
-         USER TABLE
+         TAB PANEL: USERS
          ===================================================== --}}
-        <div class="user-card">
+        <div class="user-tab-panel" data-panel="users" @if($activeTab !== 'users') hidden @endif>
 
-            <div class="user-card-header">
+            {{-- SEARCH & FILTER --}}
+            <div class="user-filter-bar">
 
-                <div>
-                    <h2>User Accounts</h2>
-                    <p>
-                        Manage system users, positions, and account status.
-                    </p>
+                <form
+                    method="GET"
+                    action="{{ route('users.index') }}"
+                    class="user-filter-form">
+
+                    <input type="hidden" name="tab" value="users">
+
+                    <div class="user-search-wrapper">
+
+                        <input
+                            type="text"
+                            name="search"
+                            value="{{ request('search') }}"
+                            placeholder="Search by name or email..."
+                            class="user-search-input">
+
+                    </div>
+
+
+                    <select
+                        name="filter"
+                        class="user-filter-select">
+
+                        <option value="">
+                            All Roles
+                        </option>
+
+                        <option
+                            value="Manager"
+                            @selected(request('filter')=='Manager' )>
+                            Manager
+                        </option>
+
+                        <option
+                            value="Cashier"
+                            @selected(request('filter')=='Cashier' )>
+                            Cashier
+                        </option>
+
+                        <option
+                            value="Cook"
+                            @selected(request('filter')=='Cook' )>
+                            Cook
+                        </option>
+
+                        <option
+                            value="archived"
+                            @selected(request('filter')=='archived' )>
+                            Archived Accounts
+                        </option>
+
+                    </select>
+
+
+                    <button
+                        type="submit"
+                        class="user-filter-button">
+                        Filter
+                    </button>
+
+
+                    @if(request('search') || request('filter'))
+
+                    <a
+                        href="{{ route('users.index', ['tab' => 'users']) }}"
+                        class="user-reset-button">
+                        Reset
+                    </a>
+
+                    @endif
+
+                </form>
+
+            </div>
+
+
+            {{-- USER TABLE --}}
+            <div class="user-card">
+
+                <div class="user-card-header">
+
+                    <div>
+                        <h2>User Accounts</h2>
+                        <p>
+                            Manage system users, positions, and account status.
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div class="user-table-wrapper">
+
+                    <table class="user-table">
+
+                        <thead>
+
+                            <tr>
+                                <th>NAME</th>
+                                <th>EMAIL</th>
+                                <th>POSITION</th>
+                                <th>STATUS</th>
+                                <th class="user-actions-column">ACTIONS</th>
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody>
+
+                            @forelse ($users as $user)
+
+                            {{-- USER ROW --}}
+                            <tr class="user-row">
+
+                                <td class="user-name-cell">
+                                    {{ $user->name }}
+                                </td>
+
+                                <td>
+                                    {{ $user->email }}
+                                </td>
+
+                                <td>
+
+                                    <span class="user-role-badge">
+                                        {{ $user->role->name ?? 'None' }}
+                                    </span>
+
+                                </td>
+
+                                <td>
+
+                                    @if($user->trashed())
+
+                                    <span class="user-status-badge archived">
+                                        Archived
+                                    </span>
+
+                                    @else
+
+                                    <span class="user-status-badge active">
+                                        Active
+                                    </span>
+
+                                    @endif
+
+                                </td>
+
+
+                                <td class="user-actions-cell">
+
+                                    <div class="user-actions">
+
+                                        @if($user->trashed())
+
+                                        {{-- ACTIVATE --}}
+
+                                        <form
+                                            action="{{ route('users.restore', $user->id) }}"
+                                            method="POST"
+                                            class="js-confirm-form"
+                                            data-confirm-title="Reactivate account?"
+                                            data-confirm-message="{{ $user->name }} will be able to log in again."
+                                            data-confirm-button="Reactivate"
+                                            data-confirm-tone="success">
+
+                                            @csrf
+                                            @method('PUT')
+
+                                            <button
+                                                type="submit"
+                                                class="user-activate-button">
+                                                Activate
+                                            </button>
+
+                                        </form>
+
+                                        @else
+
+                                        {{-- EDIT --}}
+
+                                        <button
+                                            type="button"
+                                            class="user-edit-button toggle-user"
+                                            data-target="user-details-{{ $user->id }}"
+                                            aria-expanded="false">
+
+                                            <span class="toggle-label">
+                                                Edit
+                                            </span>
+
+                                            <span class="toggle-icon">
+                                                ＋
+                                            </span>
+
+                                        </button>
+
+
+                                        {{-- ARCHIVE --}}
+
+                                        <form
+                                            action="{{ route('users.destroy', $user->id) }}"
+                                            method="POST"
+                                            class="js-confirm-form"
+                                            data-confirm-title="Archive account?"
+                                            data-confirm-message="{{ $user->name }} will no longer be able to log in. You can reactivate the account later."
+                                            data-confirm-button="Archive"
+                                            data-confirm-tone="danger">
+
+                                            @csrf
+                                            @method('DELETE')
+
+                                            <button
+                                                type="submit"
+                                                class="user-archive-button">
+                                                Archive
+                                            </button>
+
+                                        </form>
+
+                                        @endif
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+
+
+                            {{-- EDIT DETAILS ROW --}}
+                            @unless($user->trashed())
+
+                            <tr
+                                id="user-details-{{ $user->id }}"
+                                class="user-details-row hidden">
+
+                                <td colspan="5">
+
+                                    <div class="user-details-panel">
+
+                                        <div class="user-details-header">
+
+                                            <div>
+
+                                                <h3>
+                                                    {{ $user->name }} — Account Details
+                                                </h3>
+
+                                                <p>
+                                                    Update credentials or change
+                                                    their assigned position.
+                                                </p>
+
+                                            </div>
+
+                                        </div>
+
+
+                                        <form
+                                            id="update-form-{{ $user->id }}"
+                                            action="{{ route('users.update', $user->id) }}"
+                                            method="POST">
+
+                                            @csrf
+                                            @method('PUT')
+
+
+                                            <div class="user-edit-grid">
+
+                                                {{-- NAME --}}
+                                                <div class="user-form-group">
+
+                                                    <label>
+                                                        Full Name
+                                                    </label>
+
+                                                    <input
+                                                        type="text"
+                                                        name="name"
+                                                        value="{{ $user->name }}"
+                                                        required>
+
+                                                </div>
+
+
+                                                {{-- EMAIL --}}
+                                                <div class="user-form-group">
+
+                                                    <label>
+                                                        Email Address
+                                                    </label>
+
+                                                    <input
+                                                        type="email"
+                                                        name="email"
+                                                        value="{{ $user->email }}"
+                                                        required>
+
+                                                </div>
+
+
+                                                {{-- ROLE --}}
+                                                <div class="user-form-group">
+
+                                                    <label>
+                                                        Position
+                                                    </label>
+
+                                                    <select
+                                                        name="role_id"
+                                                        required>
+
+                                                        @foreach($roles as $role)
+
+                                                        <option
+                                                            value="{{ $role->id }}"
+                                                            @selected($user->role_id == $role->id)>
+                                                            {{ $role->name }}
+                                                        </option>
+
+                                                        @endforeach
+
+                                                    </select>
+
+                                                </div>
+
+
+                                                {{-- PASSWORD --}}
+                                                <div class="user-form-group">
+
+                                                    <label>
+                                                        Reset Password
+                                                        <span>(Optional)</span>
+                                                    </label>
+
+                                                    <input
+                                                        type="password"
+                                                        name="password"
+                                                        placeholder="Leave blank to keep"
+                                                        minlength="8">
+
+                                                </div>
+
+                                            </div>
+
+                                        </form>
+
+
+                                        <div class="user-details-footer">
+
+                                            <button
+                                                type="submit"
+                                                form="update-form-{{ $user->id }}"
+                                                class="user-save-button">
+                                                Save Changes
+                                            </button>
+
+                                        </div>
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+
+                            @endunless
+
+
+                            @empty
+
+                            <tr>
+
+                                <td
+                                    colspan="5"
+                                    class="user-empty">
+                                    No users found matching your filter criteria.
+                                </td>
+
+                            </tr>
+
+                            @endforelse
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+
+                @if ($users->hasPages())
+
+                <div class="user-pagination">
+                    {{ $users->links() }}
+                </div>
+
+                @endif
+
+            </div>
+
+        </div>{{-- /.user-tab-panel [users] --}}
+
+
+        {{-- =====================================================
+         TAB PANEL: PENDING REQUESTS
+         ===================================================== --}}
+        <div class="user-tab-panel" data-panel="requests" @if($activeTab !== 'requests') hidden @endif>
+
+            <div class="user-card">
+
+                <div class="user-card-header">
+                    <div>
+                        <h2>Change Requests</h2>
+                        <p>Approve or deny profile and password change requests.</p>
+                    </div>
+                </div>
+
+
+                <div class="user-table-wrapper">
+
+                    <table class="user-table">
+
+                        <thead>
+                            <tr>
+                                <th>USER</th>
+                                <th>TYPE</th>
+                                <th>CURRENT</th>
+                                <th>REQUESTED</th>
+                                <th>REASON</th>
+                                <th>SUBMITTED</th>
+                                <th class="user-actions-column">ACTIONS</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            @forelse ($pendingRequests as $req)
+
+                            <tr class="user-row">
+
+                                <td class="user-name-cell">
+                                    {{ $req->user->name ?? 'Unknown user' }}
+                                    <br>
+                                    <small class="supplier-muted">
+                                        {{ $req->user->email ?? '—' }}
+                                    </small>
+                                </td>
+
+                                <td>
+                                    <span class="user-request-type-badge type-{{ $req->type }}">
+                                        {{ $req->typeLabel() }}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <div><strong>Name:</strong> {{ $req->user->name ?? '—' }}</div>
+                                    <div><strong>Email:</strong> {{ $req->user->email ?? '—' }}</div>
+                                </td>
+
+                                <td>
+                                    @if ($req->isPasswordRequest())
+                                        <div><strong>Password:</strong> ••••••••</div>
+                                    @else
+                                        <div><strong>Name:</strong> {{ $req->name }}</div>
+                                        <div><strong>Email:</strong> {{ $req->email }}</div>
+                                    @endif
+                                </td>
+
+                                <td>
+                                    {{ $req->reason ?: '—' }}
+                                </td>
+
+                                <td>
+                                    {{ $req->created_at->format('M d, Y h:i A') }}
+                                </td>
+
+                                <td class="user-actions-cell">
+                                    <div class="user-actions">
+
+                                        <form
+                                            method="POST"
+                                            action="{{ route('profile-requests.approve', $req->id) }}"
+                                            class="js-confirm-form"
+                                            data-confirm-title="Approve request?"
+                                            data-confirm-message="{{ $req->isPasswordRequest()
+                                                ? 'This will replace ' . ($req->user->name ?? 'the user') . '\'s password immediately.'
+                                                : 'This will update ' . ($req->user->name ?? 'the user') . '\'s name and email immediately.' }}"
+                                            data-confirm-button="Approve"
+                                            data-confirm-tone="success">
+
+                                            @csrf
+
+                                            <button
+                                                type="submit"
+                                                class="user-activate-button">
+                                                Approve
+                                            </button>
+
+                                        </form>
+
+                                        <button
+                                            type="button"
+                                            class="user-archive-button js-deny-request"
+                                            data-target="deny-form-{{ $req->id }}">
+                                            Deny
+                                        </button>
+
+                                    </div>
+                                </td>
+
+                            </tr>
+
+                            {{-- Inline deny form --}}
+                            <tr id="deny-form-{{ $req->id }}" class="user-details-row" hidden>
+                                <td colspan="7">
+
+                                    <div class="user-details-panel">
+
+                                        <div class="user-details-header">
+                                            <h3>Deny request from {{ $req->user->name ?? 'user' }}</h3>
+                                            <p>You can include a short reason — the user will see it.</p>
+                                        </div>
+
+                                        <form
+                                            method="POST"
+                                            action="{{ route('profile-requests.deny', $req->id) }}">
+
+                                            @csrf
+
+                                            <div class="user-edit-grid" style="grid-template-columns: 1fr;">
+
+                                                <div class="user-form-group">
+                                                    <label>Reason (optional)</label>
+                                                    <textarea
+                                                        name="review_note"
+                                                        rows="2"
+                                                        maxlength="500"
+                                                        class="user-search-input"
+                                                        style="height: auto; padding: 10px 12px;"
+                                                        placeholder="Why is this being denied?"></textarea>
+                                                </div>
+
+                                            </div>
+
+                                            <div class="user-details-footer">
+
+                                                <button
+                                                    type="button"
+                                                    class="user-cancel-button js-deny-cancel"
+                                                    data-target="deny-form-{{ $req->id }}"
+                                                    style="margin-right: 8px;">
+                                                    Cancel
+                                                </button>
+
+                                                <button
+                                                    type="submit"
+                                                    class="user-archive-button">
+                                                    Confirm Deny
+                                                </button>
+
+                                            </div>
+
+                                        </form>
+
+                                    </div>
+
+                                </td>
+                            </tr>
+
+                            @empty
+
+                            <tr>
+                                <td colspan="7" class="user-empty">
+                                    No pending change requests.
+                                </td>
+                            </tr>
+
+                            @endforelse
+
+                        </tbody>
+
+                    </table>
+
                 </div>
 
             </div>
 
-
-            <div class="user-table-wrapper">
-
-                <table class="user-table">
-
-                    <thead>
-
-                        <tr>
-                            <th>NAME</th>
-                            <th>EMAIL</th>
-                            <th>POSITION</th>
-                            <th>STATUS</th>
-                            <th class="user-actions-column">ACTIONS</th>
-                        </tr>
-
-                    </thead>
-
-
-                    <tbody>
-
-                        @forelse ($users as $user)
-
-                        {{-- =================================================
-                         USER ROW
-                         ================================================= --}}
-                        <tr class="user-row">
-
-                            <td class="user-name-cell">
-                                {{ $user->name }}
-                            </td>
-
-                            <td>
-                                {{ $user->email }}
-                            </td>
-
-                            <td>
-
-                                <span class="user-role-badge">
-                                    {{ $user->role->name ?? 'None' }}
-                                </span>
-
-                            </td>
-
-                            <td>
-
-                                @if($user->trashed())
-
-                                <span class="user-status-badge archived">
-                                    Archived
-                                </span>
-
-                                @else
-
-                                <span class="user-status-badge active">
-                                    Active
-                                </span>
-
-                                @endif
-
-                            </td>
-
-
-                            <td class="user-actions-cell">
-
-                                <div class="user-actions">
-
-                                    @if($user->trashed())
-
-                                    {{-- ACTIVATE --}}
-
-                                    <form
-                                        action="{{ route('users.restore', $user->id) }}"
-                                        method="POST"
-                                        class="js-confirm-form"
-                                        data-confirm-title="Reactivate account?"
-                                        data-confirm-message="{{ $user->name }} will be able to log in again."
-                                        data-confirm-button="Reactivate"
-                                        data-confirm-tone="success">
-
-                                        @csrf
-                                        @method('PUT')
-
-                                        <button
-                                            type="submit"
-                                            class="user-activate-button">
-                                            Activate
-                                        </button>
-
-                                    </form>
-
-                                    @else
-
-                                    {{-- EDIT --}}
-
-                                    <button
-                                        type="button"
-                                        class="user-edit-button toggle-user"
-                                        data-target="user-details-{{ $user->id }}"
-                                        aria-expanded="false">
-
-                                        <span class="toggle-label">
-                                            Edit
-                                        </span>
-
-                                        <span class="toggle-icon">
-                                            ＋
-                                        </span>
-
-                                    </button>
-
-
-                                    {{-- ARCHIVE --}}
-
-                                    <form
-                                        action="{{ route('users.destroy', $user->id) }}"
-                                        method="POST"
-                                        class="js-confirm-form"
-                                        data-confirm-title="Archive account?"
-                                        data-confirm-message="{{ $user->name }} will no longer be able to log in. You can reactivate the account later."
-                                        data-confirm-button="Archive"
-                                        data-confirm-tone="danger">
-
-                                        @csrf
-                                        @method('DELETE')
-
-                                        <button
-                                            type="submit"
-                                            class="user-archive-button">
-                                            Archive
-                                        </button>
-
-                                    </form>
-
-                                    @endif
-
-                                </div>
-
-                            </td>
-
-                        </tr>
-
-
-                        {{-- =================================================
-                         EDIT DETAILS ROW
-                         ================================================= --}}
-                        @unless($user->trashed())
-
-                        <tr
-                            id="user-details-{{ $user->id }}"
-                            class="user-details-row hidden">
-
-                            <td colspan="5">
-
-                                <div class="user-details-panel">
-
-                                    <div class="user-details-header">
-
-                                        <div>
-
-                                            <h3>
-                                                {{ $user->name }} — Account Details
-                                            </h3>
-
-                                            <p>
-                                                Update credentials or change
-                                                their assigned position.
-                                            </p>
-
-                                        </div>
-
-                                    </div>
-
-
-                                    <form
-                                        id="update-form-{{ $user->id }}"
-                                        action="{{ route('users.update', $user->id) }}"
-                                        method="POST">
-
-                                        @csrf
-                                        @method('PUT')
-
-
-                                        <div class="user-edit-grid">
-
-                                            {{-- NAME --}}
-                                            <div class="user-form-group">
-
-                                                <label>
-                                                    Full Name
-                                                </label>
-
-                                                <input
-                                                    type="text"
-                                                    name="name"
-                                                    value="{{ $user->name }}"
-                                                    required>
-
-                                            </div>
-
-
-                                            {{-- EMAIL --}}
-                                            <div class="user-form-group">
-
-                                                <label>
-                                                    Email Address
-                                                </label>
-
-                                                <input
-                                                    type="email"
-                                                    name="email"
-                                                    value="{{ $user->email }}"
-                                                    required>
-
-                                            </div>
-
-
-                                            {{-- ROLE --}}
-                                            <div class="user-form-group">
-
-                                                <label>
-                                                    Position
-                                                </label>
-
-                                                <select
-                                                    name="role_id"
-                                                    required>
-
-                                                    @foreach($roles as $role)
-
-                                                    <option
-                                                        value="{{ $role->id }}"
-                                                        @selected($user->role_id == $role->id)>
-                                                        {{ $role->name }}
-                                                    </option>
-
-                                                    @endforeach
-
-                                                </select>
-
-                                            </div>
-
-
-                                            {{-- PASSWORD --}}
-                                            <div class="user-form-group">
-
-                                                <label>
-                                                    Reset Password
-                                                    <span>(Optional)</span>
-                                                </label>
-
-                                                <input
-                                                    type="password"
-                                                    name="password"
-                                                    placeholder="Leave blank to keep"
-                                                    minlength="8">
-
-                                            </div>
-
-                                        </div>
-
-                                    </form>
-
-
-                                    <div class="user-details-footer">
-
-                                        <button
-                                            type="submit"
-                                            form="update-form-{{ $user->id }}"
-                                            class="user-save-button">
-                                            Save Changes
-                                        </button>
-
-                                    </div>
-
-                                </div>
-
-                            </td>
-
-                        </tr>
-
-                        @endunless
-
-
-                        @empty
-
-                        <tr>
-
-                            <td
-                                colspan="5"
-                                class="user-empty">
-                                No users found matching your filter criteria.
-                            </td>
-
-                        </tr>
-
-                        @endforelse
-
-                    </tbody>
-
-                </table>
-
-            </div>
-
-
-            {{-- =====================================================
-             PAGINATION
-             ===================================================== --}}
-            @if ($users->hasPages())
-
-            <div class="user-pagination">
-                {{ $users->links() }}
-            </div>
-
-            @endif
-
-        </div>
+        </div>{{-- /.user-tab-panel [requests] --}}
 
     </div>
 
@@ -516,6 +742,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
 
+            /* Edit user toggle */
             document
                 .querySelectorAll('.toggle-user')
                 .forEach(function(button) {
@@ -562,11 +789,45 @@
 
                 });
 
+            /* Deny request inline toggle */
+            document
+                .querySelectorAll('.js-deny-request')
+                .forEach(function(button) {
+
+                    button.addEventListener('click', function() {
+
+                        const row = document.getElementById(this.dataset.target);
+                        if (!row) return;
+
+                        // Close any other open deny forms
+                        document
+                            .querySelectorAll('.user-details-row[id^="deny-form-"]')
+                            .forEach(function(other) {
+                                if (other !== row) other.hidden = true;
+                            });
+
+                        row.hidden = !row.hidden;
+                    });
+
+                });
+
+            document
+                .querySelectorAll('.js-deny-cancel')
+                .forEach(function(button) {
+
+                    button.addEventListener('click', function() {
+                        const row = document.getElementById(this.dataset.target);
+                        if (row) row.hidden = true;
+                    });
+
+                });
+
         });
     </script>
 
+
     {{-- =====================================================
-     CONFIRM DIALOG (replaces the browser's default pop-up)
+     CONFIRM DIALOG
      ===================================================== --}}
     <div class="user-confirm-overlay hidden" id="userConfirm" role="dialog" aria-modal="true" aria-labelledby="userConfirmTitle">
         <div class="user-confirm-box">

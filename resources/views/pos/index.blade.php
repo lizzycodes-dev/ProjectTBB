@@ -67,18 +67,16 @@
             </div>
 
             {{-- Middle slot: toasts, status badges, quick stats — anything you want --}}
-            <div class="kitchen-header-middle" id="posHeaderMiddle">
-                {{-- the toast container lives here --}}
-                <div id="posToasts" class="pos-toasts" aria-live="polite"></div>
-            </div>
+
+            {{-- the toast container lives here --}}
+            <div id="posToasts" class="pos-toasts" aria-live="polite"></div>
+
 
             <div class="kitchen-header-right">
-                <a href="{{ route('kitchen.index') }}" class="kitchen-button">
-                    <span>View Kitchen</span>
-
+                <a href="{{ route('kitchen.index') }}" class="pos-header-button">
                     <svg xmlns="http://www.w3.org/2000/svg"
-                        width="22"
-                        height="22"
+                        width="18"
+                        height="18"
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
@@ -91,6 +89,7 @@
                         <path d="M15 10V5a2 2 0 0 1 4 0v5" />
                         <path d="M9 14h6" />
                     </svg>
+                    <span>View Kitchen</span>
                 </a>
             </div>
         </div>

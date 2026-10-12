@@ -158,7 +158,7 @@
                             type="submit"
                             class="login-button">
 
-                            <span class="login-button-text">Sign in</span>
+                            <span class="login-button-text">Login</span>
 
                             <span class="login-button-icon" aria-hidden="true">
                                 <svg viewBox="0 0 24 24">

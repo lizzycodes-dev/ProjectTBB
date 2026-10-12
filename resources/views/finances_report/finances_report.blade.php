@@ -5,7 +5,7 @@
         {{-- Header --}}
         <div class="finance-header">
 
-            <h1>Finances Report</h1>
+            <h1>Sales &amp; Expenses Overview</h1>
 
             <div class="export-actions">
                 <a
@@ -23,9 +23,9 @@
 
         </div>
 
-                @php
+        @php
             $cardUrl = fn ($key) => route('finance-report.index', array_merge(
-                                request()->except(['card', 'page', 'expense_page']),
+                request()->except(['card', 'page', 'expense_page']),
                 $key ? ['card' => $key] : []
             ));
         @endphp
@@ -61,13 +61,16 @@
 
         </div>
 
-        {{-- Filters --}}       
+        {{-- Filters --}}
         <form method="GET" action="{{ route('finance-report.index') }}" class="filters-row">
 
             @if ($card)
             <input type="hidden" name="card" value="{{ $card }}">
             @endif
-            
+
+            {{-- Preserve current sort direction when any filter changes --}}
+            <input type="hidden" name="direction" value="{{ $direction ?? 'desc' }}">
+
             <div class="filter-group">
                 <select name="year" onchange="this.form.submit()">
                     <option value="">Select Year</option>
@@ -116,10 +119,37 @@
         </form>
 
         {{-- Sales Log Table --}}
+        @php
+            $nextDirection = ($direction ?? 'desc') === 'asc' ? 'desc' : 'asc';
+
+            $toggleUrl = route('finance-report.index', array_merge(
+                request()->except(['page', 'direction']),
+                ['direction' => $nextDirection]
+            ));
+        @endphp
+
         <div class="dashboard-panel sales-panel">
 
             <div class="panel-title">
-                Daily Sales Log
+                <span>Sales Log</span>
+
+                <a
+                    href="{{ $toggleUrl }}"
+                    class="sales-sort-toggle"
+                    title="Currently showing {{ ($direction ?? 'desc') === 'asc' ? 'oldest first' : 'newest first' }}. Click to switch.">
+
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        @if (($direction ?? 'desc') === 'asc')
+                            <path d="M12 19V5" />
+                            <path d="m5 12 7-7 7 7" />
+                        @else
+                            <path d="M12 5v14" />
+                            <path d="m19 12-7 7-7-7" />
+                        @endif
+                    </svg>
+
+                    <span>{{ ($direction ?? 'desc') === 'asc' ? 'Oldest first' : 'Newest first' }}</span>
+                </a>
             </div>
 
             <div class="sales-header">
@@ -150,7 +180,7 @@
 
             @endforelse
 
-                        <div class="pagination-wrap">
+            <div class="pagination-wrap">
                 {{ $orders->links() }}
             </div>
 

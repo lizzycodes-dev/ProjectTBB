@@ -45,11 +45,13 @@ composer install
 Copy the example environment file:
 
 **Windows PowerShell**
+
 ```powershell
 Copy-Item .env.example .env
 ```
 
 **Git Bash / macOS / Linux**
+
 ```bash
 cp .env.example .env
 ```
@@ -135,91 +137,58 @@ php artisan config:clear
 
 ```mermaid
 erDiagram
+    ROLES ||--o{ USERS : assigns
+    CATEGORIES ||--o{ INVENTORY_ITEMS : categorizes
+    INVENTORY_LOCATIONS ||--o{ INVENTORY_ITEMS : stores
+    UNITS o|--o{ INVENTORY_ITEMS : measures
 
-    %% =========================================
-    %% USER MANAGEMENT
-    %% =========================================
+    INVENTORY_ITEMS ||--o{ INVENTORY_ITEM_OPTION_GROUPS : has
+    OPTION_GROUPS ||--o{ INVENTORY_ITEM_OPTION_GROUPS : assigned_to
+    OPTION_GROUPS ||--o{ OPTION_VALUES : contains
 
-    ROLES {
-        bigint id PK
-        varchar name UK
-        varchar description
-        timestamp created_at
-        timestamp updated_at
-    }
+    ORDERS ||--|{ ORDER_ITEMS : contains
+    INVENTORY_ITEMS ||--o{ ORDER_ITEMS : ordered_as
+    ORDER_ITEMS ||--o| KITCHEN_ORDER_ITEMS : prepared_as
+    ORDER_ITEMS ||--o{ ORDER_ITEM_OPTIONS : has
+    OPTION_VALUES ||--o{ ORDER_ITEM_OPTIONS : selected_as
 
-    USERS {
-        bigint id PK
-        bigint role_id FK
-        varchar name
-        varchar email UK
-        varchar password
-        timestamp email_verified_at
-        timestamp created_at
-        timestamp updated_at
-    }
+    USERS ||--o{ ORDERS : processes
+    ORDERS ||--o| PAYMENTS : paid_by
+    USERS ||--o{ PAYMENTS : receives
 
+    SUPPLIERS ||--o{ PURCHASES : supplies
+    PURCHASES ||--o{ PURCHASE_ITEMS : contains
+    INVENTORY_ITEMS ||--o{ PURCHASE_ITEMS : purchased_item
+    STOCK_INS ||--o{ PURCHASE_ITEMS : recorded_in
 
-    %% =========================================
-    %% MENU MANAGEMENT
-    %% =========================================
+    INVENTORY_ITEMS ||--o{ STOCK_INS : stocked_in
+    INVENTORY_ITEMS ||--o{ STOCK_OUTS : stocked_out
+    SUPPLIERS o|--o{ STOCK_INS : supplied_by
+    USERS ||--o{ STOCK_INS : records
+    USERS ||--o{ STOCK_OUTS : records
+
+    PURCHASES o|--o{ EXPENSES : associated_with
+
+    USERS ||--o{ PROFILE_REQUESTS : submits
+    USERS o|--o{ PROFILE_REQUESTS : reviews
 
     CATEGORIES {
         bigint id PK
         varchar name UK
-        varchar description
+        text description
         boolean is_active
         timestamp created_at
         timestamp updated_at
     }
 
-    MENU_ITEMS {
-        bigint id PK
-        bigint category_id FK
-        varchar name
-        decimal base_price
-        varchar description
-        boolean is_active
-        timestamp created_at
-        timestamp updated_at
-    }
-
-
-    %% =========================================
-    %% MENU OPTIONS
-    %% =========================================
-
-    OPTION_GROUPS {
+    INVENTORY_LOCATIONS {
         bigint id PK
         varchar name UK
-        varchar description
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    OPTION_VALUES {
-        bigint id PK
-        bigint option_group_id FK
-        varchar name
-        decimal price_adjustment
+        text description
         boolean is_active
         timestamp created_at
         timestamp updated_at
     }
-
-    MENU_ITEM_OPTION_GROUPS {
-        bigint id PK
-        bigint menu_item_id FK
-        bigint option_group_id FK
-        boolean is_required
-        timestamp created_at
-        timestamp updated_at
-    }
-
-
-    %% =========================================
-    %% INVENTORY
-    %% =========================================
 
     UNITS {
         bigint id PK
@@ -231,60 +200,92 @@ erDiagram
 
     INVENTORY_ITEMS {
         bigint id PK
+        varchar name
+        bigint category_id FK
+        bigint inventory_location_id FK
         bigint unit_id FK
-        varchar name UK
+        varchar inventory_type
+        decimal price
+        text description
         boolean is_active
         timestamp created_at
         timestamp updated_at
     }
 
-    INVENTORY_LOCATIONS {
+    INVENTORY_ITEM_OPTION_GROUPS {
+        bigint id PK
+        bigint inventory_item_id FK
+        bigint option_group_id FK
+        boolean is_required
+    }
+
+    OPTION_GROUPS {
         bigint id PK
         varchar name UK
-        varchar description
+        text description
+    }
+
+    OPTION_VALUES {
+        bigint id PK
+        bigint option_group_id FK
+        varchar name
+        decimal price_adjustment
         boolean is_active
-        timestamp created_at
-        timestamp updated_at
     }
 
-    INVENTORY_STOCKS {
+    ORDERS {
         bigint id PK
+        bigint cashier_id FK
+        varchar order_number UK
+        date queue_date
+        int queue_number
+        varchar order_type
+        varchar status
+        decimal subtotal
+        decimal discount_amount
+        varchar discount_type
+        decimal total_amount
+        timestamp ordered_at
+        timestamp completed_at
+    }
+
+    ORDER_ITEMS {
+        bigint id PK
+        bigint order_id FK
         bigint inventory_item_id FK
-        bigint location_id FK
-        decimal current_quantity
-        decimal reorder_level
-        timestamp created_at
-        timestamp updated_at
+        int quantity
+        decimal unit_price
+        decimal subtotal
+        text notes
     }
 
-
-    %% =========================================
-    %% RECIPES
-    %% =========================================
-
-    RECIPE_ITEMS {
+    ORDER_ITEM_OPTIONS {
         bigint id PK
-        bigint menu_item_id FK
-        bigint inventory_item_id FK
-        decimal quantity_required
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    MENU_OPTION_RECIPE_ADJUSTMENTS {
-        bigint id PK
-        bigint menu_item_id FK
+        bigint order_item_id FK
         bigint option_value_id FK
-        bigint inventory_item_id FK
-        decimal quantity_adjustment
-        timestamp created_at
-        timestamp updated_at
     }
 
+    KITCHEN_ORDER_ITEMS {
+        bigint id PK
+        bigint order_item_id FK
+        bigint prepared_by FK
+        varchar status
+        timestamp started_at
+        timestamp completed_at
+    }
 
-    %% =========================================
-    %% SUPPLIERS
-    %% =========================================
+    PAYMENTS {
+        bigint id PK
+        bigint order_id FK
+        bigint received_by FK
+        varchar payment_method
+        decimal amount
+        decimal amount_received
+        decimal change_amount
+        varchar reference_number
+        varchar proof_path
+        timestamp paid_at
+    }
 
     SUPPLIERS {
         bigint id PK
@@ -292,198 +293,85 @@ erDiagram
         varchar contact_person
         varchar phone
         varchar email
-        varchar address
+        text address
         boolean is_active
-        timestamp created_at
-        timestamp updated_at
     }
 
-
-    %% =========================================
-    %% INVENTORY TRANSACTIONS
-    %% =========================================
-
-    INVENTORY_TRANSACTIONS {
+    PURCHASES {
         bigint id PK
-        bigint inventory_stock_id FK
         bigint supplier_id FK
-        bigint recorded_by FK
+        date purchase_date
+        varchar reference_number
+        text notes
+    }
 
-        varchar transaction_type
+    PURCHASE_ITEMS {
+        bigint id PK
+        bigint purchase_id FK
+        bigint stock_in_id FK
+        bigint inventory_item_id FK
         decimal quantity
         decimal unit_cost
-
-        varchar reference_type
-        bigint reference_id
-
-        varchar reason
-
-        timestamp transaction_date
-        timestamp created_at
-        timestamp updated_at
-    }
-
-
-    %% =========================================
-    %% ORDERS
-    %% =========================================
-
-    ORDERS {
-        bigint id PK
-        bigint cashier_id FK
-
-        varchar order_number UK
-
-        varchar order_type
-        varchar status
-
         decimal subtotal
-        decimal discount_amount
-        decimal total_amount
-
-        timestamp ordered_at
-        timestamp completed_at
-
-        timestamp created_at
-        timestamp updated_at
     }
 
-
-    ORDER_ITEMS {
+    STOCK_INS {
         bigint id PK
-        bigint order_id FK
-        bigint menu_item_id FK
-
+        bigint inventory_item_id FK
         decimal quantity
-        decimal unit_price
-        decimal subtotal
-
-        varchar notes
-
-        timestamp created_at
-        timestamp updated_at
+        bigint supplier_id FK
+        bigint recorded_by FK
+        datetime recorded_at
+        varchar remarks
     }
 
-
-    ORDER_ITEM_OPTIONS {
+    STOCK_OUTS {
         bigint id PK
-        bigint order_item_id FK
-        bigint option_value_id FK
-
-        decimal price_adjustment
-
-        timestamp created_at
-        timestamp updated_at
+        bigint inventory_item_id FK
+        decimal quantity
+        bigint recorded_by FK
+        varchar reason
+        datetime recorded_at
+        varchar remarks
     }
 
-
-    %% =========================================
-    %% KITCHEN / BAR
-    %% =========================================
-
-    KITCHEN_ORDER_ITEMS {
+    EXPENSES {
         bigint id PK
-        bigint order_item_id FK
-        bigint prepared_by FK
-
-        varchar status
-
-        timestamp started_at
-        timestamp completed_at
-
-        timestamp created_at
-        timestamp updated_at
-    }
-
-
-    %% =========================================
-    %% PAYMENTS
-    %% =========================================
-
-    PAYMENTS {
-        bigint id PK
-        bigint order_id FK
-        bigint received_by FK
-
-        varchar payment_method
-
+        bigint purchase_id FK
+        varchar description
+        varchar category
         decimal amount
-        decimal amount_received
-        decimal change_amount
-
-        varchar reference_number
-        varchar proof_path
-
-        timestamp paid_at
-
-        timestamp created_at
-        timestamp updated_at
+        date expense_date
+        text notes
     }
 
+    ROLES {
+        bigint id PK
+        varchar name UK
+        varchar description
+    }
 
-    %% =========================================
-    %% RELATIONSHIPS
-    %% =========================================
+    USERS {
+        bigint id PK
+        bigint role_id FK
+        varchar name
+        varchar email UK
+        timestamp email_verified_at
+        timestamp deleted_at
+    }
 
-
-    ROLES ||--o{ USERS : has
-
-
-    USERS ||--o{ ORDERS : processes
-    USERS ||--o{ PAYMENTS : receives
-    USERS ||--o{ INVENTORY_TRANSACTIONS : records
-    USERS ||--o{ KITCHEN_ORDER_ITEMS : prepares
-
-
-    CATEGORIES ||--o{ MENU_ITEMS : contains
-
-
-    OPTION_GROUPS ||--o{ OPTION_VALUES : contains
-
-
-    MENU_ITEMS ||--o{ MENU_ITEM_OPTION_GROUPS : supports
-
-    OPTION_GROUPS ||--o{ MENU_ITEM_OPTION_GROUPS : assigned_to
-
-
-    UNITS ||--o{ INVENTORY_ITEMS : measures
-
-    INVENTORY_ITEMS ||--o{ INVENTORY_STOCKS : has
-
-    INVENTORY_LOCATIONS ||--o{ INVENTORY_STOCKS : contains
-
-
-    MENU_ITEMS ||--o{ RECIPE_ITEMS : has
-
-    INVENTORY_ITEMS ||--o{ RECIPE_ITEMS : ingredient
-
-
-    MENU_ITEMS ||--o{ MENU_OPTION_RECIPE_ADJUSTMENTS : has
-
-    OPTION_VALUES ||--o{ MENU_OPTION_RECIPE_ADJUSTMENTS : triggers
-
-    INVENTORY_ITEMS ||--o{ MENU_OPTION_RECIPE_ADJUSTMENTS : adjusts
-
-
-    SUPPLIERS ||--o{ INVENTORY_TRANSACTIONS : provides
-
-    INVENTORY_STOCKS ||--o{ INVENTORY_TRANSACTIONS : records
-
-
-    ORDERS ||--o{ ORDER_ITEMS : contains
-
-    MENU_ITEMS ||--o{ ORDER_ITEMS : ordered
-
-
-    ORDER_ITEMS ||--o{ ORDER_ITEM_OPTIONS : has
-
-    OPTION_VALUES ||--o{ ORDER_ITEM_OPTIONS : selected
-
-
-    ORDER_ITEMS ||--o| KITCHEN_ORDER_ITEMS : prepared_as
-
-
-    ORDERS ||--o{ PAYMENTS : has
+    PROFILE_REQUESTS {
+        bigint id PK
+        bigint user_id FK
+        varchar type
+        varchar name
+        varchar email
+        text reason
+        varchar status
+        bigint reviewed_by FK
+        timestamp reviewed_at
+        text review_note
+    }
 ```
 
 ## System Process

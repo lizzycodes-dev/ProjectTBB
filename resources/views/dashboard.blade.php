@@ -260,13 +260,44 @@
 
 
         {{-- =========================================================
-             DAILY SALES LOG
-             ========================================================= --}}
+     DAILY SALES LOG
+     ========================================================= --}}
+        @php
+            $nextDirection = $direction === 'asc' ? 'desc' : 'asc';
+            $toggleUrl = route('dashboard', array_merge(
+                request()->except(['page', 'direction']),
+                ['direction' => $nextDirection]
+            ));
+        @endphp
+
         <div class="dashboard-panel sales-panel">
 
             <div class="panel-title">
                 <span>Daily Sales Log</span>
-                <span class="panel-title-count">{{ $orders->total() }}</span>
+
+                <div class="panel-title-actions">
+                    <span class="panel-title-count">{{ $orders->total() }}</span>
+
+                    <a
+                        href="{{ $toggleUrl }}"
+                        class="sales-sort-toggle"
+                        title="Currently showing {{ $direction === 'asc' ? 'oldest first' : 'newest first' }}. Click to switch.">
+
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            @if ($direction === 'asc')
+                                {{-- arrow up --}}
+                                <path d="M12 19V5" />
+                                <path d="m5 12 7-7 7 7" />
+                            @else
+                                {{-- arrow down --}}
+                                <path d="M12 5v14" />
+                                <path d="m19 12-7 7-7-7" />
+                            @endif
+                        </svg>
+
+                        <span>{{ $direction === 'asc' ? 'Oldest first' : 'Newest first' }}</span>
+                    </a>
+                </div>
             </div>
 
             <div class="sales-header">
@@ -280,7 +311,7 @@
 
             @forelse ($orders as $order)
 
-            <div class="sales-row {{ $order->status !== 'Completed' ? 'muted-row' : '' }}">
+            <div class="sales-row">
                 <span>{{ $order->queue_label }}</span>
                 <span>{{ $order->order_number }}</span>
                 <span>{{ $order->orderItems->sum('quantity') }}</span>
@@ -291,7 +322,7 @@
 
             @empty
 
-            <div class="empty-row">No orders yet today.</div>
+            <div class="empty-row">No completed orders yet today.</div>
 
             @endforelse
 
