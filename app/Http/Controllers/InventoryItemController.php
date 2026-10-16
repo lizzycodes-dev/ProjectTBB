@@ -150,18 +150,32 @@ class InventoryItemController extends Controller
 |--------------------------------------------------------------------------
 */
 
+        // PREPPED
         $preppedItems = $preppedQuery
             ->orderByDesc('is_active')
             ->orderBy('name')
             ->paginate(10, ['*'], 'prepped_page')
-            ->appends(request()->only(['search', 'category_id', 'location_id', 'tab', 'date_from', 'date_to']));
+            ->appends(request()->only(['search', 'category_id', 'location_id', 'date_from', 'date_to']))
+            ->appends(['tab' => 'prepped']);
 
-
+        // NON-COUNTABLE
         $nonCountableItems = $nonCountableQuery
             ->orderByDesc('is_active')
             ->orderBy('name')
             ->paginate(10, ['*'], 'non_countable_page')
-            ->appends(request()->only(['search', 'category_id', 'location_id', 'tab', 'date_from', 'date_to']));
+            ->appends(request()->only(['search', 'category_id', 'location_id', 'date_from', 'date_to']))
+            ->appends(['tab' => 'non-countable']);
+
+        // DRINKS (already almost correct – just make it match the style)
+        $drinkItems = Inventory_Item::with([
+            'category',
+            'inventoryLocation',
+            'unit',
+        ])
+            ->orderBy('name')
+            ->paginate(10, ['*'], 'drinks_page')
+            ->appends(request()->only(['search', 'category_id', 'location_id', 'date_from', 'date_to']))
+            ->appends(['tab' => 'drinks']);
 
 
 
@@ -281,28 +295,6 @@ class InventoryItemController extends Controller
             'Fruit Juice Pitcher',
         ];
 
-        $drinkItems = Inventory_Item::with([
-            'category',
-            'inventoryLocation',
-            'unit',
-        ])
-            ->where('inventory_type', 'physical')
-            ->where('is_active', true)
-            ->whereHas('category', function ($query) use ($drinkCategoryNames) {
-                $query->whereIn('name', $drinkCategoryNames);
-            })
-            ->when($search !== '', function ($query) use ($search) {
-                $query->where('name', 'like', "%{$search}%");
-            })
-            ->when($categoryId !== null && $categoryId !== '', function ($query) use ($categoryId) {
-                $query->where('category_id', $categoryId);
-            })
-            ->when($locationId !== null && $locationId !== '', function ($query) use ($locationId) {
-                $query->where('inventory_location_id', $locationId);
-            })
-            ->orderBy('name')
-            ->paginate(10, ['*'], 'drinks_page')
-            ->appends(request()->only(['search', 'category_id', 'location_id', 'tab', 'date_from', 'date_to']));
 
         /*
 |--------------------------------------------------------------------------

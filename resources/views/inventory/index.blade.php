@@ -975,30 +975,18 @@
             const params = new URLSearchParams(window.location.search);
             const explicitTab = params.get('tab');
 
-            let initialTab = 'prepped';
+            let initialTab;
+
             if (['prepped', 'drinks', 'non-countable'].includes(explicitTab)) {
                 initialTab = explicitTab;
             } else if (params.has('drinks_page')) {
                 initialTab = 'drinks';
             } else if (params.has('non_countable_page')) {
                 initialTab = 'non-countable';
-            }
-
-            // If URL has an explicit tab but also has other tabs' page params, clean it
-            if (explicitTab) {
-                const url = new URL(window.location.href);
-                let dirty = false;
-
-                ['prepped_page', 'drinks_page', 'non_countable_page'].forEach(p => {
-                    if (url.searchParams.has(p)) {
-                        url.searchParams.delete(p);
-                        dirty = true;
-                    }
-                });
-
-                if (dirty) {
-                    window.history.replaceState({}, '', url.toString());
-                }
+            } else if (params.has('prepped_page')) {
+                initialTab = 'prepped';
+            } else {
+                initialTab = 'prepped';
             }
 
             activateTab(initialTab, false);
@@ -1373,6 +1361,12 @@
                         description.textContent = 'Drinks are made to order. Sales are automatically tracked from POS.';
                         drinksFields.hidden = false;
                         loadDrinkSales();
+                    }
+
+                    // NEW — Drinks is read-only, so hide the Add Stock button for it.
+                    const saveBtn = document.getElementById('dailyInventorySaveButton');
+                    if (saveBtn) {
+                        saveBtn.style.display = (type === 'drinks') ? 'none' : '';
                     }
 
                     modal.classList.add('is-open');

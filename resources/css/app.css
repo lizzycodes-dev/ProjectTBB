@@ -7682,3 +7682,64 @@
     background: #eef2ff;
     color: #3730a3;
 }
+
+/* =========================================================
+   POS — menu card icon (replaces the sample image)
+   ========================================================= */
+
+.menu-card-photo-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    /* same box as the sample image, so the grid stays identical */
+    width: 100%;
+    height: 105px;
+    overflow: hidden;
+    border-radius: 6px;
+    margin-bottom: 6px;
+
+    /* soft tinted background so the icon reads as a picture */
+    background: linear-gradient(
+        180deg,
+        #f7f1ea 0%,
+        #efe4d9 100%
+    );
+    border: 1px solid var(--border);
+}
+
+.menu-card-photo-icon svg {
+    width: 56px;
+    height: 56px;
+    fill: none;
+    stroke: #78493a;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* When the card is out of stock, dim the icon too */
+.menu-card.out-of-stock .menu-card-photo-icon {
+    filter: grayscale(100%);
+    opacity: 0.55;
+}
+
+/* Keep the icon readable on hover / focus */
+.menu-card:hover .menu-card-photo-icon svg {
+    stroke: #b4473b;
+    transform: scale(1.05);
+    transition: transform 0.15s ease, stroke 0.15s ease;
+}
+
+.menu-card-photo-icon[data-category="Coffee"] {
+    background: linear-gradient(180deg, #f3e7dc 0%, #e6d1be 100%);
+}
+.menu-card-photo-icon[data-category="Non Coffee"] {
+    background: linear-gradient(180deg, #f7efe3 0%, #ecdcc5 100%);
+}
+.menu-card-photo-icon[data-category="Rice Meals"] {
+    background: linear-gradient(180deg, #f4ece4 0%, #e3d3c2 100%);
+}
+.menu-card-photo-icon[data-category="Snack Meals"] {
+    background: linear-gradient(180deg, #f5efe7 0%, #e6d8c8 100%);
+}
