@@ -133,7 +133,9 @@ php artisan config:clear
 
 ## Project Design and Documentation
 
-## Database ERD
+## Database Entity Relationship Diagram (ERD)
+
+The following diagram illustrates the database structure of the system, including its tables, attributes, primary keys (PK), foreign keys (FK), and relationships.
 
 ```mermaid
 erDiagram
@@ -373,6 +375,7 @@ erDiagram
         text review_note
     }
 ```
+
 
 ## System Process
 
