@@ -14,9 +14,10 @@
             </svg>
         </button>
 
+        <!--
         {{-- Brand --}}
         <a href="{{ Auth::user()->role_id === 3 ? '/kitchen' : (Auth::user()->role_id === 2 ? '/pos' : route('dashboard')) }}" class="sidebar-brand">
-
+            
             <img
                 src="{{ asset('images/logo/brewing-bar-logo.png') }}"
                 alt="The Brewing Bar"
@@ -33,7 +34,7 @@
             </div>
 
         </a>
-
+        -->
     </div>
 
 

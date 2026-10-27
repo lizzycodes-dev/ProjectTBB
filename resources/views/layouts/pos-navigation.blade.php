@@ -164,6 +164,8 @@
                     <nav class="pos-sidebar" id="posSidebar">
 
                         <div class="pos-sidebar-header">
+
+                            <!--
                             <a href="/pos" class="pos-sidebar-brand">
                                 <img
                                     src="{{ asset('images/logo/brewing-bar-logo.png') }}"
@@ -179,6 +181,8 @@
                                     </div>
                                 </div>
                             </a>
+
+                        -->
                         </div>
 
                         {{-- Back to Inventory (hidden for cashiers) --}}

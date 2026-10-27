@@ -221,10 +221,10 @@
                                             <span class="no-value">—</span>
                                             @endif
                                         </td>
-                                        <td><strong class="price-value">{{ $item->inventory_type }}</strong></td>
-                                        <td><strong class="price-value">₱{{ number_format($item->price, 2) }}</strong></td>
-                                        <td><strong class="stock-number">{{ number_format($currentStock, 3) }}</strong></td>
-                                        <td><strong class="price-value">{{ $item->description }}</strong></td>
+                                        <td>{{ $item->inventory_type }}</td>
+                                        <td>₱{{ number_format($item->price, 2) }}</td>
+                                        <td>{{ number_format($currentStock, 3) }}</td>
+                                        <td>{{ $item->description }}</td>
                                         <td>
                                             @if ($item->is_active)
                                             <span class="item-status active">Active</span>
@@ -326,9 +326,9 @@
                                         <td><strong class="item-name">{{ $item->name }}</strong></td>
                                         <td><span class="category-badge">{{ $item->category?->name ?? '—' }}</span></td>
                                         <td>{{ $item->inventoryLocation?->name ?? '—' }}</td>
-                                        <td><strong class="price-value">₱{{ number_format($item->price, 2) }}</strong></td>
+                                        <td>₱{{ number_format($item->price, 2) }}</td>
                                         <td><span class="manual-stock-badge">Made to Order</span></td>
-                                        <td><strong class="price-value">{{ $item->description }}</strong></td>
+                                        <td>{{ $item->description }}</td>
                                         <td>
                                             @if ($item->is_active)
                                             <span class="item-status active">Active</span>

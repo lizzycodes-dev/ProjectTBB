@@ -9,7 +9,7 @@
 
             <div class="login-brand-inner">
 
-                <div class="login-brand-logo-frame">
+                <!--<div class="login-brand-logo-frame">
                     <img
                         src="{{ asset('images/logo/brewing-bar-logo.png') }}"
                         alt="The Brewing Bar"
@@ -22,7 +22,7 @@
                         Brewed fresh. Served warm.
                     </span>
                     <span class="login-brand-line"></span>
-                </div>
+                </div> -->
 
             </div>
 
@@ -41,7 +41,7 @@
                     <header class="login-card-header">
                         <h1>Welcome back</h1>
                         <p class="login-subtitle">
-                            Sign in to The Brewing Bar POS &amp; Inventory
+                            Sign in
                         </p>
                     </header>
 

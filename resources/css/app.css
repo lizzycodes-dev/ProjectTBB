@@ -1910,7 +1910,7 @@
     max-width: 620px;
 }
 
-/* Logo — transparent on the dark brown, matching the sidebar */
+/* Logo — transparent on the dark brown, matching the sidebar 
 .login-brand-logo-frame {
     position: relative;
     width: 100%;
@@ -1927,7 +1927,7 @@
     box-shadow: none;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-}
+}*/
 
 /* Soft warm glow behind the logo instead of a card */
 .login-brand-logo-frame::before {
