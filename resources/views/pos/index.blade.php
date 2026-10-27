@@ -286,7 +286,7 @@
 
                             @if (!$usesStockStatus)
                             <span class="stock-badge stock-placeholder">
-                                &nbsp;
+                                Null
                             </span>
 
                             @elseif ($menuItem->stock_status === 'out')
